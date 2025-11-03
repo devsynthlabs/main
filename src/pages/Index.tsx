@@ -50,7 +50,7 @@ const Index = () => {
 
   // 🖥️ Fetch data from backend on component mount
   useEffect(() => {
-    fetch("http://localhost:5000/api/dashboard")
+    fetch("/api/dashboard")
       .then((res) => res.json())
       .then((data) => {
         if (data.features) setFeatures(data.features);

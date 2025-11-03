@@ -99,7 +99,7 @@ const Payroll = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/payroll/add", {
+      const res = await fetch("/api/payroll/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payrollData),

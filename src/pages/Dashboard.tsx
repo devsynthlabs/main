@@ -33,7 +33,7 @@ const Dashboard = () => {
     if (!token) {
       navigate("/auth");
     } else {
-      fetch("http://localhost:5000/api/user", {
+      fetch("/api/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
