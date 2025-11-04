@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,10 +39,10 @@ const Returns = () => {
   // Mouse tracking with trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       const newTrails: Trail[] = [];
       for (let i = 0; i < 3; i++) {
         const trail: Trail = {
@@ -53,14 +54,14 @@ const Returns = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -69,7 +70,7 @@ const Returns = () => {
   useEffect(() => {
     const fetchReturns = async () => {
       try {
-        const response = await fetch("/api/tax/all");
+        const response = await fetch(`${API_ENDPOINTS.TAX}/all`);
         const data = await response.json();
         setReturns(data);
         setFilteredReturns(data);
@@ -141,7 +142,7 @@ Powered by Advanced Tax Calculation Engine ✨
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-blue-100 relative overflow-hidden">
       {/* Advanced Custom Cursor System */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -157,20 +158,19 @@ Powered by Advanced Tax Calculation Engine ✨
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* 2. Middle Pulsing Ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* 3. Inner Glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* 4. Center Dot - Main cursor indicator */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+            }`}></div>
+
           {/* 5. Crosshair Lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             {/* Horizontal line */}
@@ -225,16 +225,16 @@ Powered by Advanced Tax Calculation Engine ✨
       <div className="fixed inset-0 pointer-events-none">
         {/* Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        
+
         {/* Mouse-following gradient orb */}
-        <div 
+        <div
           className="absolute w-[800px] h-[800px] rounded-full bg-gradient-to-r from-blue-500/30 to-cyan-500/30 blur-3xl transition-all duration-1000 ease-out"
-          style={{ 
-            top: mousePosition.y / 20 - 400, 
-            left: mousePosition.x / 20 - 400 
+          style={{
+            top: mousePosition.y / 20 - 400,
+            left: mousePosition.x / 20 - 400
           }}
         />
-        
+
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
         <div className="absolute top-40 right-40 w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
@@ -244,8 +244,8 @@ Powered by Advanced Tax Calculation Engine ✨
       {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl shadow-blue-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleBackToDashboard}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -254,9 +254,9 @@ Powered by Advanced Tax Calculation Engine ✨
             <ArrowLeft className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
             Back to Dashboard
           </Button>
-          
+
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/40"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -276,7 +276,7 @@ Powered by Advanced Tax Calculation Engine ✨
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Search Section */}
-        <Card 
+        <Card
           className="mb-8 backdrop-blur-2xl bg-white/10 border border-blue-400/30 rounded-3xl shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-500 hover:-translate-y-2"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
@@ -319,8 +319,8 @@ Powered by Advanced Tax Calculation Engine ✨
         {filteredReturns.length > 0 ? (
           <div className="grid gap-6">
             {filteredReturns.map((ret, index) => (
-              <Card 
-                key={ret._id} 
+              <Card
+                key={ret._id}
                 className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/20 hover:shadow-cyan-500/60 hover:bg-white/10 transition-all duration-500 hover:-translate-y-4 hover:scale-[1.02] group relative overflow-hidden"
                 style={{ animationDelay: `${index * 100}ms` }}
                 onMouseEnter={() => setIsHovering(true)}
@@ -329,10 +329,10 @@ Powered by Advanced Tax Calculation Engine ✨
                 {/* Enhanced glow effect on hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+
                 {/* Top glow line */}
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+
                 <CardContent className="pt-6 relative z-10">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-3">
@@ -342,8 +342,8 @@ Powered by Advanced Tax Calculation Engine ✨
                             ? "Intrastate (CGST + SGST)"
                             : "Interstate (IGST)"}
                         </h3>
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="border-blue-400/40 text-blue-300 backdrop-blur-xl bg-blue-500/10 px-3 py-1 rounded-xl font-semibold group-hover:border-cyan-400/60 group-hover:text-cyan-300 transition-all duration-300"
                         >
                           {ret.transactionType}
@@ -383,7 +383,7 @@ Powered by Advanced Tax Calculation Engine ✨
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => downloadPDF(ret)}
                       onMouseEnter={() => setIsHovering(true)}
@@ -399,7 +399,7 @@ Powered by Advanced Tax Calculation Engine ✨
             ))}
           </div>
         ) : (
-          <Card 
+          <Card
             className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/30"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}

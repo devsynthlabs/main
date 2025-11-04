@@ -38,7 +38,7 @@ declare global {
   }
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "https://software.saaiss.in/api";
+import { API_ENDPOINTS, apiRequest } from "@/lib/api";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -102,9 +102,8 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/signin`, {
+      const res = await apiRequest(API_ENDPOINTS.SIGNIN, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: signInEmail, password: signInPassword }),
       });
 
@@ -146,9 +145,8 @@ const Auth = () => {
     setPaymentLoading(true);
 
     try {
-      const orderRes = await fetch(`${API_URL}/create-order`, {
+      const orderRes = await apiRequest(API_ENDPOINTS.CREATE_ORDER, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: signUpEmail }),
       });
 
@@ -158,9 +156,8 @@ const Auth = () => {
       if (orderData.devMode) {
         try {
           setLoading(true);
-          const verifyRes = await fetch(`${API_URL}/verify-payment`, {
+          const verifyRes = await apiRequest(API_ENDPOINTS.VERIFY_PAYMENT, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               razorpay_order_id: orderData.orderId,
               razorpay_payment_id: "dev_payment_" + Date.now(),
@@ -204,9 +201,8 @@ const Auth = () => {
         handler: async function (response: RazorpayResponse) {
           try {
             setLoading(true);
-            const verifyRes = await fetch(`${API_URL}/verify-payment`, {
+            const verifyRes = await apiRequest(API_ENDPOINTS.VERIFY_PAYMENT, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,

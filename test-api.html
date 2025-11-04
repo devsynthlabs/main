@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>API Configuration Test</title>
+</head>
+
+<body>
+  <h1>API Configuration Test</h1>
+  <button onclick="testAPI()">Test API Connection</button>
+  <div id="result"></div>
+
+  <script>
+    // Simulate the environment variables
+    const isDevelopment = true; // VITE_DEV_MODE=true
+    const VITE_API_URL = "http://localhost:5000/api";
+    const VITE_PROD_API_URL = "https://software.saaiss.in/api";
+
+    // Get the appropriate API URL based on environment
+    const getApiUrl = () => {
+      if (isDevelopment) {
+        return VITE_API_URL || 'http://localhost:5000/api';
+      }
+      return VITE_PROD_API_URL || 'https://software.saaiss.in/api';
+    };
+
+    const API_BASE_URL = getApiUrl();
+
+    async function testAPI() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Testing API connection...</p>';
+
+      try {
+        console.log('🔧 API Configuration:', {
+          isDevelopment,
+          apiUrl: API_BASE_URL,
+          environment: isDevelopment ? 'Development' : 'Production'
+        });
+
+        const response = await fetch(`${API_BASE_URL}/health`);
+        const data = await response.json();
+
+        resultDiv.innerHTML = `
+                    <h3>✅ API Connection Successful!</h3>
+                    <p><strong>Environment:</strong> ${isDevelopment ? 'Development' : 'Production'}</p>
+                    <p><strong>API URL:</strong> ${API_BASE_URL}</p>
+                    <p><strong>Response:</strong> ${JSON.stringify(data, null, 2)}</p>
+                `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+                    <h3>❌ API Connection Failed</h3>
+                    <p><strong>Environment:</strong> ${isDevelopment ? 'Development' : 'Production'}</p>
+                    <p><strong>API URL:</strong> ${API_BASE_URL}</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+      }
+    }
+  </script>
+</body>
+
+</html>

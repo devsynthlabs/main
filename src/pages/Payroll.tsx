@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,10 +45,10 @@ const Payroll = () => {
   // Mouse tracking with enhanced trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       // Create multiple trail particles
       const newTrails: Trail[] = [];
       for (let i = 0; i < 3; i++) {
@@ -60,15 +61,15 @@ const Payroll = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       // Remove trails after animation
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -99,7 +100,7 @@ const Payroll = () => {
     };
 
     try {
-      const res = await fetch("/api/payroll/add", {
+      const res = await fetch(`${API_ENDPOINTS.PAYROLL}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payrollData),
@@ -117,7 +118,7 @@ const Payroll = () => {
 
   const downloadSlip = () => {
     if (netSalary === null) return;
-    
+
     // Create salary slip content
     const slipContent = `
 ╔════════════════════════════════════════════╗
@@ -162,7 +163,7 @@ Powered by Advanced Payroll Engine ✨
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
       {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -178,20 +179,19 @@ Powered by Advanced Payroll Engine ✨
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* Middle pulsing ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* Inner glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
+            }`}></div>
+
           {/* Crosshair lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
@@ -249,10 +249,10 @@ Powered by Advanced Payroll Engine ✨
             left: mousePosition.x / 20 - 400,
           }}
         />
-        
+
         {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-        
+
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
         <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
@@ -273,7 +273,7 @@ Powered by Advanced Payroll Engine ✨
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -292,14 +292,14 @@ Powered by Advanced Payroll Engine ✨
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-        <Card 
+        <Card
           className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
           {/* Glow effect at top */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-          
+
           <CardHeader className="relative">
             <div className="flex items-center justify-between">
               <div>
@@ -386,14 +386,14 @@ Powered by Advanced Payroll Engine ✨
 
             {/* Display Net Salary */}
             {showResult && netSalary !== null && (
-              <Card 
+              <Card
                 className="backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700 relative"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
               >
                 {/* Top glow effect */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
-                
+
                 {/* Corner badge */}
                 <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-yellow-400/30 to-amber-400/30 rounded-full backdrop-blur-md border border-yellow-400/50 flex items-center gap-1 shadow-lg shadow-yellow-400/30">
                   <Sparkles className="h-3 w-3 text-yellow-300" />
@@ -403,7 +403,7 @@ Powered by Advanced Payroll Engine ✨
                 <CardContent className="pt-12 pb-12 px-8 text-center relative">
                   {/* Background glow */}
                   <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-500/10 blur-2xl" />
-                  
+
                   <div className="relative z-10">
                     <p className="text-xl text-cyan-300 mb-4 font-semibold tracking-wide uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]">Net Salary</p>
                     <div className="relative inline-block mb-8">
@@ -413,7 +413,7 @@ Powered by Advanced Payroll Engine ✨
                       {/* Glow rings */}
                       <div className="absolute inset-0 bg-cyan-400/20 blur-3xl rounded-full animate-pulse" />
                     </div>
-                    
+
                     <Button
                       onClick={downloadSlip}
                       onMouseEnter={() => setIsHovering(true)}
@@ -423,7 +423,7 @@ Powered by Advanced Payroll Engine ✨
                       <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
                       Download Salary Slip
                     </Button>
-                    
+
                     <p className="text-cyan-200/80 text-sm mt-6 flex items-center justify-center gap-2 font-medium">
                       <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
                       Save the slip for your records
