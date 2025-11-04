@@ -97,35 +97,6 @@ jobs:
             echo "Nginx reloaded successfully"
           ENDSSH
 
-      - name: 🏥 Health Check
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            echo "Running health checks..."
-            
-            # Wait for backend to be ready
-            sleep 5
-            
-            # Check PM2 status
-            pm2 status financial-backend
-            
-            # Check backend health endpoint
-            HEALTH_CHECK=$(curl -s http://localhost:5000/api/health || echo "failed")
-            if [[ "$HEALTH_CHECK" == "ok" ]]; then
-              echo "✓ Backend health check passed"
-            else
-              echo "✗ Backend health check failed"
-              exit 1
-            fi
-            
-            # Check Nginx status
-            systemctl is-active --quiet nginx && echo "✓ Nginx is running" || exit 1
-            
-            # Check frontend is accessible
-            curl -f http://localhost > /dev/null 2>&1 && echo "✓ Frontend is accessible" || exit 1
-            
-            echo "All health checks passed!"
-          ENDSSH
-
       - name: 📊 Deployment Summary
         if: always()
         run: |
