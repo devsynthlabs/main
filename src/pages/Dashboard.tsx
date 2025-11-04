@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Users,
@@ -34,7 +35,7 @@ const Dashboard = () => {
     if (!token) {
       navigate("/auth");
     } else {
-      fetch("http://localhost:5000/api/user", {
+      fetch(API_ENDPOINTS.USER, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
@@ -65,10 +66,10 @@ const Dashboard = () => {
   // 🖱️ Enhanced mouse tracking with trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       // Create multiple trail particles
       const newTrails = [];
       for (let i = 0; i < 3; i++) {
@@ -81,15 +82,15 @@ const Dashboard = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       // Remove trails after animation
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -160,7 +161,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white relative overflow-hidden">
       {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -176,20 +177,19 @@ const Dashboard = () => {
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* Middle pulsing ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* Inner glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
+            }`}></div>
+
           {/* Crosshair lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
@@ -239,7 +239,7 @@ const Dashboard = () => {
 
       {/* Animated gradient mesh background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px] transition-all duration-1000"
           style={{
             top: mousePosition.y / 20 - 400,
@@ -247,20 +247,20 @@ const Dashboard = () => {
           }}
         ></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="absolute top-1/3 right-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-        
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 right-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
-        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
-        <div className="absolute bottom-40 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-40 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
       </div>
 
       {/* Grid overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
 
       {/* Header */}
-      <header 
+      <header
         className="bg-white/5 border-b border-blue-400/20 shadow-2xl backdrop-blur-2xl relative z-10 sticky top-0"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
@@ -300,7 +300,7 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-6 py-16 relative z-10">
         {/* Hero Section */}
         <div className="text-center mb-20 relative">
-          <div 
+          <div
             className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-cyan-500/20 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 group cursor-pointer"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -323,8 +323,8 @@ const Dashboard = () => {
           {/* Feature Pills */}
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {features.map((feature, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="flex items-center gap-3 bg-white/10 backdrop-blur-xl px-6 py-3 rounded-full border border-blue-400/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 group cursor-pointer"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
@@ -363,11 +363,11 @@ const Dashboard = () => {
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
               className="group cursor-pointer bg-gradient-to-br from-white/10 to-white/5 border border-blue-400/20 rounded-3xl p-8 shadow-2xl hover:shadow-[0_20px_60px_rgba(59,130,246,0.4)] transition-all duration-500 transform hover:-translate-y-4 hover:scale-[1.02] backdrop-blur-2xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/10 hover:border-blue-400/40 relative overflow-hidden"
-              style={{animationDelay: `${index * 100}ms`}}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Animated gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-indigo-500/0 group-hover:from-blue-500/10 group-hover:to-indigo-500/10 transition-all duration-500 rounded-3xl"></div>
-              
+
               {/* Badge */}
               <div className="absolute top-4 right-4 flex items-center gap-1 bg-blue-500/20 backdrop-blur-xl px-3 py-1 rounded-full border border-blue-400/30">
                 <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
@@ -398,7 +398,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Action button */}
-                <Button 
+                <Button
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-xl shadow-blue-600/40 hover:shadow-2xl hover:shadow-blue-500/60 transition-all duration-300 group/btn border-none py-6 rounded-xl"
@@ -416,7 +416,7 @@ const Dashboard = () => {
 
         {/* CTA Section */}
         <div className="mt-20 relative">
-          <div 
+          <div
             className="bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-cyan-600/20 backdrop-blur-2xl rounded-3xl p-12 border border-blue-400/30 shadow-2xl text-center relative overflow-hidden"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -430,7 +430,7 @@ const Dashboard = () => {
                 Join thousands of businesses already saving time and scaling faster with AI-powered automation
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Button 
+                <Button
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold px-10 py-6 text-lg rounded-xl shadow-2xl shadow-blue-600/50 hover:shadow-blue-500/70 hover:scale-105 transition-all duration-300 border-none"
@@ -445,7 +445,7 @@ const Dashboard = () => {
       </main>
 
       {/* Footer */}
-      <footer 
+      <footer
         className="border-t border-blue-400/20 bg-white/5 text-center py-10 mt-24 backdrop-blur-2xl relative z-10"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}

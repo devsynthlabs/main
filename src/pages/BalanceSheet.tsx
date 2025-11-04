@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ const BalanceSheet = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [cursorTrail, setCursorTrail] = useState([]);
   const [isHovering, setIsHovering] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     currentAssets: "",
     nonCurrentAssets: "",
@@ -24,10 +25,10 @@ const BalanceSheet = () => {
   // Mouse tracking with trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       const newTrails = [];
       for (let i = 0; i < 3; i++) {
         const trail = {
@@ -39,14 +40,14 @@ const BalanceSheet = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -84,7 +85,7 @@ const BalanceSheet = () => {
     setBalanceSheet(dataToSave);
 
     try {
-      const res = await fetch("http://localhost:5000/api/balancesheet/add", {
+      const res = await fetch(`${API_ENDPOINTS.BALANCE}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataToSave),
@@ -152,7 +153,7 @@ Powered by Advanced Financial Analytics Engine ✨
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
       {/* Advanced Custom Cursor System */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -168,20 +169,19 @@ Powered by Advanced Financial Analytics Engine ✨
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* 2. Middle Pulsing Ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* 3. Inner Glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* 4. Center Dot - Main cursor indicator */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+            }`}></div>
+
           {/* 5. Crosshair Lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             {/* Horizontal line */}
@@ -234,13 +234,13 @@ Powered by Advanced Financial Analytics Engine ✨
 
       {/* Animated Background Effects */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      
+
       {/* Mouse-following gradient orb */}
-      <div 
+      <div
         className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000 pointer-events-none"
-        style={{ 
-          top: mousePosition.y / 20 - 400, 
-          left: mousePosition.x / 20 - 400 
+        style={{
+          top: mousePosition.y / 20 - 400,
+          left: mousePosition.x / 20 - 400
         }}
       />
 
@@ -252,7 +252,7 @@ Powered by Advanced Financial Analytics Engine ✨
       {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl shadow-blue-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Button 
+          <Button
             variant="ghost"
             onClick={handleBackToDashboard}
             onMouseEnter={() => setIsHovering(true)}
@@ -263,7 +263,7 @@ Powered by Advanced Financial Analytics Engine ✨
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 shadow-2xl shadow-blue-500/40"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -283,13 +283,13 @@ Powered by Advanced Financial Analytics Engine ✨
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Card */}
-          <Card 
+          <Card
             className="backdrop-blur-2xl bg-white/10 border border-blue-400/30 shadow-2xl shadow-blue-500/40 rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
+
             <CardHeader className="relative">
               <div className="absolute top-4 right-4 flex gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -298,7 +298,7 @@ Powered by Advanced Financial Analytics Engine ✨
               <CardTitle className="text-2xl font-bold text-white">Enter Balance Sheet Data</CardTitle>
               <CardDescription className="text-blue-300">Input your financial values below</CardDescription>
             </CardHeader>
-            
+
             <CardContent className="space-y-6 relative">
               {/* Assets Section */}
               <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-400/20 backdrop-blur-xl">
@@ -395,7 +395,7 @@ Powered by Advanced Financial Analytics Engine ✨
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={generateBalanceSheet}
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
@@ -409,13 +409,13 @@ Powered by Advanced Financial Analytics Engine ✨
 
           {/* Results Card */}
           {balanceSheet && (
-            <Card 
+            <Card
               className={`backdrop-blur-2xl ${balanceSheet.balanced ? 'bg-slate-800/90 border-emerald-400/60 shadow-emerald-500/60' : 'bg-slate-800/90 border-red-400/60 shadow-red-500/60'} border-2 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500 animate-in fade-in slide-in-from-right`}
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${balanceSheet.balanced ? 'from-emerald-500/10 via-transparent to-cyan-500/10' : 'from-red-500/10 via-transparent to-orange-500/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-              
+
               {/* Status Badge */}
               <div className="absolute top-6 right-6 z-10">
                 <div className={`px-4 py-2 rounded-full backdrop-blur-xl ${balanceSheet.balanced ? 'bg-emerald-500/30 border border-emerald-400/50' : 'bg-red-500/30 border border-red-400/50'} flex items-center gap-2 shadow-lg`}>
@@ -439,7 +439,7 @@ Powered by Advanced Financial Analytics Engine ✨
                   {balanceSheet.balanced ? "Balance sheet is balanced ✓" : "Balance sheet is NOT balanced"}
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent className="space-y-6 relative">
                 {/* Assets Display */}
                 <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/20 backdrop-blur-xl">
@@ -494,7 +494,7 @@ Powered by Advanced Financial Analytics Engine ✨
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={downloadReport}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}

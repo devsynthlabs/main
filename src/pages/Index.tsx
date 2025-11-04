@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Building2, ArrowRight, CheckCircle2, BarChart3, Users, TrendingUp, Shield, Zap, Lock, Clock, Database, Award, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -19,10 +20,10 @@ const Index = () => {
   // 🖱️ Enhanced mouse tracking with trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       // Create multiple trail particles
       const newTrails = [];
       for (let i = 0; i < 3; i++) {
@@ -35,28 +36,28 @@ const Index = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       // Remove trails after animation
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   // 🖥️ Fetch data from backend on component mount
   useEffect(() => {
-    fetch("http://localhost:5000/api/dashboard")
+    fetch(`${API_BASE_URL}/dashboard`)
       .then((res) => res.json())
       .then((data) => {
         if (data.features) setFeatures(data.features);
 
         if (data.stats) {
-          const mappedStats = data.stats.map((stat: any, index: number) => {
+          const mappedStats = data.stats.map((stat: unknown, index: number) => {
             const icons = [<TrendingUp key={1} className="w-8 h-8" />, <Users key={2} className="w-8 h-8" />, <BarChart3 key={3} className="w-8 h-8" />];
             return {
               icon: icons[index % icons.length],
@@ -88,7 +89,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
       {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -104,20 +105,19 @@ const Index = () => {
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* Middle pulsing ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* Inner glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
+            }`}></div>
+
           {/* Crosshair lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
@@ -167,7 +167,7 @@ const Index = () => {
 
       {/* YouTube Demo Modal */}
       {showDemo && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -219,19 +219,19 @@ const Index = () => {
 
       {/* Mouse-responsive animated background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="absolute w-[800px] h-[800px] bg-gradient-to-br from-blue-500/30 via-cyan-500/20 to-transparent rounded-full blur-3xl transition-all duration-1000"
-          style={{ 
-            top: mousePosition.y / 20 - 400, 
+          style={{
+            top: mousePosition.y / 20 - 400,
             left: mousePosition.x / 20 - 400,
           }}
         ></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        
+
         {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-        
+
         {/* Floating particles */}
         <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
         <div className="absolute top-2/3 right-1/3 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
@@ -239,13 +239,13 @@ const Index = () => {
       </div>
 
       {/* Header */}
-      <header 
+      <header
         className="sticky top-0 z-50 border-b border-blue-400/20 bg-slate-900/50 backdrop-blur-xl shadow-2xl shadow-blue-500/20"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center space-x-3 group"
@@ -285,7 +285,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div 
+            <div
               className="inline-block mb-6 px-6 py-3 bg-white/5 backdrop-blur-xl border border-blue-400/20 rounded-full shadow-2xl shadow-blue-500/30 relative"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -293,7 +293,7 @@ const Index = () => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/80"></div>
               <span className="text-blue-300 text-sm font-bold">🚀 Now with AI-Powered Insights</span>
             </div>
-            
+
             <h2 className="text-6xl md:text-7xl font-black mb-6 animate-in fade-in duration-1000">
               <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(59,130,246,0.9)]">
                 Streamline Your
@@ -301,9 +301,9 @@ const Index = () => {
               <br />
               <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">Financial Operations</span>
             </h2>
-            
+
             <p className="text-xl text-blue-200/80 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
-              Automate payroll, tax management, and financial reporting with AI-driven accuracy. 
+              Automate payroll, tax management, and financial reporting with AI-driven accuracy.
               Save time, reduce errors, and focus on growing your business.
             </p>
 
@@ -332,15 +332,15 @@ const Index = () => {
           </motion.div>
 
           {/* Highlights Bar */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto"
           >
             {highlights.map((item, i) => (
-              <motion.div 
-                key={i} 
+              <motion.div
+                key={i}
                 whileHover={{ y: -8, scale: 1.02 }}
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
@@ -409,24 +409,24 @@ const Index = () => {
         </div>
 
         {/* Stats Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="py-20"
         >
-          <div 
+          <div
             className="bg-gradient-to-br from-blue-600/20 via-cyan-600/10 to-indigo-600/20 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-blue-400/30 relative overflow-hidden"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-            
+
             <div className="relative z-10">
               <h3 className="text-5xl font-black text-white text-center mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">Platform Performance</h3>
               <p className="text-blue-200/80 text-center mb-12 font-medium">Trusted by thousands of businesses worldwide</p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {stats.length > 0 ? (
                   stats.map((stat, i) => (
@@ -483,20 +483,20 @@ const Index = () => {
         </div>
 
         {/* Testimonials Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="py-20"
         >
-          <div 
+          <div
             className="bg-gradient-to-br from-blue-600/20 via-cyan-600/10 to-indigo-600/20 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-blue-400/30"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             <h3 className="text-5xl font-black text-white text-center mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">What Our Clients Say</h3>
             <p className="text-blue-200/80 text-center mb-12 font-medium">Join thousands of satisfied customers</p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {testimonials.length > 0 ? (
                 testimonials.map((t, i) => (
@@ -515,7 +515,7 @@ const Index = () => {
                     <div className="flex mb-4 relative z-10">
                       {[...Array(5)].map((_, i) => (
                         <svg key={i} className="w-5 h-5 text-yellow-400 fill-current drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" viewBox="0 0 20 20">
-                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
                         </svg>
                       ))}
                     </div>
@@ -547,7 +547,7 @@ const Index = () => {
           viewport={{ once: true }}
           className="py-20"
         >
-          <div 
+          <div
             className="bg-gradient-to-r from-blue-600/30 via-cyan-600/20 to-indigo-600/30 backdrop-blur-2xl rounded-3xl p-16 text-center shadow-2xl border border-blue-400/30 relative overflow-hidden"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -576,7 +576,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer 
+      <footer
         className="border-t border-blue-400/20 bg-slate-900/80 backdrop-blur-xl mt-20"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}

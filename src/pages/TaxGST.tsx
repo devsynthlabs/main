@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,10 +61,10 @@ const TaxGST = () => {
   // Mouse tracking with trail effect - ONLY for visual effects
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       const newTrails: Trail[] = [];
       for (let i = 0; i < 3; i++) {
         const trail: Trail = {
@@ -75,14 +76,14 @@ const TaxGST = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -91,7 +92,7 @@ const TaxGST = () => {
   useEffect(() => {
     const fetchReturns = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/tax/all");
+        const response = await fetch(`${API_ENDPOINTS.TAX}/all`);
         const data = await response.json();
         setReturns(data);
         setFilteredReturns(data);
@@ -135,7 +136,7 @@ const TaxGST = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/tax/add", {
+      const res = await fetch(`${API_ENDPOINTS.TAX}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(taxData),
@@ -147,7 +148,7 @@ const TaxGST = () => {
         console.error("Error saving data:", data);
       } else {
         // Refresh returns data after successful save
-        const response = await fetch("http://localhost:5000/api/tax/all");
+        const response = await fetch(`${API_ENDPOINTS.TAX}/all`);
         const newData = await response.json();
         setReturns(newData);
         setFilteredReturns(newData);
@@ -218,7 +219,7 @@ Powered by Advanced Tax Calculation Engine ✨
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
       {/* Enhanced Custom Cursor System - VISUAL ONLY */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -234,20 +235,19 @@ Powered by Advanced Tax Calculation Engine ✨
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-          
+
           {/* 2. Middle Pulsing Ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-          
+
           {/* 3. Inner Glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          
+
           {/* 4. Center Dot - Main cursor indicator */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
-          }`}></div>
-          
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+            }`}></div>
+
           {/* 5. Crosshair Lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             {/* Horizontal line */}
@@ -310,10 +310,10 @@ Powered by Advanced Tax Calculation Engine ✨
             left: mousePosition.x / 20 - 400,
           }}
         />
-        
+
         {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-        
+
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
         <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
@@ -335,7 +335,7 @@ Powered by Advanced Tax Calculation Engine ✨
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -356,7 +356,7 @@ Powered by Advanced Tax Calculation Engine ✨
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full grid-cols-2 backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-2xl p-1">
-            <TabsTrigger 
+            <TabsTrigger
               value="calculator"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
               onMouseEnter={() => setIsHovering(true)}
@@ -365,7 +365,7 @@ Powered by Advanced Tax Calculation Engine ✨
               <Calculator className="h-4 w-4" />
               GST Calculator
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="returns"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
               onMouseEnter={() => setIsHovering(true)}
@@ -377,13 +377,13 @@ Powered by Advanced Tax Calculation Engine ✨
           </TabsList>
 
           <TabsContent value="calculator">
-            <Card 
+            <Card
               className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-              
+
               <CardHeader className="relative">
                 <div className="flex items-center justify-between">
                   <div>
@@ -438,7 +438,7 @@ Powered by Advanced Tax Calculation Engine ✨
                       GST Rate (%)
                     </Label>
                     <Select value={gstRate} onValueChange={setGstRate}>
-                      <SelectTrigger 
+                      <SelectTrigger
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 hover:bg-white/10 transition-all duration-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30"
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
@@ -461,7 +461,7 @@ Powered by Advanced Tax Calculation Engine ✨
                       Transaction Type
                     </Label>
                     <Select value={transactionType} onValueChange={setTransactionType}>
-                      <SelectTrigger 
+                      <SelectTrigger
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 hover:bg-white/10 transition-all duration-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30"
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
@@ -497,7 +497,7 @@ Powered by Advanced Tax Calculation Engine ✨
                 {showResult && results && (
                   <Card className="backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700 relative mt-8">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
-                    
+
                     <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-cyan-400/30 to-blue-400/30 rounded-full backdrop-blur-md border border-cyan-400/50 flex items-center gap-1 shadow-lg shadow-cyan-400/30">
                       <TrendingUp className="h-3 w-3 text-cyan-300" />
                       <span className="text-xs text-cyan-100 font-bold">Calculated</span>
@@ -512,7 +512,7 @@ Powered by Advanced Tax Calculation Engine ✨
 
                     <CardContent className="space-y-4 p-8 relative">
                       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-500/10 blur-2xl" />
-                      
+
                       <div className="relative z-10 space-y-3">
                         {/* Base Amount */}
                         <div className="flex justify-between items-center p-4 rounded-xl backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-[1.02] transition-all duration-300">
@@ -576,7 +576,7 @@ Powered by Advanced Tax Calculation Engine ✨
 
           <TabsContent value="returns">
             {/* Search Section */}
-            <Card 
+            <Card
               className="mb-8 backdrop-blur-2xl bg-white/10 border border-blue-400/30 rounded-3xl shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-500 hover:-translate-y-2"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -619,8 +619,8 @@ Powered by Advanced Tax Calculation Engine ✨
             {filteredReturns.length > 0 ? (
               <div className="grid gap-6">
                 {filteredReturns.map((ret, index) => (
-                  <Card 
-                    key={ret._id} 
+                  <Card
+                    key={ret._id}
                     className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/20 hover:shadow-cyan-500/60 hover:bg-white/10 transition-all duration-500 hover:-translate-y-4 hover:scale-[1.02] group relative overflow-hidden"
                     style={{ animationDelay: `${index * 100}ms` }}
                     onMouseEnter={() => setIsHovering(true)}
@@ -628,9 +628,9 @@ Powered by Advanced Tax Calculation Engine ✨
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
+
                     <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
+
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-3">
@@ -640,8 +640,8 @@ Powered by Advanced Tax Calculation Engine ✨
                                 ? "Intrastate (CGST + SGST)"
                                 : "Interstate (IGST)"}
                             </h3>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className="border-blue-400/40 text-blue-300 backdrop-blur-xl bg-blue-500/10 px-3 py-1 rounded-xl font-semibold group-hover:border-cyan-400/60 group-hover:text-cyan-300 transition-all duration-300"
                             >
                               {ret.transactionType}
@@ -681,7 +681,7 @@ Powered by Advanced Tax Calculation Engine ✨
                           </div>
                         </div>
 
-                        <Button 
+                        <Button
                           variant="outline"
                           onClick={() => downloadPDF(ret)}
                           onMouseEnter={() => setIsHovering(true)}
@@ -697,7 +697,7 @@ Powered by Advanced Tax Calculation Engine ✨
                 ))}
               </div>
             ) : (
-              <Card 
+              <Card
                 className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/30"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
