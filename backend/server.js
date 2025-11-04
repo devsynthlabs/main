@@ -177,12 +177,14 @@ app.post("/api/create-order", async (req, res) => {
 
     // Development mode bypass
     if (process.env.DEV_MODE === "true") {
+      console.log("🔧 Development mode: Bypassing payment creation for", email);
       return res.json({
         orderId: `dev_order_${Date.now()}`,
         amount: 100,
         currency: "INR",
         key: "rzp_test_dev_mode",
-        devMode: true
+        devMode: true,
+        message: "Development mode: Payment bypassed"
       });
     }
 
@@ -251,7 +253,7 @@ app.post("/api/verify-payment", async (req, res) => {
 
     // Development mode bypass
     if (process.env.DEV_MODE === "true" || razorpay_order_id?.startsWith("dev_order_")) {
-      console.log("🔧 Development mode: Bypassing payment verification");
+      console.log("🔧 Development mode: Bypassing payment verification for", email);
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -270,13 +272,15 @@ app.post("/api/verify-payment", async (req, res) => {
       });
 
       await newUser.save();
+      console.log("✅ Development mode: User created successfully with active subscription");
 
       const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
       return res.status(201).json({
-        message: "Development mode: User registered successfully",
+        message: "Development mode: User registered successfully - No payment required!",
         token,
-        subscriptionStatus: "active"
+        subscriptionStatus: "active",
+        devMode: true
       });
     }
 
