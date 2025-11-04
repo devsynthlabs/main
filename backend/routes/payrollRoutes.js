@@ -6,10 +6,19 @@ const router = express.Router();
 // ✅ Payroll Schema
 const payrollSchema = new mongoose.Schema({
   employeeName: { type: String, required: true },
+  employeeId: { type: String, required: true },
+  employeeRole: { type: String, required: true },
+  employeeDepartment: { type: String, required: true },
+  employeeExperience: { type: Number, required: true },
   basicSalary: { type: Number, required: true },
-  allowances: { type: Number, required: true },
-  deductions: { type: Number, required: true },
+  da: { type: Number, required: true },
+  hra: { type: Number, required: true },
+  travelAllowance: { type: Number, required: true },
+  otherAllowance: { type: Number, required: true },
   bonuses: { type: Number, required: true },
+  grossSalary: { type: Number, required: true },
+  pfDeduction: { type: Number, required: true },
+  taxDeduction: { type: Number, required: true },
   netSalary: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
 });

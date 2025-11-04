@@ -8,10 +8,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Payroll from "./pages/Payroll";
 import TaxGST from "./pages/TaxGST";
-import Returns from "./pages/Returns";
+
 import BalanceSheet from "./pages/BalanceSheet";
 import ProfitLoss from "./pages/ProfitLoss";
-
+import CashFlow from "./pages/CashFlow";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,10 +28,10 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/tax-gst" element={<TaxGST />} />
-          <Route path="/returns" element={<Returns />} />
+        
           <Route path="/balance-sheet" element={<BalanceSheet />} />
           <Route path="/profit-loss" element={<ProfitLoss />} />
-
+          <Route path="/cashflow" element={<CashFlow />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

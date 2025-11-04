@@ -5,10 +5,12 @@ import jwt from "jsonwebtoken";
 import cors from "cors";
 import dotenv from "dotenv";
 import Razorpay from "razorpay";
-import payrollRoutes from "./routes/payrollRoutes.js"; // ✅ Added
+import payrollRoutes from "./routes/payrollRoutes.js";
 import taxRoutes from "./routes/taxRoutes.js";
 import balanceSheetRoutes from "./routes/balanceSheetRoutes.js";
 import profitLossRoutes from "./routes/profitLossRoutes.js";
+import cashflowRoutes from "./routes/cashflowRoutes.js";
+
 dotenv.config();
 const app = express();
 
@@ -25,14 +27,6 @@ const razorpay = new Razorpay({
 // ✅ Middleware
 app.use(express.json());
 app.use(cors());
-
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString() 
-  });
-});
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -107,7 +101,7 @@ app.post("/api/signin", async (req, res) => {
 
 // ✅ Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Bearer <token>
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Access denied. No token provided." });
@@ -125,7 +119,7 @@ const verifyToken = (req, res, next) => {
 // ✅ GET USER INFO (Protected Route)
 app.get("/api/user", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password"); // Exclude password
+    const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({
@@ -148,7 +142,6 @@ app.post("/api/create-order", async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    // Development mode bypass
     if (process.env.DEV_MODE === "true") {
       return res.json({
         orderId: `dev_order_${Date.now()}`,
@@ -159,7 +152,6 @@ app.post("/api/create-order", async (req, res) => {
       });
     }
 
-    // Check if Razorpay is configured
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET ||
       process.env.RAZORPAY_KEY_ID === "rzp_test_1234567890") {
       return res.status(500).json({
@@ -167,14 +159,13 @@ app.post("/api/create-order", async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const options = {
-      amount: 100, // ₹1 = 100 paise
+      amount: 100,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
       notes: {
@@ -194,7 +185,6 @@ app.post("/api/create-order", async (req, res) => {
   } catch (error) {
     console.error("Create Order Error:", error);
 
-    // Provide more specific error messages
     if (error.statusCode === 401) {
       res.status(500).json({
         message: "Payment system authentication failed. Please contact administrator."
@@ -222,17 +212,14 @@ app.post("/api/verify-payment", async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // Development mode bypass
     if (process.env.DEV_MODE === "true" || razorpay_order_id?.startsWith("dev_order_")) {
       console.log("🔧 Development mode: Bypassing payment verification");
 
-      // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      // Create user with active subscription (dev mode)
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({
         email,
@@ -257,7 +244,6 @@ app.post("/api/verify-payment", async (req, res) => {
       return res.status(400).json({ message: "Payment details are required" });
     }
 
-    // Verify payment signature
     const crypto = await import('crypto');
     const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -267,13 +253,11 @@ app.post("/api/verify-payment", async (req, res) => {
       return res.status(400).json({ message: "Invalid payment signature" });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Create user with active subscription
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       email,
@@ -298,15 +282,13 @@ app.post("/api/verify-payment", async (req, res) => {
   }
 });
 
-// ✅ Use Payroll Routes
-app.use("/api/payroll", payrollRoutes); // ✅ added route for payroll
-
+// ✅ Use Routes
+app.use("/api/payroll", payrollRoutes);
 app.use("/api/tax", taxRoutes);
 app.use("/api/balance", balanceSheetRoutes);
 app.use("/api/profitloss", profitLossRoutes);
+app.use("/api/cashflow", cashflowRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => console.log(`🚀 Server running on http://${HOST}:${PORT}`));
-
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
