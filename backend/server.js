@@ -26,7 +26,29 @@ const razorpay = new Razorpay({
 
 // ✅ Middleware
 app.use(express.json());
-app.use(cors());
+
+// CORS configuration for production
+const corsOptions = {
+  origin: process.env.DEV_MODE === 'true'
+    ? ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
+    : ['https://software.saaiss.in', 'https://www.software.saaiss.in'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
+// Security headers for production
+if (process.env.DEV_MODE !== 'true') {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+  });
+}
 
 // ✅ MongoDB Connection - Dynamic based on DEV_MODE with fallback
 const isDevelopment = process.env.DEV_MODE === 'true';
