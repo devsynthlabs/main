@@ -38,7 +38,7 @@ declare global {
   }
 }
 
-import { API_ENDPOINTS, apiRequest } from "@/lib/api";
+const API_URL = "http://localhost:5000/api";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -58,10 +58,10 @@ const Auth = () => {
   // 🖱️ Enhanced mouse tracking with trail effect
   useEffect(() => {
     let trailId = 0;
-
+    
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-
+      
       // Create multiple trail particles
       const newTrails = [];
       for (let i = 0; i < 3; i++) {
@@ -74,15 +74,15 @@ const Auth = () => {
         };
         newTrails.push(trail);
       }
-
+      
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-
+      
       // Remove trails after animation
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-
+    
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -102,8 +102,9 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await apiRequest(API_ENDPOINTS.SIGNIN, {
+      const res = await fetch(`${API_URL}/signin`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: signInEmail, password: signInPassword }),
       });
 
@@ -111,19 +112,19 @@ const Auth = () => {
       if (!res.ok) throw new Error(data.message);
 
       localStorage.setItem("token", data.token);
-      toast({
-        title: "Welcome! 🎉",
-        description: "Login successful! Redirecting to dashboard..."
+      toast({ 
+        title: "Welcome! 🎉", 
+        description: "Login successful! Redirecting to dashboard..." 
       });
       setSignInEmail("");
       setSignInPassword("");
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred";
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: errorMessage
+      toast({ 
+        variant: "destructive", 
+        title: "Login Failed", 
+        description: errorMessage 
       });
     } finally {
       setLoading(false);
@@ -134,10 +135,10 @@ const Auth = () => {
     e.preventDefault();
 
     if (!signUpEmail || !signUpPassword) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please fill all fields"
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Please fill all fields" 
       });
       return;
     }
@@ -145,8 +146,9 @@ const Auth = () => {
     setPaymentLoading(true);
 
     try {
-      const orderRes = await apiRequest(API_ENDPOINTS.CREATE_ORDER, {
+      const orderRes = await fetch(`${API_URL}/create-order`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: signUpEmail }),
       });
 
@@ -156,8 +158,9 @@ const Auth = () => {
       if (orderData.devMode) {
         try {
           setLoading(true);
-          const verifyRes = await apiRequest(API_ENDPOINTS.VERIFY_PAYMENT, {
+          const verifyRes = await fetch(`${API_URL}/verify-payment`, {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               razorpay_order_id: orderData.orderId,
               razorpay_payment_id: "dev_payment_" + Date.now(),
@@ -201,8 +204,9 @@ const Auth = () => {
         handler: async function (response: RazorpayResponse) {
           try {
             setLoading(true);
-            const verifyRes = await apiRequest(API_ENDPOINTS.VERIFY_PAYMENT, {
+            const verifyRes = await fetch(`${API_URL}/verify-payment`, {
               method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -270,7 +274,7 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 p-4 relative overflow-hidden">
       {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div
+      <div 
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -286,19 +290,20 @@ const Auth = () => {
               <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
             </div>
           </div>
-
+          
           {/* Middle pulsing ring */}
           <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
-
+          
           {/* Inner glow */}
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-
+          
           {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-            }`}></div>
-
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
+            isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
+          }`}></div>
+          
           {/* Crosshair lines */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
@@ -364,16 +369,16 @@ const Auth = () => {
       {/* Animated background elements with glow effects */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] opacity-50 animate-pulse"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] opacity-50 animate-pulse" style={{ animationDelay: '1s' }}></div>
-
+      
       {/* Mouse-responsive background */}
-      <div
+      <div 
         className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-3xl transition-all duration-1000 pointer-events-none"
         style={{
           top: mousePosition.y / 20 - 400,
           left: mousePosition.x / 20 - 400,
         }}
       ></div>
-
+      
       {/* Decorative shapes with ping animation */}
       <div className="absolute top-20 right-20 w-20 h-20 border-4 border-blue-400/30 rounded-lg rotate-45 opacity-60 animate-ping" style={{ animationDuration: '3s' }}></div>
       <div className="absolute bottom-40 left-20 w-16 h-16 border-4 border-cyan-300/30 rounded-full opacity-60 animate-ping" style={{ animationDuration: '4s' }}></div>
@@ -382,7 +387,7 @@ const Auth = () => {
         {/* Left Side - Branding & Info */}
         <div className="hidden md:block space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
           <div>
-            <div
+            <div 
               className="flex items-center space-x-3 mb-6 animate-in fade-in slide-in-from-left-4 duration-500"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -397,7 +402,7 @@ const Auth = () => {
                 <p className="text-blue-200 text-sm">Powered by AI Technology</p>
               </div>
             </div>
-
+            
             <h2 className="text-4xl font-bold text-white mb-4 animate-in fade-in slide-in-from-left-6 duration-700 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">
               Transform Your <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Financial Management</span>
             </h2>
@@ -409,9 +414,9 @@ const Auth = () => {
           {/* Features List with glass morphism */}
           <div className="space-y-4">
             {features.map((feature, i) => (
-              <div
-                key={i}
-                className="flex items-center space-x-3 bg-white/5 backdrop-blur-xl rounded-xl p-4 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 border border-blue-400/20 animate-in fade-in slide-in-from-left duration-500 group"
+              <div 
+                key={i} 
+                className="flex items-center space-x-3 bg-white/5 backdrop-blur-xl rounded-xl p-4 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 border border-blue-400/20 animate-in fade-in slide-in-from-left duration-500 group" 
                 style={{ animationDelay: `${(i + 1) * 100}ms` }}
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
@@ -425,7 +430,7 @@ const Auth = () => {
           </div>
 
           {/* Trust Indicators with gradient glow */}
-          <div
+          <div 
             className="bg-gradient-to-r from-indigo-500 to-blue-700 rounded-2xl p-6 text-white animate-in fade-in slide-in-from-left-4 duration-700 shadow-2xl shadow-blue-500/40 backdrop-blur-xl hover:-translate-y-2 transition-all duration-300"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -442,7 +447,7 @@ const Auth = () => {
         </div>
 
         {/* Right Side - Auth Form with glass morphism */}
-        <Card
+        <Card 
           className="w-full bg-white/10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(59,130,246,0.4)] border border-blue-400/30 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700 hover:shadow-[0_20px_80px_rgba(59,130,246,0.6)] transition-all duration-500"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
@@ -463,7 +468,7 @@ const Auth = () => {
 
           <CardContent className="px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList
+              <TabsList 
                 className="grid w-full grid-cols-2 mb-8 bg-white/5 backdrop-blur-xl rounded-xl p-1.5 border border-blue-400/20"
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
@@ -549,7 +554,7 @@ const Auth = () => {
               <TabsContent value="signup" className="tab-switch-animation">
                 <form onSubmit={handleSignUp} className="space-y-6">
                   {/* Pricing Card with enhanced glass morphism */}
-                  <div
+                  <div 
                     className="bg-gradient-to-br from-indigo-500 to-blue-700 rounded-2xl p-6 text-white shadow-2xl shadow-blue-500/40 relative overflow-hidden backdrop-blur-xl"
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
