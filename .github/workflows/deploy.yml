@@ -13,39 +13,43 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Code
+      - name: 🚀 Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: 🔑 Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add Server to Known Hosts
+      - name: 📦 Add Server to Known Hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Create Backup Before Deploy
+      - name: 🛑 Create Backup Before Deploy
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             echo "Creating backup before deployment..."
             /root/backup-app.sh || echo "Backup script not found, skipping..."
           ENDSSH
 
-      - name: Deploy Backend Code
+      - name: 📤 Deploy Backend Code
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             set -e
             echo "Deploying backend..."
-            cd /root/financial-automation/main/backend
-            
-            # Pull latest code
             cd /root/financial-automation/main
-            git pull origin main || git pull origin master
-            
+
+            # 🔧 EDITED: Configure GitHub authentication using DEPLOY_PAT
+            git config --global credential.helper store
+            echo "https://${{ secrets.DEPLOY_PAT }}:@github.com" > ~/.git-credentials
+
+            # 🔧 EDITED: Pull latest code securely using token
+            git fetch origin
+            git reset --hard origin/main || git reset --hard origin/master
+
             cd backend
-            
+
             # Install Node.js dependencies
             npm install --production
             
@@ -57,7 +61,7 @@ jobs:
             echo "Backend code updated"
           ENDSSH
 
-      - name: Restart Backend
+      - name: 🔄 Restart Backend
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             echo "Restarting backend..."
@@ -66,7 +70,7 @@ jobs:
             echo "Backend restarted successfully"
           ENDSSH
 
-      - name:  Deploy Frontend Code
+      - name: 🎨 Deploy Frontend Code
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             set -e
@@ -85,7 +89,7 @@ jobs:
             echo "Frontend built successfully"
           ENDSSH
 
-      - name:  Reload Nginx
+      - name: ♻️ Reload Nginx
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             echo "Reloading Nginx..."
@@ -93,7 +97,7 @@ jobs:
             echo "Nginx reloaded successfully"
           ENDSSH
 
-      - name:  Health Check
+      - name: 🏥 Health Check
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             echo "Running health checks..."
@@ -122,7 +126,7 @@ jobs:
             echo "All health checks passed!"
           ENDSSH
 
-      - name:  Deployment Summary
+      - name: 📊 Deployment Summary
         if: always()
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
@@ -140,30 +144,30 @@ jobs:
             pm2 logs financial-backend --lines 10 --nostream
           ENDSSH
 
-      - name:  Notify on Success
+      - name: 🔔 Notify on Success
         if: success()
         run: |
-          echo "Deployment successful!"
+          echo "🎉 Deployment successful!"
           echo "Frontend: http://${{ secrets.SERVER_IP }}"
           echo "Backend: http://${{ secrets.SERVER_IP }}/api"
 
-      - name:  Notify on Failure
+      - name: ❌ Notify on Failure
         if: failure()
         run: |
-          echo "Deployment failed! Check the logs above."
+          echo "💥 Deployment failed! Check the logs above."
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             echo "Rolling back if needed..."
             pm2 logs financial-backend --lines 50 --nostream
           ENDSSH
 
-      - name:  Cleanup
+      - name: 🧹 Cleanup
         if: always()
         run: |
           ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
             # Clean npm cache
             npm cache clean --force 2>/dev/null || true
             
-            # Clean old PM2 logs 
+            # Clean old PM2 logs (keep last 7 days)
             find /root/financial-automation/main/backend/logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null || true
             
             echo "Cleanup completed"
