@@ -1,0 +1,138 @@
+name: Deploy Financial Automation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: true
+
+    env:
+      SSH_OPTS: "-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o ConnectionAttempts=2"
+
+    steps:
+      - name: 🚀 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 📦 Add Server to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: 🛑 Create Backup Before Deploy
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[Backup] Checking for backup script..."
+            [ -x /root/backup-app.sh ] && /root/backup-app.sh || echo "No backup script found, skipping."
+          ENDSSH
+
+      - name: 📤 Deploy Backend Code
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[Deploy] Backend start"
+            cd /root/financial-automation/main || exit 1
+
+            git config --global credential.helper store
+            echo "https://${{ secrets.DEPLOY_PAT }}:@github.com" > ~/.git-credentials
+
+            git fetch origin
+            git reset --hard origin/main || git reset --hard origin/master
+
+            cd backend
+            npm ci --omit=dev
+
+            if [ -d "venv" ]; then
+              source venv/bin/activate
+              pip install -r requirements.txt --quiet
+              deactivate
+            fi
+
+            echo "[Deploy] Backend updated successfully"
+          ENDSSH
+
+      - name: 🔄 Restart Backend
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[PM2] Restarting backend..."
+            pm2 restart financial-backend || pm2 start backend/app.js --name financial-backend
+            pm2 save
+            echo "[PM2] Restart complete"
+          ENDSSH
+
+      - name: 🎨 Deploy Frontend Code
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[Deploy] Frontend start"
+            cd /root/financial-automation/main || exit 1
+
+            npm ci
+            npm run build
+            chmod -R 755 dist
+
+            echo "[Deploy] Frontend build complete"
+          ENDSSH
+
+      - name: ♻ Reload Nginx
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[Nginx] Reloading..."
+            systemctl reload nginx || systemctl restart nginx
+            echo "[Nginx] Reload complete"
+          ENDSSH
+
+      - name: 📊 Deployment Summary
+        if: always()
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "=== Deployment Summary ==="
+            echo "Backend Status:"
+            pm2 list || true
+            echo ""
+            echo "Nginx Status:"
+            systemctl status nginx --no-pager | head -n 5 || true
+            echo ""
+            echo "Disk Usage:"
+            df -h / | tail -n 1
+            echo ""
+            echo "Recent Logs:"
+            pm2 logs financial-backend --lines 10 --nostream || true
+          ENDSSH
+
+      - name: 🔔 Notify on Success
+        if: success()
+        run: |
+          echo "✅ Deployment successful"
+          echo "Frontend: https://software.saaiss.in"
+          echo "Backend: https://software.saaiss.in/api"
+
+      - name: ❌ Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed. Inspect above logs."
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            pm2 logs financial-backend --lines 50 --nostream || true
+          ENDSSH
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          ssh $SSH_OPTS root@${{ secrets.SERVER_IP }} <<'ENDSSH'
+            echo "[Cleanup] Cleaning cache and logs"
+            npm cache clean --force >/dev/null 2>&1 || true
+            find /root/financial-automation/main/backend/logs -name "*.log" -type f -mtime +7 -delete || true
+            echo "[Cleanup] Done"
+          ENDSSH
