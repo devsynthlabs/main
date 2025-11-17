@@ -14,6 +14,9 @@ import ProfitLoss from "./pages/ProfitLoss";
 import CashFlow from "./pages/CashFlow";
 import NotFound from "./pages/NotFound";
 
+import CashFlowStatement from "./pages/CashFlowStatement";
+import FinancialRatios from "./pages/FinancialRatios";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,11 +31,14 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/tax-gst" element={<TaxGST />} />
-        
+
           <Route path="/balance-sheet" element={<BalanceSheet />} />
           <Route path="/profit-loss" element={<ProfitLoss />} />
           <Route path="/cashflow" element={<CashFlow />} />
           <Route path="*" element={<NotFound />} />
+
+          <Route path="/cashflow-statement" element={<CashFlowStatement />} />
+          <Route path="/financial-ratios" element={<FinancialRatios />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

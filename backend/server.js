@@ -10,6 +10,8 @@ import taxRoutes from "./routes/taxRoutes.js";
 import balanceSheetRoutes from "./routes/balanceSheetRoutes.js";
 import profitLossRoutes from "./routes/profitLossRoutes.js";
 import cashflowRoutes from "./routes/cashflowRoutes.js";
+import financialRatiosRoutes from "./routes/financialRatiosRoutes.js";
+import cashFlowStatementRoutes from "./routes/cashFlowStatementRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -337,6 +339,8 @@ app.use("/api/tax", taxRoutes);
 app.use("/api/balance", balanceSheetRoutes);
 app.use("/api/profitloss", profitLossRoutes);
 app.use("/api/cashflow", cashflowRoutes);
+app.use("/api/financial-ratios", financialRatiosRoutes);
+app.use("/api/cashflow-statement",cashFlowStatementRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
