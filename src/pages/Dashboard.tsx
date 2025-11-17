@@ -19,6 +19,8 @@ import {
   Rocket,
   Activity,
   LineChart,
+  Calculator,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -150,6 +152,24 @@ const Dashboard = () => {
       badge: "AI Prediction",
       stats: "Future Ready",
     },
+    {
+      title: "Cash Flow Statement",
+      description: "Track cash inflows and outflows with detailed statement analysis and reporting.",
+      icon: FileSpreadsheet,
+      path: "/cashflow-statement",
+      color: "from-pink-500 to-rose-600",
+      badge: "New Feature",
+      stats: "Real-time Analysis",
+    },
+    {
+      title: "Financial Ratios",
+      description: "Calculate and analyze key financial ratios including liquidity, profitability, and solvency metrics.",
+      icon: Calculator,
+      path: "/financial-ratios",
+      color: "from-emerald-500 to-green-600",
+      badge: "Analytics",
+      stats: "15+ Ratios",
+    },
   ];
 
   const features = [

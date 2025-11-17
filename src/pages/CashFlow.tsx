@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, TrendingUp, Plus, BarChart3, Sparkles } from "lucide-react";
+import { ArrowLeft, TrendingUp, Plus, BarChart3, Sparkles, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface CashFlowEntry {
@@ -50,10 +50,10 @@ const CashFlow = () => {
   // Mouse tracking with enhanced trail effect
   useEffect(() => {
     let trailId = 0;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-      
+
       const newTrails: Trail[] = [];
       for (let i = 0; i < 3; i++) {
         const trail: Trail = {
@@ -65,14 +65,14 @@ const CashFlow = () => {
         };
         newTrails.push(trail);
       }
-      
+
       setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
+
       setTimeout(() => {
         setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
       }, 800);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
@@ -149,6 +149,93 @@ const CashFlow = () => {
     navigate("/dashboard");
   };
 
+  const downloadReport = () => {
+    if (cashflowData.length === 0) {
+      alert("No data to download! Please add entries first.");
+      return;
+    }
+
+    const reportContent = `
+╔════════════════════════════════════════════════════════════════╗
+║           CASH FLOW ANALYSIS & PREDICTION REPORT              ║
+╚════════════════════════════════════════════════════════════════╝
+
+Generated: ${new Date().toLocaleString()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 HISTORICAL CASH FLOW DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${cashflowData.map((entry, index) => `
+Entry #${index + 1}
+─────────────────────────────────────────────────────────────────
+Period:           ${entry.month} ${entry.year}
+Cash Inflow:      ₹${entry.cashInflow.toFixed(2)}
+Cash Outflow:     ₹${entry.cashOutflow.toFixed(2)}
+Net Cash Flow:    ₹${entry.netCashFlow.toFixed(2)} ${entry.netCashFlow >= 0 ? '✓ Positive' : '✗ Negative'}
+`).join('\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📈 SUMMARY STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Entries:           ${cashflowData.length}
+Total Cash Inflow:       ₹${cashflowData.reduce((sum, e) => sum + e.cashInflow, 0).toFixed(2)}
+Total Cash Outflow:      ₹${cashflowData.reduce((sum, e) => sum + e.cashOutflow, 0).toFixed(2)}
+Total Net Cash Flow:     ₹${cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0).toFixed(2)}
+Average Net Cash Flow:   ₹${(cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0) / cashflowData.length).toFixed(2)}
+
+${predictions.length > 0 ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔮 AI-POWERED PREDICTIONS (Next 6 Months)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${predictions.map((pred, index) => `
+${pred.month}
+Predicted Net Cash Flow:  ₹${pred.predictedNetCashFlow.toFixed(2)} ${pred.predictedNetCashFlow >= 0 ? '✓ Positive' : '✗ Negative'}
+`).join('\n')}
+
+Prediction Model: Linear Regression
+Confidence Level: Based on ${cashflowData.length} historical data points
+` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 INSIGHTS & RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0) >= 0
+        ? '✓ Overall positive cash flow trend detected'
+        : '⚠ Overall negative cash flow - consider cost optimization'}
+
+${predictions.length > 0 && predictions.some(p => p.predictedNetCashFlow < 0)
+        ? '⚠ Warning: Negative cash flow predicted in upcoming months'
+        : predictions.length > 0
+          ? '✓ Positive cash flow trend expected to continue'
+          : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This report was generated by Financial Automation System
+Powered by AI Technology ✨
+
+╚════════════════════════════════════════════════════════════════╝
+`;
+
+    const blob = new Blob([reportContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cashflow_report_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Prepare chart data
   const chartData = [
     ...cashflowData.map((entry) => ({
@@ -166,7 +253,7 @@ const CashFlow = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
       {/* Custom Cursor */}
-      <div 
+      <div
         className="fixed pointer-events-none z-[99999]"
         style={{
           left: mousePosition.x,
@@ -184,9 +271,8 @@ const CashFlow = () => {
             <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
           </div>
           <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-          }`}></div>
+          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
+            }`}></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
             <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent -translate-y-1/2"></div>
@@ -245,18 +331,30 @@ const CashFlow = () => {
       {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Button
-            variant="ghost"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-            onClick={handleBackToDashboard}
-            className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              onClick={handleBackToDashboard}
+              className="text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+
+            <Button
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+              onClick={downloadReport}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-2xl shadow-green-500/50 transition-all duration-300 hover:scale-105 border border-green-400/30 group"
+            >
+              <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
+              Download Report
+            </Button>
+          </div>
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
@@ -277,13 +375,13 @@ const CashFlow = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Form */}
-          <Card 
+          <Card
             className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-            
+
             <CardHeader className="relative">
               <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
                 <Plus className="h-6 w-6 text-cyan-400" />
@@ -370,7 +468,7 @@ const CashFlow = () => {
           </Card>
 
           {/* Data Table */}
-          <Card 
+          <Card
             className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -411,13 +509,13 @@ const CashFlow = () => {
 
         {/* Prediction Chart */}
         {showPrediction && predictions.length > 0 && (
-          <Card 
+          <Card
             className="mt-8 backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
-            
+
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -426,9 +524,20 @@ const CashFlow = () => {
                     Forecasted net cash flow for the next 6 months
                   </CardDescription>
                 </div>
-                <div className="px-4 py-2 bg-gradient-to-r from-yellow-400/30 to-amber-400/30 rounded-full backdrop-blur-md border border-yellow-400/50 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-yellow-300" />
-                  <span className="text-sm text-yellow-100 font-bold">AI Powered</span>
+                <div className="flex items-center gap-3">
+                  <div className="px-4 py-2 bg-gradient-to-r from-yellow-400/30 to-amber-400/30 rounded-full backdrop-blur-md border border-yellow-400/50 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-yellow-300" />
+                    <span className="text-sm text-yellow-100 font-bold">AI Powered</span>
+                  </div>
+                  <Button
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                    onClick={downloadReport}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-green-500/50 transition-all duration-300 hover:scale-105 border border-green-400/30 group"
+                  >
+                    <Download className="mr-2 h-4 w-4 group-hover:translate-y-1 transition-transform duration-300" />
+                    Download
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -437,16 +546,16 @@ const CashFlow = () => {
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#93c5fd" 
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis 
+                  <XAxis
+                    dataKey="name"
                     stroke="#93c5fd"
                     style={{ fontSize: '12px' }}
                   />
-                  <Tooltip 
+                  <YAxis
+                    stroke="#93c5fd"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip
                     contentStyle={{
                       backgroundColor: 'rgba(15, 23, 42, 0.9)',
                       border: '1px solid rgba(59, 130, 246, 0.3)',
@@ -456,18 +565,18 @@ const CashFlow = () => {
                     labelStyle={{ color: '#93c5fd' }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="actual" 
-                    stroke="#06b6d4" 
+                  <Line
+                    type="monotone"
+                    dataKey="actual"
+                    stroke="#06b6d4"
                     strokeWidth={3}
                     dot={{ fill: '#06b6d4', r: 6 }}
                     name="Actual Net Cash Flow"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="predicted" 
-                    stroke="#f59e0b" 
+                  <Line
+                    type="monotone"
+                    dataKey="predicted"
+                    stroke="#f59e0b"
                     strokeWidth={3}
                     strokeDasharray="5 5"
                     dot={{ fill: '#f59e0b', r: 6 }}
