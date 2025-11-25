@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, TrendingUp, Plus, BarChart3, Sparkles, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 interface CashFlowEntry {
   year: string;
@@ -32,6 +35,7 @@ interface Trail {
 
 const CashFlow = () => {
   const navigate = useNavigate();
+  const chartRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [cursorTrail, setCursorTrail] = useState<Trail[]>([]);
   const [isHovering, setIsHovering] = useState(false);
@@ -149,91 +153,182 @@ const CashFlow = () => {
     navigate("/dashboard");
   };
 
-  const downloadReport = () => {
+  const downloadReport = async () => {
     if (cashflowData.length === 0) {
       alert("No data to download! Please add entries first.");
       return;
     }
 
-    const reportContent = `
-╔════════════════════════════════════════════════════════════════╗
-║           CASH FLOW ANALYSIS & PREDICTION REPORT              ║
-╚════════════════════════════════════════════════════════════════╝
+    // Create PDF document
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let yPosition = 20;
 
-Generated: ${new Date().toLocaleString()}
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(0, 0, 0);
+    doc.text("CASH FLOW ANALYSIS & PREDICTION REPORT", pageWidth / 2, yPosition, { align: "center" });
+    
+    yPosition += 15;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: "center" });
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Add some space
+    yPosition += 15;
 
-📊 HISTORICAL CASH FLOW DATA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Add Chart Image
+    if (chartRef.current) {
+      try {
+        const canvas = await html2canvas(chartRef.current, {
+          backgroundColor: "#ffffff",
+          scale: 2,
+          logging: false,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = pageWidth - 30;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        doc.addImage(imgData, "PNG", 15, yPosition, imgWidth, imgHeight);
+        yPosition += imgHeight + 15;
 
-${cashflowData.map((entry, index) => `
-Entry #${index + 1}
-─────────────────────────────────────────────────────────────────
-Period:           ${entry.month} ${entry.year}
-Cash Inflow:      ₹${entry.cashInflow.toFixed(2)}
-Cash Outflow:     ₹${entry.cashOutflow.toFixed(2)}
-Net Cash Flow:    ₹${entry.netCashFlow.toFixed(2)} ${entry.netCashFlow >= 0 ? '✓ Positive' : '✗ Negative'}
-`).join('\n')}
+        // Add new page if needed
+        if (yPosition > pageHeight - 60) {
+          doc.addPage();
+          yPosition = 20;
+        }
+      } catch (error) {
+        console.error("Error capturing chart:", error);
+      }
+    }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Historical Data Table
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("📊 HISTORICAL CASH FLOW DATA", 15, yPosition);
+    
+    yPosition += 10;
+    const historicalData = cashflowData.map((entry, index) => [
+      index + 1,
+      `${entry.month} ${entry.year}`,
+      `₹${entry.cashInflow.toFixed(2)}`,
+      `₹${entry.cashOutflow.toFixed(2)}`,
+      `₹${entry.netCashFlow.toFixed(2)}`,
+      entry.netCashFlow >= 0 ? "Positive" : "Negative"
+    ]);
 
-📈 SUMMARY STATISTICS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    autoTable(doc, {
+      startY: yPosition,
+      head: [["#", "Period", "Cash Inflow", "Cash Outflow", "Net Cash Flow", "Status"]],
+      body: historicalData,
+      theme: "grid",
+      headStyles: { fillColor: [66, 133, 244], textColor: 255, fontSize: 10 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: 15, right: 15 },
+    });
 
-Total Entries:           ${cashflowData.length}
-Total Cash Inflow:       ₹${cashflowData.reduce((sum, e) => sum + e.cashInflow, 0).toFixed(2)}
-Total Cash Outflow:      ₹${cashflowData.reduce((sum, e) => sum + e.cashOutflow, 0).toFixed(2)}
-Total Net Cash Flow:     ₹${cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0).toFixed(2)}
-Average Net Cash Flow:   ₹${(cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0) / cashflowData.length).toFixed(2)}
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-${predictions.length > 0 ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Check if we need a new page
+    if (yPosition > pageHeight - 60) {
+      doc.addPage();
+      yPosition = 20;
+    }
 
-🔮 AI-POWERED PREDICTIONS (Next 6 Months)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Summary Statistics
+    doc.setFontSize(12);
+    doc.text("📈 SUMMARY STATISTICS", 15, yPosition);
+    yPosition += 8;
 
-${predictions.map((pred, index) => `
-${pred.month}
-Predicted Net Cash Flow:  ₹${pred.predictedNetCashFlow.toFixed(2)} ${pred.predictedNetCashFlow >= 0 ? '✓ Positive' : '✗ Negative'}
-`).join('\n')}
+    const totalInflow = cashflowData.reduce((sum, e) => sum + e.cashInflow, 0);
+    const totalOutflow = cashflowData.reduce((sum, e) => sum + e.cashOutflow, 0);
+    const totalNetCashFlow = cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0);
+    const averageNetCashFlow = totalNetCashFlow / cashflowData.length;
 
-Prediction Model: Linear Regression
-Confidence Level: Based on ${cashflowData.length} historical data points
-` : ''}
+    const summaryData = [
+      ["Total Entries", cashflowData.length.toString()],
+      ["Total Cash Inflow", `₹${totalInflow.toFixed(2)}`],
+      ["Total Cash Outflow", `₹${totalOutflow.toFixed(2)}`],
+      ["Total Net Cash Flow", `₹${totalNetCashFlow.toFixed(2)}`],
+      ["Average Net Cash Flow", `₹${averageNetCashFlow.toFixed(2)}`],
+    ];
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    autoTable(doc, {
+      startY: yPosition,
+      head: [["Metric", "Value"]],
+      body: summaryData,
+      theme: "grid",
+      headStyles: { fillColor: [76, 175, 80], textColor: 255, fontSize: 10 },
+      bodyStyles: { fontSize: 9 },
+      margin: { left: 15, right: 15 },
+    });
 
-💡 INSIGHTS & RECOMMENDATIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-${cashflowData.reduce((sum, e) => sum + e.netCashFlow, 0) >= 0
-        ? '✓ Overall positive cash flow trend detected'
-        : '⚠ Overall negative cash flow - consider cost optimization'}
+    // Predictions Section (if available)
+    if (predictions.length > 0) {
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = 20;
+      }
 
-${predictions.length > 0 && predictions.some(p => p.predictedNetCashFlow < 0)
-        ? '⚠ Warning: Negative cash flow predicted in upcoming months'
-        : predictions.length > 0
-          ? '✓ Positive cash flow trend expected to continue'
-          : ''}
+      doc.setFontSize(12);
+      doc.text("🔮 AI-POWERED PREDICTIONS (Next 6 Months)", 15, yPosition);
+      yPosition += 8;
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      const predictionData = predictions.map((pred, index) => [
+        index + 1,
+        pred.month,
+        `₹${pred.predictedNetCashFlow.toFixed(2)}`,
+        pred.predictedNetCashFlow >= 0 ? "Positive" : "Negative"
+      ]);
 
-This report was generated by Financial Automation System
-Powered by AI Technology ✨
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["#", "Month", "Predicted Net Cash Flow", "Status"]],
+        body: predictionData,
+        theme: "grid",
+        headStyles: { fillColor: [156, 39, 176], textColor: 255, fontSize: 10 },
+        bodyStyles: { fontSize: 9 },
+        margin: { left: 15, right: 15 },
+      });
 
-╚════════════════════════════════════════════════════════════════╝
-`;
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-    const blob = new Blob([reportContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `cashflow_report_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // Insights
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.text("💡 INSIGHTS & RECOMMENDATIONS", 15, yPosition);
+      yPosition += 8;
+
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+
+      const insight1 = totalNetCashFlow >= 0
+        ? "✓ Overall positive cash flow trend detected"
+        : "⚠ Overall negative cash flow - consider cost optimization";
+      doc.text(insight1, 20, yPosition);
+      yPosition += 8;
+
+      const insight2 = predictions.some(p => p.predictedNetCashFlow < 0)
+        ? "⚠ Warning: Negative cash flow predicted in upcoming months"
+        : "✓ Positive cash flow trend expected to continue";
+      doc.text(insight2, 20, yPosition);
+    }
+
+    // Footer
+    const finalYPosition = pageHeight - 15;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text("This report was generated by Financial Automation System", pageWidth / 2, finalYPosition, { align: "center" });
+
+    // Download PDF
+    doc.save(`cashflow_report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   // Prepare chart data
@@ -543,47 +638,49 @@ Powered by AI Technology ✨
             </CardHeader>
 
             <CardContent className="p-8">
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#93c5fd"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <YAxis
-                    stroke="#93c5fd"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      borderRadius: '12px',
-                      backdropFilter: 'blur(10px)',
-                    }}
-                    labelStyle={{ color: '#93c5fd' }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="actual"
-                    stroke="#06b6d4"
-                    strokeWidth={3}
-                    dot={{ fill: '#06b6d4', r: 6 }}
-                    name="Actual Net Cash Flow"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="predicted"
-                    stroke="#f59e0b"
-                    strokeWidth={3}
-                    strokeDasharray="5 5"
-                    dot={{ fill: '#f59e0b', r: 6 }}
-                    name="Predicted Net Cash Flow"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <div ref={chartRef} style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px' }}>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#93c5fd"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis
+                      stroke="#93c5fd"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(10px)',
+                      }}
+                      labelStyle={{ color: '#93c5fd' }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      stroke="#06b6d4"
+                      strokeWidth={3}
+                      dot={{ fill: '#06b6d4', r: 6 }}
+                      name="Actual Net Cash Flow"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="predicted"
+                      stroke="#f59e0b"
+                      strokeWidth={3}
+                      strokeDasharray="5 5"
+                      dot={{ fill: '#f59e0b', r: 6 }}
+                      name="Predicted Net Cash Flow"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
 
               {/* Prediction Values */}
               <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
