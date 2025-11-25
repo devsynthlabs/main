@@ -65,9 +65,16 @@ jobs:
             set -e
             cd /root/financial-automation/main
             
-            npm install
+            # Install dependencies with reduced memory footprint
+            npm install --prefer-offline --no-audit
+            
+            # Build with increased Node.js memory limit
+            export NODE_OPTIONS="--max-old-space-size=2048"
             npm run build
+            
             chmod -R 755 dist
+            
+            echo "Build completed successfully!"
           ENDSSH
 
       - name: ♻ Reload Nginx
