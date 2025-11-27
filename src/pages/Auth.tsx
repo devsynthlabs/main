@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, CreditCard, Lock, Mail, Shield, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
+import { Loader2, Building2, CreditCard, Lock, Mail, Shield, CheckCircle2, Sparkles, ArrowRight, Crown, Infinity, Zap } from "lucide-react";
 import { API_ENDPOINTS, apiRequest } from "@/lib/api";
 
 interface RazorpayResponse {
@@ -29,6 +29,15 @@ interface RazorpayOptions {
   theme: {
     color: string;
   };
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  notes?: {
+    plan?: string;
+    planName?: string;
+  };
 }
 
 declare global {
@@ -39,7 +48,69 @@ declare global {
   }
 }
 
-// Remove this line - we'll use API_ENDPOINTS instead
+// Subscription Plans Configuration
+const subscriptionPlans = {
+  monthly: {
+    id: "monthly",
+    name: "Monthly Subscription",
+    price: 1500,
+    gst: 270,
+    totalAmount: 1770,
+    duration: "month",
+    description: "Perfect for getting started",
+    features: [
+      "All basic features",
+      "Email support",
+      "1GB storage",
+      "Basic analytics",
+      "Up to 10 employees"
+    ],
+    icon: Zap,
+    popular: false
+  },
+  annual: {
+    id: "annual",
+    name: "Annual Subscription",
+    price: 16200,
+    originalPrice: 18000,
+    gst: 2916,
+    totalAmount: 19116,
+    duration: "year",
+    description: "Best value - Save 10%",
+    features: [
+      "All premium features",
+      "Priority support",
+      "10GB storage",
+      "Advanced analytics",
+      "Custom reports",
+      "Up to 50 employees"
+    ],
+    icon: Crown,
+    popular: true,
+    savings: "Save ₹1,800"
+  },
+  lifetime: {
+    id: "lifetime",
+    name: "Lifetime Access",
+    price: 45000,
+    gst: 8100,
+    totalAmount: 53100,
+    duration: "lifetime",
+    description: "One-time payment, forever access",
+    features: [
+      "All features included",
+      "24/7 priority support",
+      "Unlimited storage",
+      "Advanced analytics",
+      "Custom reports",
+      "Unlimited employees",
+      "Free updates forever"
+    ],
+    icon: Infinity,
+    popular: false,
+    savings: "Best long-term value"
+  }
+};
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -48,13 +119,15 @@ const Auth = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState([]);
+  const [cursorTrail, setCursorTrail] = useState<Array<{ id: number, x: number, y: number, size: number, delay: number }>>([]);
   const [isHovering, setIsHovering] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<keyof typeof subscriptionPlans>("monthly");
 
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
 
   // 🖱️ Enhanced mouse tracking with trail effect
   useEffect(() => {
@@ -148,11 +221,22 @@ const Auth = () => {
     try {
       const orderRes = await apiRequest(API_ENDPOINTS.CREATE_ORDER, {
         method: "POST",
-        body: JSON.stringify({ email: signUpEmail }),
+        body: JSON.stringify({
+          email: signUpEmail,
+          plan: selectedPlan
+        }),
       });
 
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.message);
+
+      console.log('📦 Order Data Received:', {
+        orderId: orderData.orderId,
+        amount: orderData.amount,
+        amountInRupees: orderData.amount / 100,
+        plan: selectedPlan,
+        planDetails: subscriptionPlans[selectedPlan]
+      });
 
       if (orderData.devMode) {
         try {
@@ -174,7 +258,7 @@ const Auth = () => {
           localStorage.setItem("token", verifyData.token);
           toast({
             title: "Success! 🚀",
-            description: "Account created successfully! Welcome aboard!",
+            description: `Account created with ${subscriptionPlans[selectedPlan].name} plan! Welcome aboard!`,
           });
           setTimeout(() => navigate("/dashboard"), 1500);
           return;
@@ -197,7 +281,7 @@ const Auth = () => {
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Financial Automation",
-        description: "Premium Subscription - ₹1000",
+        description: `${subscriptionPlans[selectedPlan].name} - ₹${subscriptionPlans[selectedPlan].totalAmount}`,
         order_id: orderData.orderId,
         handler: async function (response: RazorpayResponse) {
           try {
@@ -210,6 +294,8 @@ const Auth = () => {
                 razorpay_signature: response.razorpay_signature,
                 email: signUpEmail,
                 password: signUpPassword,
+                plan: selectedPlan,
+                name: signUpName || signUpEmail.split('@')[0]
               }),
             });
 
@@ -219,7 +305,7 @@ const Auth = () => {
             localStorage.setItem("token", verifyData.token);
             toast({
               title: "Welcome! 🎉",
-              description: "Payment successful! Your account has been created.",
+              description: `Payment successful! Your ${subscriptionPlans[selectedPlan].name} account has been created.`,
             });
             setTimeout(() => navigate("/dashboard"), 1500);
           } catch (err) {
@@ -244,6 +330,14 @@ const Auth = () => {
             });
           },
         },
+        prefill: {
+          name: signUpName || signUpEmail.split('@')[0],
+          email: signUpEmail,
+        },
+        notes: {
+          plan: selectedPlan,
+          planName: subscriptionPlans[selectedPlan].name
+        },
         theme: {
           color: "#3B82F6",
         },
@@ -265,7 +359,8 @@ const Auth = () => {
   const features = [
     { icon: Shield, text: "Bank-level security" },
     { icon: CheckCircle2, text: "Instant activation" },
-    { icon: Sparkles, text: "All features included" }
+    { icon: Sparkles, text: "All features included" },
+    { icon: Shield, text: "Bank-level encryption" } // Added new security feature
   ];
 
   return (
@@ -549,41 +644,65 @@ const Auth = () => {
               {/* Sign Up Form */}
               <TabsContent value="signup" className="tab-switch-animation">
                 <form onSubmit={handleSignUp} className="space-y-6">
-                  {/* Pricing Card with enhanced glass morphism */}
-                  <div
-                    className="bg-gradient-to-br from-indigo-500 to-blue-700 rounded-2xl p-6 text-white shadow-2xl shadow-blue-500/40 relative overflow-hidden backdrop-blur-xl"
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                          <CreditCard className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <span className="font-semibold block">Premium Access</span>
-                          <span className="text-blue-100 text-sm">One-time payment</span>
-                        </div>
-                      </div>
-                      <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-5xl font-bold drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">₹1000</span>
-                        <span className="text-blue-100">lifetime</span>
-                      </div>
-                      <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-blue-50">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span className="text-sm">All features unlocked</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-blue-50">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span className="text-sm">Priority support</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-blue-50">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span className="text-sm">Free updates forever</span>
-                        </li>
-                      </ul>
+                  {/* Subscription Plans Selection */}
+                  <div className="space-y-4">
+                    <Label className="text-blue-100 font-semibold">Choose Your Plan</Label>
+                    <div className="grid gap-3">
+                      {(Object.entries(subscriptionPlans) as Array<[keyof typeof subscriptionPlans, typeof subscriptionPlans[keyof typeof subscriptionPlans]]>).map(([key, plan]) => {
+                        const PlanIcon = plan.icon;
+                        return (
+                          <div
+                            key={key}
+                            className={`relative p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:scale-[1.02] ${selectedPlan === key
+                              ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                              : 'border-blue-400/30 bg-white/5 hover:border-blue-400/60'
+                              }`}
+                            onClick={() => setSelectedPlan(key)}
+                            onMouseEnter={() => setIsHovering(true)}
+                            onMouseLeave={() => setIsHovering(false)}
+                          >
+                            {plan.popular && (
+                              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+                                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
+                                  Most Popular
+                                </span>
+                              </div>
+                            )}
+                            {plan.discount && (
+                              <div className="absolute -top-2 right-4">
+                                <span className="bg-gradient-to-r from-green-400 to-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                  {plan.discount}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedPlan === key
+                                  ? 'bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]'
+                                  : 'bg-blue-500/30'
+                                  }`}>
+                                  <PlanIcon className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="font-semibold text-white">{plan.name}</h3>
+                                  <p className="text-blue-200 text-sm">{plan.description}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-white">₹{plan.totalAmount.toLocaleString()}</div>
+                                <div className="text-blue-200 text-sm">
+                                  {plan.duration === 'lifetime' ? 'One-time' : `per ${plan.duration}`}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-blue-200 mt-2">
+                              ₹{plan.price.toLocaleString()} + ₹{plan.gst.toLocaleString()} GST
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -641,7 +760,7 @@ const Auth = () => {
                     ) : (
                       <>
                         <CreditCard className="mr-2 h-5 w-5" />
-                        Pay ₹1000 & Create Account
+                        Pay ₹{subscriptionPlans[selectedPlan].totalAmount.toLocaleString()} & Create Account
                       </>
                     )}
                   </Button>
