@@ -91,7 +91,12 @@ connectToMongoDB();
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  name: { type: String },
   subscriptionStatus: { type: String, enum: ["pending", "active"], default: "pending" },
+  subscriptionPlan: { type: String, enum: ["monthly", "annual", "lifetime"], default: "monthly" },
+  subscriptionAmount: { type: Number },
+  subscriptionStartDate: { type: Date },
+  subscriptionEndDate: { type: Date },
   razorpayPaymentId: { type: String },
   razorpayOrderId: { type: String },
   createdAt: { type: Date, default: Date.now },
@@ -175,8 +180,13 @@ app.get("/api/user", verifyToken, async (req, res) => {
 
     res.json({
       email: user.email,
+      name: user.name,
       id: user._id,
-      subscriptionStatus: user.subscriptionStatus
+      subscriptionStatus: user.subscriptionStatus,
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionAmount: user.subscriptionAmount,
+      subscriptionStartDate: user.subscriptionStartDate,
+      subscriptionEndDate: user.subscriptionEndDate
     });
   } catch (error) {
     console.error("Get User Error:", error);
@@ -184,22 +194,59 @@ app.get("/api/user", verifyToken, async (req, res) => {
   }
 });
 
+// ✅ Subscription Plans Configuration (matching frontend)
+const subscriptionPlans = {
+  monthly: {
+    id: "monthly",
+    name: "Monthly Subscription",
+    price: 1500,
+    gst: 270,
+    totalAmount: 1770,
+    duration: "month"
+  },
+  annual: {
+    id: "annual",
+    name: "Annual Subscription",
+    price: 16200,
+    gst: 2916,
+    totalAmount: 19116,
+    duration: "year"
+  },
+  lifetime: {
+    id: "lifetime",
+    name: "Lifetime Access",
+    price: 45000,
+    gst: 8100,
+    totalAmount: 53100,
+    duration: "lifetime"
+  }
+};
+
 // ✅ CREATE RAZORPAY ORDER
 app.post("/api/create-order", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, plan = "monthly" } = req.body;
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
 
+    // Validate plan
+    if (!subscriptionPlans[plan]) {
+      return res.status(400).json({ message: "Invalid subscription plan" });
+    }
+
+    const selectedPlan = subscriptionPlans[plan];
+
     if (process.env.DEV_MODE === "true") {
       return res.json({
         orderId: `dev_order_${Date.now()}`,
-        amount: 100,
+        amount: selectedPlan.totalAmount * 100, // Convert to paise for consistency
         currency: "INR",
         key: "rzp_test_dev_mode",
-        devMode: true
+        devMode: true,
+        plan: plan,
+        planDetails: selectedPlan
       });
     }
 
@@ -215,23 +262,41 @@ app.post("/api/create-order", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Razorpay expects amount in paise (smallest currency unit)
+    const amountInPaise = selectedPlan.totalAmount * 100;
+
+    console.log(`💰 Creating Razorpay order for ${plan} plan:`);
+    console.log(`   Base Price: ₹${selectedPlan.price}`);
+    console.log(`   GST: ₹${selectedPlan.gst}`);
+    console.log(`   Total: ₹${selectedPlan.totalAmount}`);
+    console.log(`   Amount in Paise: ${amountInPaise}`);
+
     const options = {
-      amount: 100,
+      amount: amountInPaise,
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+      receipt: `receipt_${plan}_${Date.now()}`,
       notes: {
         email: email,
-        purpose: "subscription"
+        purpose: "subscription",
+        plan: plan,
+        planName: selectedPlan.name,
+        basePrice: selectedPlan.price,
+        gst: selectedPlan.gst,
+        totalAmount: selectedPlan.totalAmount
       }
     };
 
     const order = await razorpay.orders.create(options);
 
+    console.log(`✅ Razorpay order created: ${order.id} for ₹${order.amount / 100}`);
+
     res.json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID
+      key: process.env.RAZORPAY_KEY_ID,
+      plan: plan,
+      planDetails: selectedPlan
     });
   } catch (error) {
     console.error("Create Order Error:", error);
@@ -256,12 +321,34 @@ app.post("/api/verify-payment", async (req, res) => {
       razorpay_payment_id,
       razorpay_signature,
       email,
-      password
+      password,
+      plan = "monthly",
+      name
     } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
     }
+
+    // Validate plan
+    if (!subscriptionPlans[plan]) {
+      return res.status(400).json({ message: "Invalid subscription plan" });
+    }
+
+    const selectedPlan = subscriptionPlans[plan];
+
+    // Calculate subscription dates
+    const subscriptionStartDate = new Date();
+    let subscriptionEndDate = null;
+
+    if (plan === "monthly") {
+      subscriptionEndDate = new Date(subscriptionStartDate);
+      subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1);
+    } else if (plan === "annual") {
+      subscriptionEndDate = new Date(subscriptionStartDate);
+      subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
+    }
+    // Lifetime plan has no end date (null)
 
     if (process.env.DEV_MODE === "true" || razorpay_order_id?.startsWith("dev_order_")) {
       console.log("🔧 Development mode: Bypassing payment verification");
@@ -274,8 +361,13 @@ app.post("/api/verify-payment", async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new User({
         email,
+        name: name || email.split('@')[0],
         password: hashedPassword,
         subscriptionStatus: "active",
+        subscriptionPlan: plan,
+        subscriptionAmount: selectedPlan.totalAmount,
+        subscriptionStartDate: subscriptionStartDate,
+        subscriptionEndDate: subscriptionEndDate,
         razorpayPaymentId: "dev_payment_" + Date.now(),
         razorpayOrderId: razorpay_order_id || "dev_order_" + Date.now()
       });
@@ -287,7 +379,9 @@ app.post("/api/verify-payment", async (req, res) => {
       return res.status(201).json({
         message: "Development mode: User registered successfully",
         token,
-        subscriptionStatus: "active"
+        subscriptionStatus: "active",
+        subscriptionPlan: plan,
+        subscriptionEndDate: subscriptionEndDate
       });
     }
 
@@ -312,8 +406,13 @@ app.post("/api/verify-payment", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       email,
+      name: name || email.split('@')[0],
       password: hashedPassword,
       subscriptionStatus: "active",
+      subscriptionPlan: plan,
+      subscriptionAmount: selectedPlan.totalAmount,
+      subscriptionStartDate: subscriptionStartDate,
+      subscriptionEndDate: subscriptionEndDate,
       razorpayPaymentId: razorpay_payment_id,
       razorpayOrderId: razorpay_order_id
     });
@@ -325,7 +424,9 @@ app.post("/api/verify-payment", async (req, res) => {
     res.status(201).json({
       message: "Payment verified and user registered successfully",
       token,
-      subscriptionStatus: "active"
+      subscriptionStatus: "active",
+      subscriptionPlan: plan,
+      subscriptionEndDate: subscriptionEndDate
     });
   } catch (error) {
     console.error("Verify Payment Error:", error);
@@ -340,7 +441,7 @@ app.use("/api/balance", balanceSheetRoutes);
 app.use("/api/profitloss", profitLossRoutes);
 app.use("/api/cashflow", cashflowRoutes);
 app.use("/api/financial-ratios", financialRatiosRoutes);
-app.use("/api/cashflow-statement",cashFlowStatementRoutes);
+app.use("/api/cashflow-statement", cashFlowStatementRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
