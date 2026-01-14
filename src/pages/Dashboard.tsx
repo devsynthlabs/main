@@ -21,6 +21,8 @@ import {
   LineChart,
   Calculator,
   FileSpreadsheet,
+  Package,
+  BanknoteIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
