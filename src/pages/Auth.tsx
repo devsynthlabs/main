@@ -119,8 +119,6 @@ const Auth = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState<Array<{ id: number, x: number, y: number, size: number, delay: number }>>([]);
-  const [isHovering, setIsHovering] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<keyof typeof subscriptionPlans>("monthly");
 
   const [signInEmail, setSignInEmail] = useState("");
@@ -129,32 +127,10 @@ const Auth = () => {
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
 
-  // 🖱️ Enhanced mouse tracking with trail effect
+  // 🖱️ Mouse tracking for background animation
   useEffect(() => {
-    let trailId = 0;
-
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-
-      // Create multiple trail particles
-      const newTrails = [];
-      for (let i = 0; i < 3; i++) {
-        const trail = {
-          id: trailId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 8 + 4,
-          delay: i * 50,
-        };
-        newTrails.push(trail);
-      }
-
-      setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-
-      // Remove trails after animation
-      setTimeout(() => {
-        setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
-      }, 800);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -365,82 +341,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 p-4 relative overflow-hidden">
-      {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div
-        className="fixed pointer-events-none z-[99999]"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {/* Main cursor dot */}
-        <div className="relative">
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 w-10 h-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-cyan-400/60 rounded-full animate-spin" style={{ animationDuration: '3s' }}>
-              <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
-            </div>
-          </div>
-
-          {/* Middle pulsing ring */}
-          <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
-          </div>
-
-          {/* Inner glow */}
-          <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-
-          {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-            }`}></div>
-
-          {/* Crosshair lines */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
-            <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent -translate-y-1/2"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cursor Trail Particles */}
-      {cursorTrail.map((trail) => (
-        <div
-          key={trail.id}
-          className="fixed pointer-events-none z-[99998] animate-[trail_0.8s_ease-out_forwards]"
-          style={{
-            left: trail.x,
-            top: trail.y,
-            width: trail.size,
-            height: trail.size,
-            animationDelay: `${trail.delay}ms`,
-          }}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-400 rounded-full blur-[2px] shadow-lg shadow-cyan-400/50"></div>
-        </div>
-      ))}
-
       <style>{`
-        @keyframes trail {
-          0% {
-            transform: scale(1) translateY(0);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(0) translateY(-40px);
-            opacity: 0;
-          }
-        }
-        
-        * {
-          cursor: none !important;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
         @keyframes tabSwitch {
           0% {
             opacity: 0;
@@ -480,8 +381,6 @@ const Auth = () => {
           <div>
             <div
               className="flex items-center space-x-3 mb-6 animate-in fade-in slide-in-from-left-4 duration-500"
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transform hover:scale-110 hover:rotate-12 transition-all duration-300">
                 <Building2 className="h-8 w-8 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
@@ -509,8 +408,6 @@ const Auth = () => {
                 key={i}
                 className="flex items-center space-x-3 bg-white/5 backdrop-blur-xl rounded-xl p-4 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 border border-blue-400/20 animate-in fade-in slide-in-from-left duration-500 group"
                 style={{ animationDelay: `${(i + 1) * 100}ms` }}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
               >
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.4)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] group-hover:rotate-12 transition-all duration-300">
                   <feature.icon className="w-5 h-5 text-white" />
@@ -523,8 +420,6 @@ const Auth = () => {
           {/* Trust Indicators with gradient glow */}
           <div
             className="bg-gradient-to-r from-indigo-500 to-blue-700 rounded-2xl p-6 text-white animate-in fade-in slide-in-from-left-4 duration-700 shadow-2xl shadow-blue-500/40 backdrop-blur-xl hover:-translate-y-2 transition-all duration-300"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-2xl font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">10,000+</span>
@@ -540,8 +435,6 @@ const Auth = () => {
         {/* Right Side - Auth Form with glass morphism */}
         <Card
           className="w-full bg-white/10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(59,130,246,0.4)] border border-blue-400/30 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700 hover:shadow-[0_20px_80px_rgba(59,130,246,0.6)] transition-all duration-500"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
         >
           <CardHeader className="text-center space-y-4 pt-10 pb-6 bg-gradient-to-br from-white/5 to-transparent animate-in fade-in zoom-in-95 duration-500">
             <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transform hover:scale-110 hover:rotate-12 transition-all duration-300">
@@ -561,22 +454,16 @@ const Auth = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList
                 className="grid w-full grid-cols-2 mb-8 bg-white/5 backdrop-blur-xl rounded-xl p-1.5 border border-blue-400/20"
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
               >
                 <TabsTrigger
                   value="signin"
                   className="text-blue-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg font-semibold transition-all data-[state=active]:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 duration-300"
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                 >
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
                   className="text-blue-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg font-semibold transition-all data-[state=active]:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 duration-300"
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                 >
                   Sign Up
                 </TabsTrigger>
@@ -597,8 +484,6 @@ const Auth = () => {
                       placeholder="you@example.com"
                       className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
                       required
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                     />
                   </div>
 
@@ -614,8 +499,6 @@ const Auth = () => {
                       placeholder="Enter your password"
                       className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
                       required
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                     />
                   </div>
 
@@ -623,8 +506,6 @@ const Auth = () => {
                     type="submit"
                     className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-6 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1"
                     disabled={loading}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                   >
                     {loading ? (
                       <>
@@ -658,8 +539,6 @@ const Auth = () => {
                               : 'border-blue-400/30 bg-white/5 hover:border-blue-400/60'
                               }`}
                             onClick={() => setSelectedPlan(key)}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                           >
                             {plan.popular && (
                               <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -718,8 +597,6 @@ const Auth = () => {
                       placeholder="you@example.com"
                       className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
                       required
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                     />
                   </div>
 
@@ -735,8 +612,6 @@ const Auth = () => {
                       placeholder="Create a strong password"
                       className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
                       required
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                     />
                   </div>
 
@@ -744,8 +619,6 @@ const Auth = () => {
                     type="submit"
                     className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-6 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1"
                     disabled={loading || paymentLoading}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                   >
                     {paymentLoading ? (
                       <>

@@ -8,8 +8,6 @@ import { motion } from "framer-motion";
 const Index = () => {
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState([]);
-  const [isHovering, setIsHovering] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
 
   // 🧠 State to store backend data
@@ -17,32 +15,10 @@ const Index = () => {
   const [stats, setStats] = useState<{ icon: JSX.Element; value: string; label: string }[]>([]);
   const [testimonials, setTestimonials] = useState<{ name: string; role: string; feedback: string }[]>([]);
 
-  // 🖱️ Enhanced mouse tracking with trail effect
+  // 🖱️ Mouse tracking for background animation
   useEffect(() => {
-    let trailId = 0;
-
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-
-      // Create multiple trail particles
-      const newTrails = [];
-      for (let i = 0; i < 3; i++) {
-        const trail = {
-          id: trailId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 8 + 4,
-          delay: i * 50,
-        };
-        newTrails.push(trail);
-      }
-
-      setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-
-      // Remove trails after animation
-      setTimeout(() => {
-        setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
-      }, 800);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -88,83 +64,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-      {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div
-        className="fixed pointer-events-none z-[99999]"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {/* Main cursor dot */}
-        <div className="relative">
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 w-10 h-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-cyan-400/60 rounded-full animate-spin" style={{ animationDuration: '3s' }}>
-              <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
-            </div>
-          </div>
-
-          {/* Middle pulsing ring */}
-          <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
-          </div>
-
-          {/* Inner glow */}
-          <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-
-          {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-            }`}></div>
-
-          {/* Crosshair lines */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
-            <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent -translate-y-1/2"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cursor Trail Particles */}
-      {cursorTrail.map((trail) => (
-        <div
-          key={trail.id}
-          className="fixed pointer-events-none z-[99998] animate-[trail_0.8s_ease-out_forwards]"
-          style={{
-            left: trail.x,
-            top: trail.y,
-            width: trail.size,
-            height: trail.size,
-            animationDelay: `${trail.delay}ms`,
-          }}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-400 rounded-full blur-[2px] shadow-lg shadow-cyan-400/50"></div>
-        </div>
-      ))}
-
-      <style>{`
-        @keyframes trail {
-          0% {
-            transform: scale(1) translateY(0);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(0) translateY(-40px);
-            opacity: 0;
-          }
-        }
-        
-        * {
-          cursor: none !important;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
       {/* YouTube Demo Modal */}
       {showDemo && (
         <motion.div
@@ -183,8 +82,6 @@ const Index = () => {
             <Button
               onClick={() => setShowDemo(false)}
               className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-2xl z-50 border-2 border-white/20"
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <X className="w-5 h-5" />
             </Button>
@@ -241,8 +138,6 @@ const Index = () => {
       {/* Header */}
       <header
         className="sticky top-0 z-50 border-b border-blue-400/20 bg-slate-900/50 backdrop-blur-xl shadow-2xl shadow-blue-500/20"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <motion.div
@@ -267,8 +162,6 @@ const Index = () => {
           >
             <Button
               onClick={() => navigate("/auth")}
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold px-6 shadow-2xl shadow-blue-500/60 hover:shadow-blue-500/80 hover:scale-[1.02] transition-all duration-300 border border-blue-400/30"
             >
               Sign In
@@ -287,8 +180,6 @@ const Index = () => {
           >
             <div
               className="inline-block mb-6 px-6 py-3 bg-white/5 backdrop-blur-xl border border-blue-400/20 rounded-full shadow-2xl shadow-blue-500/30 relative"
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/80"></div>
               <span className="text-blue-300 text-sm font-bold">🚀 Now with AI-Powered Insights</span>
@@ -311,8 +202,6 @@ const Index = () => {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth")}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 hover:from-blue-700 hover:via-cyan-700 hover:to-blue-700 text-white font-black px-10 py-7 rounded-2xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-500/80 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 text-lg group border border-blue-400/30"
               >
                 Get Started
@@ -322,8 +211,6 @@ const Index = () => {
                 size="lg"
                 variant="outline"
                 onClick={() => setShowDemo(true)}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="border-2 border-blue-400/40 bg-white/5 backdrop-blur-xl text-blue-300 hover:bg-white/10 hover:text-white font-black px-10 py-7 rounded-2xl text-lg shadow-2xl shadow-blue-500/30 hover:-translate-y-1 transition-all duration-300"
               >
                 Watch Demo
@@ -342,8 +229,6 @@ const Index = () => {
               <motion.div
                 key={i}
                 whileHover={{ y: -8, scale: 1.02 }}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="bg-white/5 backdrop-blur-xl border border-blue-400/20 rounded-2xl p-6 shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 group relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -382,8 +267,6 @@ const Index = () => {
                   transition={{ delay: index * 0.1 }}
                   viewport={{ once: true }}
                   whileHover={{ y: -8, scale: 1.02 }}
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                   className="relative group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-600/40 to-cyan-600/40 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -417,8 +300,6 @@ const Index = () => {
         >
           <div
             className="bg-gradient-to-br from-blue-600/20 via-cyan-600/10 to-indigo-600/20 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-blue-400/30 relative overflow-hidden"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
@@ -437,8 +318,6 @@ const Index = () => {
                       transition={{ delay: i * 0.1 }}
                       viewport={{ once: true }}
                       whileHover={{ y: -8, scale: 1.05 }}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="bg-white/5 backdrop-blur-xl border border-blue-400/30 rounded-3xl p-10 text-center hover:bg-white/10 hover:border-cyan-400/50 transition-all duration-300 shadow-2xl shadow-blue-500/40 relative overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -468,8 +347,6 @@ const Index = () => {
                 transition={{ delay: i * 0.1 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -8 }}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="text-center group"
               >
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/60 group-hover:shadow-blue-500/80 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 border border-blue-400/30">
@@ -491,8 +368,6 @@ const Index = () => {
         >
           <div
             className="bg-gradient-to-br from-blue-600/20 via-cyan-600/10 to-indigo-600/20 backdrop-blur-2xl rounded-3xl p-12 shadow-2xl border border-blue-400/30"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <h3 className="text-5xl font-black text-white text-center mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">What Our Clients Say</h3>
             <p className="text-blue-200/80 text-center mb-12 font-medium">Join thousands of satisfied customers</p>
@@ -507,8 +382,6 @@ const Index = () => {
                     transition={{ delay: i * 0.1 }}
                     viewport={{ once: true }}
                     whileHover={{ y: -8, scale: 1.02 }}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-white/5 backdrop-blur-xl border border-blue-400/20 p-8 rounded-3xl hover:bg-white/10 hover:border-cyan-400/40 transition-all duration-300 shadow-2xl shadow-blue-500/30 relative overflow-hidden group"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -549,8 +422,6 @@ const Index = () => {
         >
           <div
             className="bg-gradient-to-r from-blue-600/30 via-cyan-600/20 to-indigo-600/30 backdrop-blur-2xl rounded-3xl p-16 text-center shadow-2xl border border-blue-400/30 relative overflow-hidden"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-transparent animate-pulse"></div>
             <div className="relative z-10">
@@ -563,8 +434,6 @@ const Index = () => {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth")}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="bg-white hover:bg-blue-50 text-blue-600 font-black px-12 py-7 rounded-2xl shadow-2xl shadow-white/30 hover:shadow-white/50 text-lg group hover:-translate-y-2 hover:scale-[1.05] transition-all duration-300"
               >
                 Start Free Trial
@@ -578,8 +447,6 @@ const Index = () => {
       {/* Footer */}
       <footer
         className="border-t border-blue-400/20 bg-slate-900/80 backdrop-blur-xl mt-20"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
