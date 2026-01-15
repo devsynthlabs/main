@@ -12,6 +12,12 @@ import profitLossRoutes from "./routes/profitLossRoutes.js";
 import cashflowRoutes from "./routes/cashflowRoutes.js";
 import financialRatiosRoutes from "./routes/financialRatiosRoutes.js";
 import cashFlowStatementRoutes from "./routes/cashFlowStatementRoutes.js";
+import civilRoutes from "./routes/civilRoutes.js";
+import bookkeepingRoutes from "./routes/bookkeepingRoutes.js";
+import inventoryRoutes from "./routes/inventoryRoutes.js";
+import bankReconciliationRoutes from "./routes/bankReconciliationRoutes.js";
+import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
+import invoiceRoutes from "./routes/invoiceRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -442,6 +448,12 @@ app.use("/api/profitloss", profitLossRoutes);
 app.use("/api/cashflow", cashflowRoutes);
 app.use("/api/financial-ratios", financialRatiosRoutes);
 app.use("/api/cashflow-statement", cashFlowStatementRoutes);
+app.use("/api/civil", civilRoutes);
+app.use("/api/bookkeeping", bookkeepingRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/bank-reconciliation", bankReconciliationRoutes);
+app.use("/api/fraud-detection", fraudDetectionRoutes);
+app.use("/api/invoice", invoiceRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
