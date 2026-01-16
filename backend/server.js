@@ -18,6 +18,7 @@ import inventoryRoutes from "./routes/inventoryRoutes.js";
 import bankReconciliationRoutes from "./routes/bankReconciliationRoutes.js";
 import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
+import invoiceSummaryRoutes from "./routes/invoiceSummaryRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -454,6 +455,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/bank-reconciliation", bankReconciliationRoutes);
 app.use("/api/fraud-detection", fraudDetectionRoutes);
 app.use("/api/invoice", invoiceRoutes);
+app.use("/api/invoice-summary", invoiceSummaryRoutes);
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;

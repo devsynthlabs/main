@@ -1,15 +1,27 @@
 import { useState, useEffect } from "react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Download, Calculator, Sparkles, Search, FileText, Database, Calendar, Clock, Building2, Users, Target, Network, GanttChart, BarChart3, Home, Cpu, AlertCircle } from "lucide-react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface Task {
     id: string;

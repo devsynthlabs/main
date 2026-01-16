@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Download, Calculator, Sparkles, DollarSign, Search, FileText, Database } from "lucide-react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface FormData {
   employeeName: string;

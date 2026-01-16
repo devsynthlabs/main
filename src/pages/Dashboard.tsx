@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS } from "@/lib/api";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import {
   Users,
   FileText,
@@ -25,14 +29,13 @@ import {
   BanknoteIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [userEmail, setUserEmail] = useState("");
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState([]);
-  const [isHovering, setIsHovering] = useState(false);
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -68,36 +71,7 @@ const Dashboard = () => {
   }, [navigate, toast]);
 
   // 🖱️ Enhanced mouse tracking with trail effect
-  useEffect(() => {
-    let trailId = 0;
 
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-
-      // Create multiple trail particles
-      const newTrails = [];
-      for (let i = 0; i < 3; i++) {
-        const trail = {
-          id: trailId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 8 + 4,
-          delay: i * 50,
-        };
-        newTrails.push(trail);
-      }
-
-      setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-
-      // Remove trails after animation
-      setTimeout(() => {
-        setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
-      }, 800);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   const handleSignOut = () => {
     localStorage.removeItem("token");
@@ -180,7 +154,7 @@ const Dashboard = () => {
       color: "from-emerald-500 to-green-600",
       badge: "Analytics",
       stats: "15+Ratios",
-   },
+    },
     {
       title: "Office Bookkeeping",
       description: "Track income, expenses, and manage financial records with analytics dashboard.",
@@ -237,89 +211,15 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white relative overflow-hidden">
       {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-      <div
-        className="fixed pointer-events-none z-[99999]"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {/* Main cursor dot */}
-        <div className="relative">
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 w-10 h-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-cyan-400/60 rounded-full animate-spin" style={{ animationDuration: '3s' }}>
-              <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
-            </div>
-          </div>
 
-          {/* Middle pulsing ring */}
-          <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
-          </div>
-
-          {/* Inner glow */}
-          <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-
-          {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150' : 'bg-cyan-400'
-            }`}></div>
-
-          {/* Crosshair lines */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
-            <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent -translate-y-1/2"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cursor Trail Particles */}
-      {cursorTrail.map((trail) => (
-        <div
-          key={trail.id}
-          className="fixed pointer-events-none z-[99998] animate-[trail_0.8s_ease-out_forwards]"
-          style={{
-            left: trail.x,
-            top: trail.y,
-            width: trail.size,
-            height: trail.size,
-            animationDelay: `${trail.delay}ms`,
-          }}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-400 rounded-full blur-[2px] shadow-lg shadow-cyan-400/50"></div>
-        </div>
-      ))}
-
-      <style>{`
-        @keyframes trail {
-          0% {
-            transform: scale(1) translateY(0);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(0) translateY(-40px);
-            opacity: 0;
-          }
-        }
-        
-        * {
-          cursor: none !important;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
 
       {/* Animated gradient mesh background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px] transition-all duration-1000"
           style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
+            top: -400,
+            left: -400,
           }}
         ></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
@@ -338,8 +238,6 @@ const Dashboard = () => {
       {/* Header */}
       <header
         className="bg-white/5 border-b border-blue-400/20 shadow-2xl backdrop-blur-2xl relative z-10 sticky top-0"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center space-x-4 group">
@@ -362,8 +260,6 @@ const Dashboard = () => {
 
           <Button
             onClick={handleSignOut}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className="border-2 border-blue-400/40 bg-white/5 text-blue-200 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 backdrop-blur-xl font-semibold px-6 group"
           >
             <LogOut className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform duration-300" />
@@ -378,8 +274,6 @@ const Dashboard = () => {
         <div className="text-center mb-20 relative">
           <div
             className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-cyan-500/20 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 group cursor-pointer"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <Sparkles className="h-5 w-5 text-blue-300 animate-pulse" />
             <span className="text-blue-100 text-sm font-bold tracking-wide">AI-POWERED AUTOMATION PLATFORM</span>
@@ -402,8 +296,6 @@ const Dashboard = () => {
               <div
                 key={idx}
                 className="flex items-center gap-3 bg-white/10 backdrop-blur-xl px-6 py-3 rounded-full border border-blue-400/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 group cursor-pointer"
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
               >
                 <feature.icon className={`h-5 w-5 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
                 <span className="text-sm font-bold text-white">{feature.text}</span>
@@ -436,8 +328,6 @@ const Dashboard = () => {
             <div
               key={module.path}
               onClick={() => navigate(module.path)}
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
               className="group cursor-pointer bg-gradient-to-br from-white/10 to-white/5 border border-blue-400/20 rounded-3xl p-8 shadow-2xl hover:shadow-[0_20px_60px_rgba(59,130,246,0.4)] transition-all duration-500 transform hover:-translate-y-4 hover:scale-[1.02] backdrop-blur-2xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/10 hover:border-blue-400/40 relative overflow-hidden"
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -475,8 +365,6 @@ const Dashboard = () => {
 
                 {/* Action button */}
                 <Button
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-xl shadow-blue-600/40 hover:shadow-2xl hover:shadow-blue-500/60 transition-all duration-300 group/btn border-none py-6 rounded-xl"
                 >
                   <span>Open Module</span>
@@ -494,8 +382,6 @@ const Dashboard = () => {
         <div className="mt-20 relative">
           <div
             className="bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-cyan-600/20 backdrop-blur-2xl rounded-3xl p-12 border border-blue-400/30 shadow-2xl text-center relative overflow-hidden"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 animate-pulse"></div>
             <div className="relative z-10">
@@ -507,8 +393,6 @@ const Dashboard = () => {
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold px-10 py-6 text-lg rounded-xl shadow-2xl shadow-blue-600/50 hover:shadow-blue-500/70 hover:scale-105 transition-all duration-300 border-none"
                 >
                   Get Started Now
@@ -523,8 +407,6 @@ const Dashboard = () => {
       {/* Footer */}
       <footer
         className="border-t border-blue-400/20 bg-white/5 text-center py-10 mt-24 backdrop-blur-2xl relative z-10"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <p className="text-blue-200/70 text-sm font-medium mb-2">
           © 2025 Financial Automation Platform. All rights reserved.

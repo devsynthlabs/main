@@ -1,17 +1,23 @@
 import { useState, useEffect } from "react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS } from "@/lib/api";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Calculator, Download, TrendingUp, AlertCircle, CheckCircle, Building, Scale } from "lucide-react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 
 const BalanceSheet = () => {
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState([]);
-  const [isHovering, setIsHovering] = useState(false);
 
   const [formData, setFormData] = useState({
     currentAssets: "",
@@ -22,30 +28,10 @@ const BalanceSheet = () => {
   });
   const [balanceSheet, setBalanceSheet] = useState(null);
 
-  // Mouse tracking with trail effect
+  // Mouse tracking for background animation
   useEffect(() => {
-    let trailId = 0;
-
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
-
-      const newTrails = [];
-      for (let i = 0; i < 3; i++) {
-        const trail = {
-          id: trailId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 8 + 4,
-          delay: i * 50,
-        };
-        newTrails.push(trail);
-      }
-
-      setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-
-      setTimeout(() => {
-        setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
-      }, 800);
     };
 
     window.addEventListener("mousemove", handleMouseMove);

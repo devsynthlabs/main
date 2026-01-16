@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, CreditCard, Lock, Mail, Shield, CheckCircle2, Sparkles, ArrowRight, Crown, Infinity, Zap } from "lucide-react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS, apiRequest } from "@/lib/api";
 
 interface RazorpayResponse {
@@ -118,7 +119,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const [selectedPlan, setSelectedPlan] = useState<keyof typeof subscriptionPlans>("monthly");
 
   const [signInEmail, setSignInEmail] = useState("");
@@ -127,15 +128,7 @@ const Auth = () => {
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
 
-  // 🖱️ Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // Load Razorpay script
   useEffect(() => {
@@ -366,8 +359,8 @@ const Auth = () => {
       <div
         className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-3xl transition-all duration-1000 pointer-events-none"
         style={{
-          top: mousePosition.y / 20 - 400,
-          left: mousePosition.x / 20 - 400,
+          top: -400,
+          left: -400,
         }}
       ></div>
 
@@ -477,14 +470,21 @@ const Auth = () => {
                       <Mail className="w-4 h-4 text-cyan-300" />
                       Email Address
                     </Label>
-                    <Input
-                      type="email"
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
-                      required
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="email"
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
+                        required
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setSignInEmail(text)}
+                        language="en-US"
+                        size="md"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -547,10 +547,10 @@ const Auth = () => {
                                 </span>
                               </div>
                             )}
-                            {plan.discount && (
+                            {(plan as any).savings && (
                               <div className="absolute -top-2 right-4">
                                 <span className="bg-gradient-to-r from-green-400 to-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                                  {plan.discount}
+                                  {(plan as any).savings}
                                 </span>
                               </div>
                             )}
@@ -590,14 +590,21 @@ const Auth = () => {
                       <Mail className="w-4 h-4 text-cyan-300" />
                       Email Address
                     </Label>
-                    <Input
-                      type="email"
-                      value={signUpEmail}
-                      onChange={(e) => setSignUpEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
-                      required
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="email"
+                        value={signUpEmail}
+                        onChange={(e) => setSignUpEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
+                        required
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setSignUpEmail(text)}
+                        language="en-US"
+                        size="md"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">

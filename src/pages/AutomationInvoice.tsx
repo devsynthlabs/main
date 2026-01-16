@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { 
   ArrowLeft, 
   Upload, 

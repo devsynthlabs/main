@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Download, Calculator, Sparkles, Receipt, Shield, TrendingUp, Search, Database, FileText } from "lucide-react";
 
 interface Results {
@@ -33,7 +34,7 @@ interface TaxReturn {
 
 const TaxGST = () => {
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const [activeTab, setActiveTab] = useState("calculator");
 
   // Calculator State
@@ -48,15 +49,7 @@ const TaxGST = () => {
   const [returns, setReturns] = useState<TaxReturn[]>([]);
   const [filteredReturns, setFilteredReturns] = useState<TaxReturn[]>([]);
 
-  // Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // Fetch GST data from backend
   useEffect(() => {
@@ -282,8 +275,8 @@ Powered by Advanced Tax Calculation Engine ✨
         <div
           className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000"
           style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
+            top: -400,
+            left: -400,
           }}
         />
 
@@ -387,7 +380,7 @@ Powered by Advanced Tax Calculation Engine ✨
                     <Sparkles className="h-4 w-4 text-cyan-400" />
                     Base Amount (₹)
                   </Label>
-                  <div className="relative">
+                  <div className="relative flex items-center gap-2">
                     <Input
                       id="amount"
                       type="number"
@@ -396,10 +389,15 @@ Powered by Advanced Tax Calculation Engine ✨
                       onChange={(e) => setAmount(e.target.value)}
                       className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-14 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10 text-lg"
                     />
+                    <VoiceButton
+                      onTranscript={(text) => setAmount(text)}
+                      language="en-US"
+                      size="md"
+                    />
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   </div>
                   <p className="text-blue-300/60 text-sm pl-1">
-                    💡 Enter the base amount before tax calculation
+                    💡 Enter the base amount before tax calculation or click the mic to speak
                   </p>
                 </div>
 
