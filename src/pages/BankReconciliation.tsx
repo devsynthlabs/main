@@ -757,8 +757,6 @@ Match Score: ${result.matchScore}%
                             {/* Add Ledger Entry */}
                             <Card
                                 className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
-                                onMouseEnter={() => setIsHovering(true)}
-                                onMouseLeave={() => setIsHovering(false)}
                             >
                                 <CardHeader>
                                     <CardTitle className="text-xl font-bold text-cyan-100 flex items-center gap-2">
@@ -859,8 +857,6 @@ Match Score: ${result.matchScore}%
                             {/* Add Bank Entry */}
                             <Card
                                 className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
-                                onMouseEnter={() => setIsHovering(true)}
-                                onMouseLeave={() => setIsHovering(false)}
                             >
                                 <CardHeader>
                                     <CardTitle className="text-xl font-bold text-blue-100 flex items-center gap-2">

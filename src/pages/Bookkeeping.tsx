@@ -375,8 +375,6 @@ const Bookkeeping = () => {
 
                                         <Button
                                             onClick={exportToCSV}
-                                            onMouseEnter={() => setIsHovering(true)}
-                                            onMouseLeave={() => setIsHovering(false)}
                                             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white"
                                         >
                                             <Download className="h-4 w-4 mr-2" />
