@@ -76,6 +76,7 @@ const VoiceInputDemo = () => {
                                     />
                                     <VoiceButton
                                         onTranscript={(text) => setName(text)}
+                                        onClear={() => setName("")}
                                         language="en-US"
                                         size="md"
                                     />
@@ -98,6 +99,7 @@ const VoiceInputDemo = () => {
                                     />
                                     <VoiceButton
                                         onTranscript={(text) => setEmail(text)}
+                                        onClear={() => setEmail("")}
                                         language="en-US"
                                         size="md"
                                     />
@@ -120,6 +122,7 @@ const VoiceInputDemo = () => {
                                     />
                                     <VoiceButton
                                         onTranscript={(text) => setAmount(text)}
+                                        onClear={() => setAmount("")}
                                         language="en-US"
                                         size="md"
                                     />

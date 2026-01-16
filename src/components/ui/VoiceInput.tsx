@@ -27,6 +27,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         onChange(syntheticEvent);
     };
 
+    const handleClear = () => {
+        const syntheticEvent = {
+            target: { value: "" },
+            currentTarget: { value: "" },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+    };
+
     return (
         <div className="relative flex items-center gap-2">
             <Input
@@ -38,6 +46,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
             {showVoiceButton && (
                 <VoiceButton
                     onTranscript={handleVoiceTranscript}
+                    onClear={handleClear}
                     language={language}
                     size="sm"
                 />

@@ -481,6 +481,7 @@ const Auth = () => {
                       />
                       <VoiceButton
                         onTranscript={(text) => setSignInEmail(text)}
+                        onClear={() => setSignInEmail("")}
                         language="en-US"
                         size="md"
                       />
@@ -601,6 +602,7 @@ const Auth = () => {
                       />
                       <VoiceButton
                         onTranscript={(text) => setSignUpEmail(text)}
+                        onClear={() => setSignUpEmail("")}
                         language="en-US"
                         size="md"
                       />

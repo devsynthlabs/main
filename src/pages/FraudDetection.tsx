@@ -467,7 +467,10 @@ const FraudDetection = () => {
                         onChange={(e) => handleInputChange('amountThreshold', parseFloat(e.target.value) || 0)}
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <VoiceButton onTranscript={(text) => handleInputChange('amountThreshold', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange('amountThreshold', text)}
+                        onClear={() => handleInputChange('amountThreshold', "")}
+                      />
                     </div>
                   </div>
 
@@ -528,7 +531,10 @@ const FraudDetection = () => {
                         onChange={(e) => handleInputChange('dateColumn', e.target.value)}
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <VoiceButton onTranscript={(text) => handleInputChange('dateColumn', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange('dateColumn', text)}
+                        onClear={() => handleInputChange('dateColumn', "")}
+                      />
                     </div>
                   </div>
 
@@ -540,7 +546,10 @@ const FraudDetection = () => {
                         onChange={(e) => handleInputChange('amountColumn', e.target.value)}
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <VoiceButton onTranscript={(text) => handleInputChange('amountColumn', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange('amountColumn', text)}
+                        onClear={() => handleInputChange('amountColumn', "")}
+                      />
                     </div>
                   </div>
 
@@ -552,7 +561,10 @@ const FraudDetection = () => {
                         onChange={(e) => handleInputChange('descriptionColumn', e.target.value)}
                         className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <VoiceButton onTranscript={(text) => handleInputChange('descriptionColumn', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange('descriptionColumn', text)}
+                        onClear={() => handleInputChange('descriptionColumn', "")}
+                      />
                     </div>
                   </div>
                 </div>

@@ -388,7 +388,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                     onChange={(e) => handleInputChange("period", e.target.value)}
                     className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
                   />
-                  <VoiceButton onTranscript={(text) => handleInputChange("period", text)} />
+                  <VoiceButton
+                    onTranscript={(text) => handleInputChange("period", text)}
+                    onClear={() => handleInputChange("period", "")}
+                  />
                 </div>
               </div>
 
@@ -417,7 +420,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleInflowItemChange(index, 'description', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'description', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInflowItemChange(index, 'description', text)}
+                        onClear={() => handleInflowItemChange(index, 'description', "")}
+                      />
                     </div>
                     <div className="col-span-3 flex items-center gap-1">
                       <Input
@@ -427,7 +433,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleInflowItemChange(index, 'amount', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'amount', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInflowItemChange(index, 'amount', text)}
+                        onClear={() => handleInflowItemChange(index, 'amount', "")}
+                      />
                     </div>
                     <div className="col-span-3 flex items-center gap-1">
                       <Input
@@ -436,7 +445,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleInflowItemChange(index, 'category', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'category', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleInflowItemChange(index, 'category', text)}
+                        onClear={() => handleInflowItemChange(index, 'category', "")}
+                      />
                     </div>
                     <div className="col-span-2">
                       <Button
@@ -478,7 +490,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleOutflowItemChange(index, 'description', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'description', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleOutflowItemChange(index, 'description', text)}
+                        onClear={() => handleOutflowItemChange(index, 'description', "")}
+                      />
                     </div>
                     <div className="col-span-3 flex items-center gap-1">
                       <Input
@@ -488,7 +503,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleOutflowItemChange(index, 'amount', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'amount', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleOutflowItemChange(index, 'amount', text)}
+                        onClear={() => handleOutflowItemChange(index, 'amount', "")}
+                      />
                     </div>
                     <div className="col-span-3 flex items-center gap-1">
                       <Input
@@ -497,7 +515,10 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleOutflowItemChange(index, 'category', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'category', text)} />
+                      <VoiceButton
+                        onTranscript={(text) => handleOutflowItemChange(index, 'category', text)}
+                        onClear={() => handleOutflowItemChange(index, 'category', "")}
+                      />
                     </div>
                     <div className="col-span-2">
                       <Button

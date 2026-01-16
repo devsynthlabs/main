@@ -441,7 +441,10 @@ Powered by Advanced Ratio Engine ✨
                           onChange={(e) => handleInputChange(field.id as keyof FormData, e.target.value)}
                           className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
                         />
-                        <VoiceButton onTranscript={(text) => handleInputChange(field.id as keyof FormData, text)} />
+                        <VoiceButton
+                          onTranscript={(text) => handleInputChange(field.id as keyof FormData, text)}
+                          onClear={() => handleInputChange(field.id as keyof FormData, "")}
+                        />
                       </div>
                     </div>
                   ))}
@@ -565,7 +568,10 @@ Powered by Advanced Ratio Engine ✨
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                         className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-blue-100 border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
                       />
-                      <VoiceButton onTranscript={(text) => setSearchTerm(text)} />
+                      <VoiceButton
+                        onTranscript={(text) => setSearchTerm(text)}
+                        onClear={() => setSearchTerm("")}
+                      />
                     </div>
                   </div>
                   <Button

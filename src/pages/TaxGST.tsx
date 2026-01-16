@@ -391,6 +391,7 @@ Powered by Advanced Tax Calculation Engine ✨
                     />
                     <VoiceButton
                       onTranscript={(text) => setAmount(text)}
+                      onClear={() => setAmount("")}
                       language="en-US"
                       size="md"
                     />

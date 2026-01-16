@@ -515,7 +515,10 @@ Powered by Advanced CPM Engine ⚙️
                                                 onChange={(e) => handleInputChange("projectName", e.target.value)}
                                                 className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300"
                                             />
-                                            <VoiceButton onTranscript={(text) => handleInputChange("projectName", text)} />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("projectName", text)}
+                                                onClear={() => handleInputChange("projectName", "")}
+                                            />
                                         </div>
                                     </div>
 
@@ -532,7 +535,10 @@ Powered by Advanced CPM Engine ⚙️
                                                 onChange={(e) => handleInputChange("projectId", e.target.value)}
                                                 className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300"
                                             />
-                                            <VoiceButton onTranscript={(text) => handleInputChange("projectId", text)} />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("projectId", text)}
+                                                onClear={() => handleInputChange("projectId", "")}
+                                            />
                                         </div>
                                     </div>
 
@@ -598,7 +604,10 @@ Powered by Advanced CPM Engine ⚙️
                                                 onChange={(e) => handleInputChange("projectDescription", e.target.value)}
                                                 className="w-full min-h-[80px] bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl p-3 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 resize-y"
                                             />
-                                            <VoiceButton onTranscript={(text) => handleInputChange("projectDescription", text)} />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("projectDescription", text)}
+                                                onClear={() => handleInputChange("projectDescription", "")}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -632,7 +641,10 @@ Powered by Advanced CPM Engine ⚙️
                                                                     placeholder="e.g., A-Site preparation"
                                                                     className="bg-white/10 border-blue-400/30 text-white"
                                                                 />
-                                                                <VoiceButton onTranscript={(text) => handleTaskChange(task.id, "name", text)} />
+                                                                <VoiceButton
+                                                                    onTranscript={(text) => handleTaskChange(task.id, "name", text)}
+                                                                    onClear={() => handleTaskChange(task.id, "name", "")}
+                                                                />
                                                             </div>
                                                         </div>
 
@@ -943,7 +955,10 @@ Powered by Advanced CPM Engine ⚙️
                                                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                                 className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
                                             />
-                                            <VoiceButton onTranscript={(text) => setSearchTerm(text)} />
+                                            <VoiceButton
+                                                onTranscript={(text) => setSearchTerm(text)}
+                                                onClear={() => setSearchTerm("")}
+                                            />
                                         </div>
                                     </div>
                                     <Button
