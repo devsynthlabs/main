@@ -1,25 +1,15 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Upload, RefreshCw, CheckCircle, XCircle, AlertCircle, Download, FileText, BanknoteIcon, TrendingUp, Plus } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface LedgerEntry {
     id: string;
@@ -334,28 +324,13 @@ Match Score: ${result.matchScore}%
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-950 to-teal-950 text-white overflow-hidden relative">
-            {/* NORMAL CURSOR - No custom cursor effects */}
-            <style>{`
-        * {
-          cursor: default !important;
-        }
-        button, input, select, [role="button"] {
-          cursor: pointer !important;
-        }
-      `}</style>
-
-            {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Grid overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-
-                {/* Floating particles */}
                 <div className="absolute top-20 left-20 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
                 <div className="absolute top-40 right-40 w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
                 <div className="absolute bottom-40 left-60 w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
             </div>
 
-            {/* Header */}
             <header className="relative backdrop-blur-xl bg-white/5 border-b border-cyan-400/20 shadow-2xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Button
@@ -382,7 +357,6 @@ Match Score: ${result.matchScore}%
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-cyan-400/20 rounded-2xl p-1">
@@ -409,7 +383,6 @@ Match Score: ${result.matchScore}%
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* Reconcile Tab */}
                     <TabsContent value="reconcile">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
@@ -425,7 +398,6 @@ Match Score: ${result.matchScore}%
                             </CardHeader>
 
                             <CardContent className="space-y-8">
-                                {/* Summary Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <Card className="bg-gradient-to-br from-cyan-500/20 to-teal-500/20 backdrop-blur-xl border border-cyan-400/30 rounded-2xl">
                                         <CardContent className="pt-6">
@@ -467,7 +439,6 @@ Match Score: ${result.matchScore}%
                                     </Card>
                                 </div>
 
-                                {/* Upload Section */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Card className="backdrop-blur-xl bg-white/5 border border-cyan-400/20 rounded-2xl">
                                         <CardHeader>
@@ -530,7 +501,6 @@ Match Score: ${result.matchScore}%
                                     </Card>
                                 </div>
 
-                                {/* Reconcile Button */}
                                 <div className="text-center">
                                     <Button
                                         onClick={performReconciliation}
@@ -557,7 +527,6 @@ Match Score: ${result.matchScore}%
                         </Card>
                     </TabsContent>
 
-                    {/* Results Tab */}
                     <TabsContent value="results">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
@@ -632,7 +601,6 @@ Match Score: ${result.matchScore}%
                                                             </div>
 
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                {/* Ledger Entry */}
                                                                 <div className="p-3 bg-cyan-500/5 rounded-xl border border-cyan-400/10">
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <FileText className="h-4 w-4 text-cyan-400" />
@@ -651,8 +619,8 @@ Match Score: ${result.matchScore}%
                                                                                 <div>
                                                                                     <span className="text-cyan-300/60">Amount:</span>
                                                                                     <p className={`font-bold ${result.ledgerEntry.type === 'Income'
-                                                                                            ? 'text-green-400'
-                                                                                            : 'text-red-400'
+                                                                                        ? 'text-green-400'
+                                                                                        : 'text-red-400'
                                                                                         }`}>
                                                                                         ₹{result.ledgerEntry.amount.toFixed(2)}
                                                                                     </p>
@@ -679,7 +647,6 @@ Match Score: ${result.matchScore}%
                                                                     )}
                                                                 </div>
 
-                                                                {/* Bank Entry */}
                                                                 <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-400/10">
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <BanknoteIcon className="h-4 w-4 text-blue-400" />
@@ -698,8 +665,8 @@ Match Score: ${result.matchScore}%
                                                                                 <div>
                                                                                     <span className="text-blue-300/60">Amount:</span>
                                                                                     <p className={`font-bold ${result.bankEntry.type === 'Credit'
-                                                                                            ? 'text-green-400'
-                                                                                            : 'text-red-400'
+                                                                                        ? 'text-green-400'
+                                                                                        : 'text-red-400'
                                                                                         }`}>
                                                                                         ₹{result.bankEntry.amount.toFixed(2)}
                                                                                     </p>
@@ -751,10 +718,8 @@ Match Score: ${result.matchScore}%
                         </Card>
                     </TabsContent>
 
-                    {/* Add Entries Tab */}
                     <TabsContent value="add">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Add Ledger Entry */}
                             <Card
                                 className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
                             >
@@ -786,13 +751,19 @@ Match Score: ${result.matchScore}%
                                         <Label htmlFor="ledgerDescription" className="text-cyan-100 font-bold">
                                             Description *
                                         </Label>
-                                        <Input
-                                            id="ledgerDescription"
-                                            placeholder="Enter transaction description"
-                                            value={manualLedgerEntry.description}
-                                            onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, description: e.target.value }))}
-                                            className="bg-white/5 border-cyan-400/30 text-cyan-100"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="ledgerDescription"
+                                                placeholder="Enter transaction description"
+                                                value={manualLedgerEntry.description}
+                                                onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, description: e.target.value }))}
+                                                className="bg-white/5 border-cyan-400/30 text-cyan-100"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => setManualLedgerEntry(prev => ({ ...prev, description: text }))}
+                                                onClear={() => setManualLedgerEntry(prev => ({ ...prev, description: "" }))}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -800,14 +771,20 @@ Match Score: ${result.matchScore}%
                                             <Label htmlFor="ledgerAmount" className="text-cyan-100 font-bold">
                                                 Amount *
                                             </Label>
-                                            <Input
-                                                id="ledgerAmount"
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={manualLedgerEntry.amount}
-                                                onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, amount: e.target.value }))}
-                                                className="bg-white/5 border-cyan-400/30 text-cyan-100"
-                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    id="ledgerAmount"
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    value={manualLedgerEntry.amount}
+                                                    onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, amount: e.target.value }))}
+                                                    className="bg-white/5 border-cyan-400/30 text-cyan-100"
+                                                />
+                                                <VoiceButton
+                                                    onTranscript={(text) => setManualLedgerEntry(prev => ({ ...prev, amount: text }))}
+                                                    onClear={() => setManualLedgerEntry(prev => ({ ...prev, amount: "" }))}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-3">
@@ -835,13 +812,19 @@ Match Score: ${result.matchScore}%
                                         <Label htmlFor="ledgerReference" className="text-cyan-100 font-bold">
                                             Reference
                                         </Label>
-                                        <Input
-                                            id="ledgerReference"
-                                            placeholder="Optional reference number"
-                                            value={manualLedgerEntry.reference}
-                                            onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, reference: e.target.value }))}
-                                            className="bg-white/5 border-cyan-400/30 text-cyan-100"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="ledgerReference"
+                                                placeholder="Optional reference number"
+                                                value={manualLedgerEntry.reference}
+                                                onChange={(e) => setManualLedgerEntry(prev => ({ ...prev, reference: e.target.value }))}
+                                                className="bg-white/5 border-cyan-400/30 text-cyan-100"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => setManualLedgerEntry(prev => ({ ...prev, reference: text }))}
+                                                onClear={() => setManualLedgerEntry(prev => ({ ...prev, reference: "" }))}
+                                            />
+                                        </div>
                                     </div>
 
                                     <Button
@@ -854,7 +837,6 @@ Match Score: ${result.matchScore}%
                                 </CardContent>
                             </Card>
 
-                            {/* Add Bank Entry */}
                             <Card
                                 className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
                             >
@@ -886,13 +868,19 @@ Match Score: ${result.matchScore}%
                                         <Label htmlFor="bankDescription" className="text-blue-100 font-bold">
                                             Description *
                                         </Label>
-                                        <Input
-                                            id="bankDescription"
-                                            placeholder="Enter bank description"
-                                            value={manualBankEntry.description}
-                                            onChange={(e) => setManualBankEntry(prev => ({ ...prev, description: e.target.value }))}
-                                            className="bg-white/5 border-blue-400/30 text-blue-100"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="bankDescription"
+                                                placeholder="Enter bank description"
+                                                value={manualBankEntry.description}
+                                                onChange={(e) => setManualBankEntry(prev => ({ ...prev, description: e.target.value }))}
+                                                className="bg-white/5 border-blue-400/30 text-blue-100"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => setManualBankEntry(prev => ({ ...prev, description: text }))}
+                                                onClear={() => setManualBankEntry(prev => ({ ...prev, description: "" }))}
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -900,14 +888,20 @@ Match Score: ${result.matchScore}%
                                             <Label htmlFor="bankAmount" className="text-blue-100 font-bold">
                                                 Amount *
                                             </Label>
-                                            <Input
-                                                id="bankAmount"
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={manualBankEntry.amount}
-                                                onChange={(e) => setManualBankEntry(prev => ({ ...prev, amount: e.target.value }))}
-                                                className="bg-white/5 border-blue-400/30 text-blue-100"
-                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    id="bankAmount"
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    value={manualBankEntry.amount}
+                                                    onChange={(e) => setManualBankEntry(prev => ({ ...prev, amount: e.target.value }))}
+                                                    className="bg-white/5 border-blue-400/30 text-blue-100"
+                                                />
+                                                <VoiceButton
+                                                    onTranscript={(text) => setManualBankEntry(prev => ({ ...prev, amount: text }))}
+                                                    onClear={() => setManualBankEntry(prev => ({ ...prev, amount: "" }))}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-3">
@@ -935,13 +929,19 @@ Match Score: ${result.matchScore}%
                                         <Label htmlFor="bankReference" className="text-blue-100 font-bold">
                                             Reference
                                         </Label>
-                                        <Input
-                                            id="bankReference"
-                                            placeholder="Optional transaction ID"
-                                            value={manualBankEntry.reference}
-                                            onChange={(e) => setManualBankEntry(prev => ({ ...prev, reference: e.target.value }))}
-                                            className="bg-white/5 border-blue-400/30 text-blue-100"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="bankReference"
+                                                placeholder="Optional transaction ID"
+                                                value={manualBankEntry.reference}
+                                                onChange={(e) => setManualBankEntry(prev => ({ ...prev, reference: e.target.value }))}
+                                                className="bg-white/5 border-blue-400/30 text-blue-100"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => setManualBankEntry(prev => ({ ...prev, reference: text }))}
+                                                onClear={() => setManualBankEntry(prev => ({ ...prev, reference: "" }))}
+                                            />
+                                        </div>
                                     </div>
 
                                     <Button
@@ -957,7 +957,6 @@ Match Score: ${result.matchScore}%
                     </TabsContent>
                 </Tabs>
 
-                {/* Bottom floating info */}
                 <div className="mt-8 text-center">
                     <p className="text-cyan-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-cyan-400/20">
                         Powered by AI-Powered Reconciliation Engine ✨
@@ -967,7 +966,5 @@ Match Score: ${result.matchScore}%
         </div>
     );
 };
-
-
 
 export default BankReconciliation;

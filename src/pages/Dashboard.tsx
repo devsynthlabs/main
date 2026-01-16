@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS } from "@/lib/api";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import {
   Users,
   FileText,
@@ -29,7 +25,6 @@ import {
   BanknoteIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -69,9 +64,6 @@ const Dashboard = () => {
         });
     }
   }, [navigate, toast]);
-
-  // 🖱️ Enhanced mouse tracking with trail effect
-
 
   const handleSignOut = () => {
     localStorage.removeItem("token");
@@ -210,21 +202,18 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white relative overflow-hidden">
-      {/* Enhanced Custom Cursor - Always on top with higher z-index */}
-
-
       {/* Animated gradient mesh background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px] transition-all duration-1000"
+          className="absolute w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px]"
           style={{
             top: -400,
             left: -400,
           }}
         ></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/3 right-10 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 right-10 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
@@ -242,10 +231,10 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center space-x-4 group">
             <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/60 group-hover:shadow-blue-400/80 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transition-all duration-500">
                 <Building2 className="h-6 w-6 text-white" />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur-xl opacity-50 transition-opacity duration-500"></div>
             </div>
             <div>
               <h1 className="text-2xl font-black text-white drop-shadow-2xl tracking-tight">
@@ -273,7 +262,7 @@ const Dashboard = () => {
         {/* Hero Section */}
         <div className="text-center mb-20 relative">
           <div
-            className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-cyan-500/20 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 group cursor-pointer"
+            className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-cyan-500/20 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-2xl transition-all duration-300 group cursor-pointer"
           >
             <Sparkles className="h-5 w-5 text-blue-300 animate-pulse" />
             <span className="text-blue-100 text-sm font-bold tracking-wide">AI-POWERED AUTOMATION PLATFORM</span>
@@ -295,9 +284,9 @@ const Dashboard = () => {
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-3 bg-white/10 backdrop-blur-xl px-6 py-3 rounded-full border border-blue-400/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 group cursor-pointer"
+                className="flex items-center gap-3 bg-white/10 backdrop-blur-xl px-6 py-3 rounded-full border border-blue-400/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 group cursor-pointer"
               >
-                <feature.icon className={`h-5 w-5 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
+                <feature.icon className={`h-5 w-5 ${feature.color} transition-transform duration-300`} />
                 <span className="text-sm font-bold text-white">{feature.text}</span>
               </div>
             ))}
@@ -328,7 +317,7 @@ const Dashboard = () => {
             <div
               key={module.path}
               onClick={() => navigate(module.path)}
-              className="group cursor-pointer bg-gradient-to-br from-white/10 to-white/5 border border-blue-400/20 rounded-3xl p-8 shadow-2xl hover:shadow-[0_20px_60px_rgba(59,130,246,0.4)] transition-all duration-500 transform hover:-translate-y-4 hover:scale-[1.02] backdrop-blur-2xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/10 hover:border-blue-400/40 relative overflow-hidden"
+              className="group cursor-pointer bg-gradient-to-br from-white/10 to-white/5 border border-blue-400/20 rounded-3xl p-8 shadow-2xl transition-all duration-500 backdrop-blur-2xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/10 hover:border-blue-400/40 relative overflow-hidden"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Animated gradient overlay */}
@@ -342,10 +331,10 @@ const Dashboard = () => {
 
               {/* Icon with mega glow effect */}
               <div className="relative mb-6 inline-block">
-                <div className={`w-20 h-20 bg-gradient-to-br ${module.color} rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 relative z-10`}>
+                <div className={`w-20 h-20 bg-gradient-to-br ${module.color} rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:rotate-12 relative z-10`}>
                   <module.icon className="h-10 w-10 text-white" />
                 </div>
-                <div className={`absolute inset-0 bg-gradient-to-br ${module.color} rounded-2xl blur-2xl opacity-40 group-hover:opacity-70 group-hover:scale-150 transition-all duration-500`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${module.color} rounded-2xl blur-2xl opacity-40 group-hover:opacity-70 transition-all duration-500`}></div>
               </div>
 
               {/* Content */}

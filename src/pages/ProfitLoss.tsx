@@ -1,23 +1,15 @@
-import { useState, useEffect } from "react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
-import { API_ENDPOINTS } from "@/lib/api";
+import { useState } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Calculator, Download, TrendingUp, TrendingDown, DollarSign, Sparkles, BarChart3 } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 const ProfitLoss = () => {
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const [formData, setFormData] = useState({
     sales: "",
@@ -32,16 +24,6 @@ const ProfitLoss = () => {
 
   const [statement, setStatement] = useState(null);
   const [showResult, setShowResult] = useState(false);
-
-  // Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -147,23 +129,15 @@ Powered by Advanced Financial Analytics Engine ✨
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000"
-          style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
-          }}
-        />
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-
-        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-40 left-60 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-60 right-20 w-2 h-2 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
-      </div>
+      {/* Floating particles */}
+      <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
+      <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
+      <div className="absolute bottom-40 left-60 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
 
       {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
@@ -177,9 +151,7 @@ Powered by Advanced Financial Analytics Engine ✨
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div
-              className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30"
-            >
+            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30">
               <BarChart3 className="h-8 w-8 text-blue-400" />
             </div>
             <div>
@@ -196,32 +168,17 @@ Powered by Advanced Financial Analytics Engine ✨
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Card */}
-          <Card
-            className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-
+          <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2">
             <CardHeader className="relative">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
-                    <DollarSign className="h-6 w-6 text-cyan-400 hover:rotate-12 transition-transform duration-300" />
-                    Enter P&L Data
-                  </CardTitle>
-                  <CardDescription className="text-blue-200/70 mt-2">
-                    Input your company's financial details
-                  </CardDescription>
-                </div>
-                <div className="hidden sm:block px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl backdrop-blur-md border border-blue-400/30">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-xs text-blue-200 font-semibold">Live</span>
-                  </div>
-                </div>
-              </div>
+              <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
+                <DollarSign className="h-6 w-6 text-cyan-400" />
+                Enter P&L Data
+              </CardTitle>
+              <CardDescription className="text-blue-200/70">
+                Input your company's financial details
+              </CardDescription>
             </CardHeader>
-
-            <CardContent className="space-y-5 p-6">
+            <CardContent className="space-y-6">
               {/* Revenue Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-blue-100 border-b border-blue-400/30 pb-2">💰 Revenue</h3>
@@ -231,21 +188,23 @@ Powered by Advanced Financial Analytics Engine ✨
                   { field: "interestIncome", label: "Interest Income", icon: "📈" },
                   { field: "otherIncome", label: "Other Income", icon: "💰" },
                 ].map(({ field, label, icon }) => (
-                  <div key={field} className="space-y-2 group">
+                  <div key={field} className="space-y-2">
                     <Label htmlFor={field} className="text-blue-100 font-bold flex items-center gap-2">
-                      <span>{icon}</span>
-                      {label} (₹)
+                      <span>{icon}</span> {label} (₹)
                     </Label>
-                    <div className="relative">
+                    <div className="flex items-center gap-2">
                       <Input
                         id={field}
                         type="number"
                         placeholder="0.00"
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(field, text)}
+                        onClear={() => handleInputChange(field, "")}
+                      />
                     </div>
                   </div>
                 ))}
@@ -260,21 +219,23 @@ Powered by Advanced Financial Analytics Engine ✨
                   { field: "utilities", label: "Utilities", icon: "⚡" },
                   { field: "otherExpenses", label: "Other Expenses", icon: "📋" },
                 ].map(({ field, label, icon }) => (
-                  <div key={field} className="space-y-2 group">
+                  <div key={field} className="space-y-2">
                     <Label htmlFor={field} className="text-blue-100 font-bold flex items-center gap-2">
-                      <span>{icon}</span>
-                      {label} (₹)
+                      <span>{icon}</span> {label} (₹)
                     </Label>
-                    <div className="relative">
+                    <div className="flex items-center gap-2">
                       <Input
                         id={field}
                         type="number"
                         placeholder="0.00"
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
                       />
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(field, text)}
+                        onClear={() => handleInputChange(field, "")}
+                      />
                     </div>
                   </div>
                 ))}
@@ -282,7 +243,7 @@ Powered by Advanced Financial Analytics Engine ✨
 
               <Button
                 onClick={generateStatement}
-                className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/70 border border-blue-400/30 mt-6"
+                className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl transition-all duration-300 hover:scale-[1.02]"
               >
                 <Calculator className="mr-2 h-5 w-5" />
                 Generate P&L Statement
@@ -292,153 +253,80 @@ Powered by Advanced Financial Analytics Engine ✨
 
           {/* Result Card */}
           {showResult && statement && (
-            <Card
-              className={`backdrop-blur-2xl border-2 shadow-2xl rounded-3xl overflow-hidden transition-all duration-700 animate-in fade-in relative ${statement.profitable
-                ? 'bg-gradient-to-br from-slate-800/90 via-emerald-900/70 to-green-900/80 border-emerald-400/60 shadow-emerald-500/60'
-                : 'bg-gradient-to-br from-slate-800/90 via-red-900/70 to-pink-900/80 border-red-400/60 shadow-red-500/60'
-                }`}
-            >
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent to-transparent animate-pulse ${statement.profitable ? 'via-emerald-400' : 'via-red-400'
-                }`} />
-
-              <div className={`absolute top-4 right-4 px-3 py-1 rounded-full backdrop-blur-md border flex items-center gap-1 shadow-lg ${statement.profitable
-                ? 'bg-gradient-to-r from-emerald-400/30 to-green-400/30 border-emerald-400/50 shadow-emerald-400/30'
-                : 'bg-gradient-to-r from-red-400/30 to-pink-400/30 border-red-400/50 shadow-red-400/30'
-                }`}>
-                <Sparkles className={`h-3 w-3 ${statement.profitable ? 'text-emerald-300' : 'text-red-300'}`} />
-                <span className={`text-xs font-bold ${statement.profitable ? 'text-emerald-100' : 'text-red-100'}`}>
-                  {statement.profitable ? 'Profitable' : 'Loss'}
-                </span>
-              </div>
-
+            <Card className={`backdrop-blur-2xl border-2 shadow-2xl rounded-3xl overflow-hidden transition-all duration-700 animate-in fade-in ${statement.profitable ? 'border-emerald-400/60 shadow-emerald-500/60' : 'border-red-400/60 shadow-red-500/60'}`}>
               <CardHeader className="relative">
                 <CardTitle className="text-2xl font-black flex items-center gap-3 text-white">
-                  {statement.profitable ? (
-                    <TrendingUp className="h-6 w-6 text-emerald-400 hover:translate-y-[-4px] transition-transform duration-300" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-red-400 hover:translate-y-1 transition-transform duration-300" />
-                  )}
+                  {statement.profitable ? <TrendingUp className="h-6 w-6 text-emerald-400" /> : <TrendingDown className="h-6 w-6 text-red-400" />}
                   Financial Summary
                 </CardTitle>
                 <CardDescription className={statement.profitable ? 'text-emerald-200/80' : 'text-red-200/80'}>
                   Detailed profit & loss breakdown
                 </CardDescription>
               </CardHeader>
-
-              <CardContent className="space-y-3 p-6 relative">
-                <div className={`absolute inset-0 blur-2xl ${statement.profitable
-                  ? 'bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10'
-                  : 'bg-gradient-to-br from-red-500/10 via-transparent to-pink-500/10'
-                  }`} />
-
-                <div className="relative z-10 space-y-3">
-                  {/* Revenue Section */}
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-bold text-white mb-2">💰 Revenue</h4>
-                    {[
-                      { label: "Sales", value: statement.sales },
-                      { label: "Service Income", value: statement.serviceIncome },
-                      { label: "Interest Income", value: statement.interestIncome },
-                      { label: "Other Income", value: statement.otherIncome },
-                    ].map(({ label, value }, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between items-center p-3 rounded-xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] bg-white/5 border border-white/10 hover:bg-white/10"
-                      >
-                        <span className="font-medium text-white/90">{label}</span>
-                        <span className="font-bold text-white">₹{value.toFixed(2)}</span>
-                      </div>
-                    ))}
-                    {/* Total Revenue */}
-                    <div className="flex justify-between items-center p-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30 mt-2">
-                      <span className="font-bold text-white">Total Revenue</span>
-                      <span className="font-bold text-white">₹{statement.totalRevenue.toFixed(2)}</span>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <h4 className="text-lg font-bold text-white mb-2">💰 Revenue</h4>
+                  {[
+                    { label: "Sales", value: statement.sales },
+                    { label: "Service Income", value: statement.serviceIncome },
+                    { label: "Interest Income", value: statement.interestIncome },
+                    { label: "Other Income", value: statement.otherIncome },
+                  ].map(({ label, value }, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-white/90">{label}</span>
+                      <span className="font-bold text-white">₹{value.toFixed(2)}</span>
                     </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-blue-500/20 border border-blue-400/30">
+                    <span className="font-bold text-white">Total Revenue</span>
+                    <span className="font-bold text-white">₹{statement.totalRevenue.toFixed(2)}</span>
                   </div>
-
-                  {/* Expenses Section */}
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-bold text-white mb-2">💸 Expenses</h4>
-                    {[
-                      { label: "Salaries", value: statement.salaries },
-                      { label: "Rent", value: statement.rent },
-                      { label: "Utilities", value: statement.utilities },
-                      { label: "Other Expenses", value: statement.otherExpenses },
-                    ].map(({ label, value }, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between items-center p-3 rounded-xl backdrop-blur-md transition-all duration-300 hover:scale-[1.02] bg-white/5 border border-white/10 hover:bg-white/10"
-                      >
-                        <span className="font-medium text-white/90">{label}</span>
-                        <span className="font-bold text-white">₹{value.toFixed(2)}</span>
-                      </div>
-                    ))}
-                    {/* Total Expenses */}
-                    <div className="flex justify-between items-center p-3 rounded-xl backdrop-blur-md bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-400/30 mt-2">
-                      <span className="font-bold text-white">Total Expenses</span>
-                      <span className="font-bold text-white">₹{statement.totalExpenses.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  {/* Net Profit/Loss - Highlighted */}
-                  <div className={`flex justify-between items-center p-5 rounded-2xl backdrop-blur-xl border-2 mt-6 shadow-2xl ${statement.profitable
-                    ? 'bg-gradient-to-r from-emerald-600/40 to-green-600/40 border-emerald-400/60 shadow-emerald-500/50'
-                    : 'bg-gradient-to-r from-red-600/40 to-pink-600/40 border-red-400/60 shadow-red-500/50'
-                    }`}>
-                    <span className="text-xl font-black text-white drop-shadow-lg">
-                      Net {statement.profitable ? 'Profit' : 'Loss'}
-                    </span>
-                    <span className="text-3xl font-black animate-pulse text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
-                      ₹{statement.netProfit.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <Button
-                    className={`w-full h-14 text-white font-bold text-lg rounded-2xl shadow-2xl transition-all duration-300 hover:scale-105 border mt-6 group ${statement.profitable
-                      ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-emerald-500/50 hover:shadow-emerald-500/70 border-emerald-400/30'
-                      : 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 shadow-red-500/50 hover:shadow-red-500/70 border-red-400/30'
-                      }`}
-                    onClick={downloadPDF}
-                  >
-                    <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
-                    Download P&L Statement
-                  </Button>
-
-                  <p className="text-center text-sm mt-4 flex items-center justify-center gap-2 text-white/70">
-                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${statement.profitable ? 'bg-emerald-400' : 'bg-red-400'
-                      }`} />
-                    Professional report ready to download
-                  </p>
                 </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-lg font-bold text-white mb-2">💸 Expenses</h4>
+                  {[
+                    { label: "Salaries", value: statement.salaries },
+                    { label: "Rent", value: statement.rent },
+                    { label: "Utilities", value: statement.utilities },
+                    { label: "Other Expenses", value: statement.otherExpenses },
+                  ].map(({ label, value }, i) => (
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-white/90">{label}</span>
+                      <span className="font-bold text-white">₹{value.toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-red-500/20 border border-red-400/30">
+                    <span className="font-bold text-white">Total Expenses</span>
+                    <span className="font-bold text-white">₹{statement.totalExpenses.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className={`flex justify-between items-center p-5 rounded-2xl border-2 mt-6 ${statement.profitable ? 'bg-emerald-600/20 border-emerald-400/60' : 'bg-red-600/20 border-red-400/60'}`}>
+                  <span className="text-xl font-black text-white">Net {statement.profitable ? 'Profit' : 'Loss'}</span>
+                  <span className="text-3xl font-black text-white">₹{statement.netProfit.toFixed(2)}</span>
+                </div>
+
+                <Button
+                  className={`w-full h-14 text-white font-bold text-lg rounded-2xl shadow-2xl transition-all duration-300 mt-6 ${statement.profitable ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'}`}
+                  onClick={downloadPDF}
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Download P&L Statement
+                </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Empty state */}
           {!showResult && (
-            <Card
-              className="backdrop-blur-2xl bg-white/5 border border-blue-400/10 shadow-xl rounded-3xl overflow-hidden flex items-center justify-center min-h-[600px]"
-            >
+            <Card className="backdrop-blur-2xl bg-white/5 border border-blue-400/10 shadow-xl rounded-3xl overflow-hidden flex items-center justify-center min-h-[600px]">
               <div className="text-center p-8">
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full flex items-center justify-center backdrop-blur-xl border border-blue-400/30">
-                  <BarChart3 className="h-12 w-12 text-blue-400 animate-pulse" />
-                </div>
-                <h3 className="text-2xl font-bold text-blue-200 mb-3">
-                  Ready to Analyze
-                </h3>
-                <p className="text-blue-300/60 max-w-sm mx-auto">
-                  Enter your financial data and generate a comprehensive P&L statement
-                </p>
+                <BarChart3 className="h-12 w-12 text-blue-400 mx-auto mb-6 animate-pulse" />
+                <h3 className="text-2xl font-bold text-blue-200 mb-3">Ready to Analyze</h3>
+                <p className="text-blue-300/60">Enter your financial data to generate a statement</p>
               </div>
             </Card>
           )}
-        </div>
-
-        {/* Bottom info */}
-        <div className="mt-8 text-center">
-          <p className="text-blue-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-blue-400/20">
-            Powered by Advanced Financial Analytics Engine ✨
-          </p>
         </div>
       </main>
     </div>

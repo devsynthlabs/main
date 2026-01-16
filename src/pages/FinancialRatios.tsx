@@ -1,21 +1,13 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Download, Calculator, Sparkles, TrendingUp, Search, FileText, Database, BarChart3 } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface FormData {
   currentAssets: string;
@@ -63,14 +55,6 @@ interface RatioRecord {
   createdAt: string;
 }
 
-interface Trail {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-}
-
 const FinancialRatios = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("calculator");
@@ -99,8 +83,6 @@ const FinancialRatios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [ratiosHistory, setRatiosHistory] = useState<RatioRecord[]>([]);
   const [filteredHistory, setFilteredHistory] = useState<RatioRecord[]>([]);
-
-
 
   // Initialize with sample data
   useEffect(() => {
@@ -336,9 +318,9 @@ Powered by Advanced Ratio Engine ✨
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Mouse-following gradient */}
+        {/* Static primary gradient */}
         <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000"
+          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-indigo-500/10 rounded-full blur-3xl"
           style={{
             top: -400,
             left: -400,
@@ -360,8 +342,6 @@ Powered by Advanced Ratio Engine ✨
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
-
-
             onClick={handleBackToDashboard}
             className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
           >
@@ -370,9 +350,7 @@ Powered by Advanced Ratio Engine ✨
           </Button>
           <div className="flex items-center gap-4">
             <div
-              className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
-
-
+              className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 transition-transform duration-300"
             >
               <TrendingUp className="h-8 w-8 text-blue-400" />
             </div>
@@ -393,8 +371,6 @@ Powered by Advanced Ratio Engine ✨
             <TabsTrigger
               value="calculator"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-
-
             >
               <Calculator className="h-4 w-4" />
               Ratio Calculator
@@ -402,8 +378,6 @@ Powered by Advanced Ratio Engine ✨
             <TabsTrigger
               value="history"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-
-
             >
               <FileText className="h-4 w-4" />
               Analysis History
@@ -412,9 +386,7 @@ Powered by Advanced Ratio Engine ✨
 
           <TabsContent value="calculator">
             <Card
-              className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
-
-
+              className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500"
             >
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
 
@@ -422,7 +394,7 @@ Powered by Advanced Ratio Engine ✨
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-3xl font-black text-blue-100 flex items-center gap-3">
-                      <BarChart3 className="h-7 w-7 text-cyan-400 hover:rotate-12 transition-transform duration-300" />
+                      <BarChart3 className="h-7 w-7 text-cyan-400 transition-transform duration-300" />
                       Financial Ratios Calculator
                     </CardTitle>
                     <CardDescription className="text-blue-200/70 mt-2 text-base">
@@ -460,18 +432,16 @@ Powered by Advanced Ratio Engine ✨
                         <span>{field.icon}</span>
                         {field.label} (₹)
                       </Label>
-                      <div className="relative">
+                      <div className="flex items-center gap-2">
                         <Input
                           id={field.id}
                           type="number"
                           placeholder="0.00"
                           value={formData[field.id as keyof FormData]}
                           onChange={(e) => handleInputChange(field.id as keyof FormData, e.target.value)}
-
-
-                          className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10 pl-4"
+                          className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
                         />
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        <VoiceButton onTranscript={(text) => handleInputChange(field.id as keyof FormData, text)} />
                       </div>
                     </div>
                   ))}
@@ -481,9 +451,7 @@ Powered by Advanced Ratio Engine ✨
                 <div className="flex gap-4 pt-4">
                   <Button
                     onClick={calculateRatios}
-
-
-                    className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-blue-500/70 border border-blue-400/30"
+                    className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30"
                   >
                     <Calculator className="mr-2 h-5 w-5" />
                     Calculate Ratios & Add to History
@@ -494,8 +462,6 @@ Powered by Advanced Ratio Engine ✨
                 {showResult && calculatedRatios && (
                   <Card
                     className="backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700 relative"
-
-
                   >
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
 
@@ -552,17 +518,13 @@ Powered by Advanced Ratio Engine ✨
                               };
                               downloadReport(currentRecord);
                             }}
-
-
-                            className="px-8 py-4 h-auto bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-lg font-bold rounded-2xl shadow-2xl shadow-cyan-500/50 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/70 border border-cyan-400/30 group"
+                            className="px-8 py-4 h-auto bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-lg font-bold rounded-2xl shadow-2xl shadow-cyan-500/50 transition-all duration-300 hover:scale-105 border border-cyan-400/30 group"
                           >
                             <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
                             Download Report
                           </Button>
                           <Button
                             onClick={() => setActiveTab("history")}
-
-
                             variant="outline"
                             className="px-8 py-4 h-auto border-2 border-cyan-400/40 hover:bg-cyan-400/10 text-cyan-300 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105"
                           >
@@ -580,9 +542,7 @@ Powered by Advanced Ratio Engine ✨
           <TabsContent value="history">
             {/* Search Section */}
             <Card
-              className="mb-8 backdrop-blur-2xl bg-white/10 border border-blue-400/30 rounded-3xl shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-500 hover:-translate-y-2"
-
-
+              className="mb-8 backdrop-blur-2xl bg-white/10 border border-blue-400/30 rounded-3xl shadow-2xl shadow-blue-500/30 transition-all duration-500"
             >
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -597,21 +557,20 @@ Powered by Advanced Ratio Engine ✨
                 <div className="flex gap-3 items-center">
                   <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400/60" />
-                    <Input
-                      placeholder="Search by company name or period..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-
-
-                      className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-blue-100 border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Search by company name or period..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                        className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-blue-100 border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
+                      />
+                      <VoiceButton onTranscript={(text) => setSearchTerm(text)} />
+                    </div>
                   </div>
                   <Button
                     onClick={handleSearch}
-
-
-                    className="h-12 px-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/40 hover:shadow-blue-500/60 hover:scale-105 transition-all duration-300"
+                    className="h-12 px-6 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/40 transition-all duration-300"
                   >
                     <Search className="mr-2 h-5 w-5" />
                     Search
@@ -626,62 +585,55 @@ Powered by Advanced Ratio Engine ✨
                 {filteredHistory.map((record, index) => (
                   <Card
                     key={record.id}
-                    className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/20 hover:shadow-cyan-500/60 hover:bg-white/10 transition-all duration-500 hover:-translate-y-4 hover:scale-[1.02] group relative overflow-hidden"
+                    className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/20 transition-all duration-500 group relative overflow-hidden"
                     style={{ animationDelay: `${index * 100}ms` }}
-
-
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
                     <CardContent className="pt-6 relative z-10">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-3">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="font-bold text-xl text-blue-100 group-hover:text-white transition-colors duration-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                            <h3 className="font-bold text-xl text-blue-100 transition-colors duration-300">
                               {record.companyName}
                             </h3>
                             <Badge
                               variant="outline"
-                              className="border-blue-400/40 text-blue-300 backdrop-blur-xl bg-blue-500/10 px-3 py-1 rounded-xl font-semibold group-hover:border-cyan-400/60 group-hover:text-cyan-300 transition-all duration-300"
+                              className="border-blue-400/40 text-blue-300 backdrop-blur-xl bg-blue-500/10 px-3 py-1 rounded-xl font-semibold transition-all duration-300"
                             >
                               {record.period}
                             </Badge>
-                            <Badge className="bg-gradient-to-r from-green-500/80 to-emerald-500/80 text-white border-0 px-3 py-1 rounded-xl font-semibold shadow-lg shadow-green-500/30 flex items-center gap-1 group-hover:shadow-green-500/50 transition-all duration-300">
+                            <Badge className="bg-gradient-to-r from-green-500/80 to-emerald-500/80 text-white border-0 px-3 py-1 rounded-xl font-semibold shadow-lg shadow-green-500/30 flex items-center gap-1 transition-all duration-300">
                               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
                               {record.createdAt === new Date().toLocaleDateString() ? 'Today' : 'Saved'}
                             </Badge>
                           </div>
 
                           <div className="space-y-2">
-                            <p className="text-sm text-blue-300/80 flex items-center gap-2 group-hover:text-blue-200 transition-colors duration-300">
-                              <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full group-hover:shadow-[0_0_8px_rgba(6,182,212,0.8)] transition-shadow duration-300" />
+                            <p className="text-sm text-blue-300/80 flex items-center gap-2 transition-colors duration-300">
+                              <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full transition-shadow duration-300" />
                               Date: {record.createdAt} | Revenue: ₹{record.revenue.toLocaleString()} | Net Income: ₹{record.netIncome.toLocaleString()}
                             </p>
 
                             {/* Key Ratios Display */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 group-hover:border-cyan-400/30 transition-colors duration-300">
+                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 transition-colors duration-300">
                                 <p className="text-xs text-blue-300 mb-1">Current Ratio</p>
                                 <p className={`text-lg font-bold ${getRatioColor(record.ratios.currentRatio, 'currentRatio')}`}>
                                   {record.ratios.currentRatio.toFixed(2)}
                                 </p>
                               </div>
-                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 group-hover:border-cyan-400/30 transition-colors duration-300">
+                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 transition-colors duration-300">
                                 <p className="text-xs text-blue-300 mb-1">ROE</p>
                                 <p className={`text-lg font-bold ${getRatioColor(record.ratios.roe, 'roe')}`}>
                                   {record.ratios.roe.toFixed(2)}%
                                 </p>
                               </div>
-                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 group-hover:border-cyan-400/30 transition-colors duration-300">
+                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 transition-colors duration-300">
                                 <p className="text-xs text-blue-300 mb-1">Net Margin</p>
                                 <p className={`text-lg font-bold ${getRatioColor(record.ratios.netProfitMargin, 'profitMargin')}`}>
                                   {record.ratios.netProfitMargin.toFixed(2)}%
                                 </p>
                               </div>
-                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 group-hover:border-cyan-400/30 transition-colors duration-300">
+                              <div className="text-center p-3 bg-white/5 rounded-xl border border-blue-400/20 transition-colors duration-300">
                                 <p className="text-xs text-blue-300 mb-1">EPS</p>
                                 <p className="text-lg font-bold text-cyan-300">
                                   ₹{record.ratios.eps.toFixed(2)}
@@ -694,9 +646,7 @@ Powered by Advanced Ratio Engine ✨
                         <Button
                           variant="outline"
                           onClick={() => downloadReport(record)}
-
-
-                          className="text-blue-200 border-2 border-blue-400/40 hover:bg-gradient-to-r hover:from-blue-600/80 hover:to-cyan-600/80 hover:border-cyan-400/60 hover:text-white backdrop-blur-xl bg-white/5 rounded-2xl px-6 py-6 font-bold shadow-lg hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-110 group/btn"
+                          className="text-blue-200 border-2 border-blue-400/40 hover:bg-gradient-to-r hover:from-blue-600/80 hover:to-cyan-600/80 hover:border-cyan-400/60 hover:text-white backdrop-blur-xl bg-white/5 rounded-2xl px-6 py-6 font-bold shadow-lg transition-all duration-300 group/btn"
                         >
                           <Download className="mr-2 h-5 w-5 group-hover/btn:animate-bounce" />
                           Download Report
@@ -709,8 +659,6 @@ Powered by Advanced Ratio Engine ✨
             ) : (
               <Card
                 className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-3xl shadow-2xl shadow-blue-500/30"
-
-
               >
                 <CardContent className="pt-6 text-center py-16">
                   <div className="flex flex-col items-center gap-4">

@@ -1,25 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
+import { API_ENDPOINTS } from "@/lib/api";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
-import { ArrowLeft, TrendingUp, Plus, BarChart3, Sparkles, Download } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
+import { ArrowLeft, Plus, BarChart3, Sparkles, Download, LineChart as LineChartIcon } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import jsPDF from "jspdf";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import autoTable from "jspdf-autotable";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import html2canvas from "html2canvas";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface CashFlowEntry {
   year: string;
@@ -39,7 +30,6 @@ interface PredictionData {
 const CashFlow = () => {
   const navigate = useNavigate();
   const chartRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const [formData, setFormData] = useState({
     year: "",
@@ -52,16 +42,6 @@ const CashFlow = () => {
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
   const [showPrediction, setShowPrediction] = useState(false);
 
-  // Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -72,18 +52,15 @@ const CashFlow = () => {
       return;
     }
 
-    // Split comma-separated values
     const months = formData.month.split(',').map(m => m.trim());
     const inflows = formData.cashInflow.split(',').map(val => parseFloat(val.trim()) || 0);
     const outflows = formData.cashOutflow.split(',').map(val => parseFloat(val.trim()) || 0);
 
-    // Validate arrays have same length
     if (months.length !== inflows.length || months.length !== outflows.length) {
       alert("Number of months, cash inflows, and cash outflows must match!");
       return;
     }
 
-    // Create multiple entries
     const newEntries: CashFlowEntry[] = months.map((month, index) => ({
       year: formData.year,
       month: month,
@@ -104,7 +81,6 @@ const CashFlow = () => {
       return;
     }
 
-    // Simple Linear Regression
     const n = cashflowData.length;
     const sumX = cashflowData.reduce((sum, entry) => sum + entry.time, 0);
     const sumY = cashflowData.reduce((sum, entry) => sum + entry.netCashFlow, 0);
@@ -114,7 +90,6 @@ const CashFlow = () => {
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
 
-    // Predict next 6 months
     const futurePredictions: PredictionData[] = [];
     for (let i = 0; i < 6; i++) {
       const futureTime = n + i;
@@ -140,26 +115,20 @@ const CashFlow = () => {
       return;
     }
 
-    // Create PDF document
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     let yPosition = 20;
 
-    // Title
     doc.setFontSize(18);
-    doc.setTextColor(0, 0, 0);
     doc.text("CASH FLOW ANALYSIS & PREDICTION REPORT", pageWidth / 2, yPosition, { align: "center" });
-    
+
     yPosition += 15;
     doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
     doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: "center" });
 
-    // Add some space
     yPosition += 15;
 
-    // Add Chart Image
     if (chartRef.current) {
       try {
         const canvas = await html2canvas(chartRef.current, {
@@ -170,11 +139,10 @@ const CashFlow = () => {
         const imgData = canvas.toDataURL("image/png");
         const imgWidth = pageWidth - 30;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
+
         doc.addImage(imgData, "PNG", 15, yPosition, imgWidth, imgHeight);
         yPosition += imgHeight + 15;
 
-        // Add new page if needed
         if (yPosition > pageHeight - 60) {
           doc.addPage();
           yPosition = 20;
@@ -184,11 +152,9 @@ const CashFlow = () => {
       }
     }
 
-    // Historical Data Table
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
     doc.text("📊 HISTORICAL CASH FLOW DATA", 15, yPosition);
-    
+
     yPosition += 10;
     const historicalData = cashflowData.map((entry, index) => [
       index + 1,
@@ -204,20 +170,15 @@ const CashFlow = () => {
       head: [["#", "Period", "Cash Inflow", "Cash Outflow", "Net Cash Flow", "Status"]],
       body: historicalData,
       theme: "grid",
-      headStyles: { fillColor: [66, 133, 244], textColor: 255, fontSize: 10 },
-      bodyStyles: { fontSize: 9 },
-      margin: { left: 15, right: 15 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-    // Check if we need a new page
     if (yPosition > pageHeight - 60) {
       doc.addPage();
       yPosition = 20;
     }
 
-    // Summary Statistics
     doc.setFontSize(12);
     doc.text("📈 SUMMARY STATISTICS", 15, yPosition);
     yPosition += 8;
@@ -240,14 +201,10 @@ const CashFlow = () => {
       head: [["Metric", "Value"]],
       body: summaryData,
       theme: "grid",
-      headStyles: { fillColor: [76, 175, 80], textColor: 255, fontSize: 10 },
-      bodyStyles: { fontSize: 9 },
-      margin: { left: 15, right: 15 },
     });
 
     yPosition = (doc as any).lastAutoTable.finalY + 15;
 
-    // Predictions Section (if available)
     if (predictions.length > 0) {
       if (yPosition > pageHeight - 60) {
         doc.addPage();
@@ -270,49 +227,12 @@ const CashFlow = () => {
         head: [["#", "Month", "Predicted Net Cash Flow", "Status"]],
         body: predictionData,
         theme: "grid",
-        headStyles: { fillColor: [156, 39, 176], textColor: 255, fontSize: 10 },
-        bodyStyles: { fontSize: 9 },
-        margin: { left: 15, right: 15 },
       });
-
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
-
-      // Insights
-      if (yPosition > pageHeight - 60) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      doc.setFontSize(12);
-      doc.text("💡 INSIGHTS & RECOMMENDATIONS", 15, yPosition);
-      yPosition += 8;
-
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-
-      const insight1 = totalNetCashFlow >= 0
-        ? "✓ Overall positive cash flow trend detected"
-        : "⚠ Overall negative cash flow - consider cost optimization";
-      doc.text(insight1, 20, yPosition);
-      yPosition += 8;
-
-      const insight2 = predictions.some(p => p.predictedNetCashFlow < 0)
-        ? "⚠ Warning: Negative cash flow predicted in upcoming months"
-        : "✓ Positive cash flow trend expected to continue";
-      doc.text(insight2, 20, yPosition);
     }
 
-    // Footer
-    const finalYPosition = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text("This report was generated by Financial Automation System", pageWidth / 2, finalYPosition, { align: "center" });
-
-    // Download PDF
     doc.save(`cashflow_report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Prepare chart data
   const chartData = [
     ...cashflowData.map((entry) => ({
       name: entry.month,
@@ -328,22 +248,10 @@ const CashFlow = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000"
-          style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
-          }}
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-40 left-60 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-      </div>
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-4">
@@ -358,17 +266,15 @@ const CashFlow = () => {
 
             <Button
               onClick={downloadReport}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-2xl shadow-green-500/50 transition-all duration-300 hover:scale-105 border border-green-400/30 group"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-2xl transition-all duration-300 hover:scale-105 border border-green-400/30 group"
             >
               <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
               Download Report
             </Button>
           </div>
           <div className="flex items-center gap-4">
-            <div
-              className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
-            >
-              <TrendingUp className="h-8 w-8 text-blue-400" />
+            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30">
+              <BarChart3 className="h-8 w-8 text-blue-400" />
             </div>
             <div>
               <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
@@ -380,226 +286,133 @@ const CashFlow = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Input Form */}
-          <Card
-            className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2"
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-
-            <CardHeader className="relative">
+          <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl rounded-3xl overflow-hidden">
+            <CardHeader>
               <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
-                <Plus className="h-6 w-6 text-cyan-400" />
+                <LineChartIcon className="h-6 w-6 text-cyan-400" />
                 Add Cash Flow Entry
               </CardTitle>
-              <CardDescription className="text-blue-200/70 mt-2">
-                Enter monthly financial data (comma-separated for multiple months)
-              </CardDescription>
             </CardHeader>
-
-            <CardContent className="space-y-6 p-8">
+            <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-cyan-400" />
-                  Year
-                </Label>
-                <Input
-                  placeholder="e.g., 2025"
-                  value={formData.year}
-                  onChange={(e) => handleInputChange("year", e.target.value)}
-                  className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
-                />
+                <Label className="text-blue-100 font-bold">Year</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g., 2025"
+                    value={formData.year}
+                    onChange={(e) => handleInputChange("year", e.target.value)}
+                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                  />
+                  <VoiceButton
+                    onTranscript={(text) => handleInputChange("year", text)}
+                    onClear={() => handleInputChange("year", "")}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">📅 Month</Label>
-                <Input
-                  placeholder="e.g., Jan,Feb,Mar or January,February,March"
-                  value={formData.month}
-                  onChange={(e) => handleInputChange("month", e.target.value)}
-                  className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
-                />
+                <Label className="text-blue-100 font-bold">Month</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g., Jan,Feb,Mar"
+                    value={formData.month}
+                    onChange={(e) => handleInputChange("month", e.target.value)}
+                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                  />
+                  <VoiceButton
+                    onTranscript={(text) => handleInputChange("month", text)}
+                    onClear={() => handleInputChange("month", "")}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">💰 Cash Inflow (₹)</Label>
-                <Input
-                  placeholder="e.g., 5000,4800,5100 (comma-separated)"
-                  value={formData.cashInflow}
-                  onChange={(e) => handleInputChange("cashInflow", e.target.value)}
-                  className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
-                />
+                <Label className="text-blue-100 font-bold">Cash Inflow (₹)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g., 5000,4800,5100"
+                    value={formData.cashInflow}
+                    onChange={(e) => handleInputChange("cashInflow", e.target.value)}
+                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                  />
+                  <VoiceButton
+                    onTranscript={(text) => handleInputChange("cashInflow", text)}
+                    onClear={() => handleInputChange("cashInflow", "")}
+                  />
+                </div>
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">💸 Cash Outflow (₹)</Label>
-                <Input
-                  placeholder="e.g., 7000,6500,5900 (comma-separated)"
-                  value={formData.cashOutflow}
-                  onChange={(e) => handleInputChange("cashOutflow", e.target.value)}
-                  className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
-                />
+                <Label className="text-blue-100 font-bold">Cash Outflow (₹)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g., 7000,6500,5900"
+                    value={formData.cashOutflow}
+                    onChange={(e) => handleInputChange("cashOutflow", e.target.value)}
+                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                  />
+                  <VoiceButton
+                    onTranscript={(text) => handleInputChange("cashOutflow", text)}
+                    onClear={() => handleInputChange("cashOutflow", "")}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button
-                  onClick={addEntry}
-                  className="flex-1 h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-bold rounded-xl shadow-2xl shadow-green-500/50 transition-all duration-300 hover:scale-[1.02] border border-green-400/30"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  Add Entry
+                <Button onClick={addEntry} className="flex-1 h-12 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl shadow-2xl transition-all duration-300">
+                  <Plus className="mr-2 h-5 w-5" /> Add Entry
                 </Button>
-                <Button
-                  onClick={predictCashflow}
-                  className="flex-1 h-12 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold rounded-xl shadow-2xl shadow-amber-500/50 transition-all duration-300 hover:scale-[1.02] border border-amber-400/30"
-                >
-                  <BarChart3 className="mr-2 h-5 w-5" />
-                  Predict
+                <Button onClick={predictCashflow} className="flex-1 h-12 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-2xl transition-all duration-300">
+                  <BarChart3 className="mr-2 h-5 w-5" /> Predict
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Data Table */}
-          <Card
-            className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden"
-          >
-            <CardHeader>
-              <CardTitle className="text-2xl font-black text-blue-100">Current Entries</CardTitle>
-              <CardDescription className="text-blue-200/70">
-                {cashflowData.length} entries recorded
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="max-h-[400px] overflow-y-auto">
-              {cashflowData.length === 0 ? (
-                <p className="text-blue-300/60 text-center py-8">No entries yet. Add your first entry!</p>
-              ) : (
-                <div className="space-y-3">
-                  {cashflowData.map((entry, index) => (
-                    <div
-                      key={index}
-                      className="bg-white/5 backdrop-blur-xl border border-blue-400/20 rounded-xl p-4 hover:bg-white/10 transition-all duration-300"
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-cyan-400 font-bold">{entry.month} {entry.year}</span>
-                        <span className={`font-bold ${entry.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          ₹{entry.netCashFlow.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm text-blue-200/80">
-                        <div>Inflow: ₹{entry.cashInflow.toFixed(2)}</div>
-                        <div>Outflow: ₹{entry.cashOutflow.toFixed(2)}</div>
-                      </div>
+          <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl rounded-3xl p-6 max-h-[500px] overflow-y-auto">
+            <h3 className="text-2xl font-black text-blue-100 mb-4">Current Entries ({cashflowData.length})</h3>
+            {cashflowData.length === 0 ? (
+              <p className="text-blue-300/60 text-center py-8">No entries yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {cashflowData.map((entry, index) => (
+                  <div key={index} className="bg-white/5 border border-blue-400/20 rounded-xl p-4">
+                    <div className="flex justify-between font-bold text-cyan-400 mb-1">
+                      <span>{entry.month} {entry.year}</span>
+                      <span className={entry.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}>₹{entry.netCashFlow.toFixed(2)}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Prediction Chart */}
-        {showPrediction && predictions.length > 0 && (
-          <Card
-            className="mt-8 backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
-
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-3xl font-black text-blue-100">AI Prediction Results</CardTitle>
-                  <CardDescription className="text-blue-200/70 mt-2">
-                    Forecasted net cash flow for the next 6 months
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="px-4 py-2 bg-gradient-to-r from-yellow-400/30 to-amber-400/30 rounded-full backdrop-blur-md border border-yellow-400/50 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-yellow-300" />
-                    <span className="text-sm text-yellow-100 font-bold">AI Powered</span>
-                  </div>
-                  <Button
-                    onClick={downloadReport}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-green-500/50 transition-all duration-300 hover:scale-105 border border-green-400/30 group"
-                  >
-                    <Download className="mr-2 h-4 w-4 group-hover:translate-y-1 transition-transform duration-300" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-8">
-              <div ref={chartRef} style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px' }}>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
-                    <XAxis
-                      dataKey="name"
-                      stroke="#93c5fd"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis
-                      stroke="#93c5fd"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        borderRadius: '12px',
-                        backdropFilter: 'blur(10px)',
-                      }}
-                      labelStyle={{ color: '#93c5fd' }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="actual"
-                      stroke="#06b6d4"
-                      strokeWidth={3}
-                      dot={{ fill: '#06b6d4', r: 6 }}
-                      name="Actual Net Cash Flow"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="predicted"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      strokeDasharray="5 5"
-                      dot={{ fill: '#f59e0b', r: 6 }}
-                      name="Predicted Net Cash Flow"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Prediction Values */}
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                {predictions.map((pred, index) => (
-                  <div
-                    key={index}
-                    className="bg-white/5 backdrop-blur-xl border border-cyan-400/30 rounded-xl p-4 hover:bg-white/10 transition-all duration-300"
-                  >
-                    <p className="text-cyan-300 text-sm font-semibold">{pred.month}</p>
-                    <p className={`text-2xl font-black mt-2 ${pred.predictedNetCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      ₹{pred.predictedNetCashFlow.toFixed(2)}
-                    </p>
                   </div>
                 ))}
               </div>
-            </CardContent>
+            )}
+          </Card>
+        </div>
+
+        {showPrediction && predictions.length > 0 && (
+          <Card className="mt-8 backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl rounded-3xl p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-3xl font-black text-blue-100">AI Prediction Results</h3>
+              <div className="px-4 py-2 bg-yellow-400/20 border border-yellow-400/50 rounded-full text-yellow-100 font-bold flex items-center gap-2">
+                <Sparkles className="h-4 w-4" /> AI Powered
+              </div>
+            </div>
+            <div ref={chartRef} className="bg-white rounded-xl p-4">
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="actual" stroke="#06b6d4" strokeWidth={3} name="Actual" />
+                  <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeWidth={3} strokeDasharray="5 5" name="Predicted" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         )}
-
-        {/* Bottom Info */}
-        <div className="mt-8 text-center">
-          <p className="text-blue-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-blue-400/20">
-            Powered by Linear Regression AI Model ✨
-          </p>
-        </div>
       </main>
     </div>
   );

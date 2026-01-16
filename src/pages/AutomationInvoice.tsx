@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
-import { 
-  ArrowLeft, 
-  Upload, 
-  FileText, 
-  Download, 
-  Plus, 
-  Trash2, 
-  Printer, 
+import {
+  ArrowLeft,
+  Upload,
+  FileText,
+  Download,
+  Plus,
+  Trash2,
+  Printer,
   Calculator,
   Eye,
   Copy,
@@ -105,27 +104,27 @@ const AutomationInvoice = () => {
       customerName: "Tech Solutions Inc.",
       customerEmail: "accounting@techsolutions.com",
       items: [
-        { 
-          id: "1", 
-          product: "VC Pillow", 
-          quantity: 2, 
-          rate: 250, 
-          subtotal: 500, 
-          sgst: 45, 
-          cgst: 45, 
-          igst: 0, 
-          total: 590 
+        {
+          id: "1",
+          product: "VC Pillow",
+          quantity: 2,
+          rate: 250,
+          subtotal: 500,
+          sgst: 45,
+          cgst: 45,
+          igst: 0,
+          total: 590
         },
-        { 
-          id: "2", 
-          product: "Pillow Cover VC 85", 
-          quantity: 1, 
-          rate: 85, 
-          subtotal: 85, 
-          sgst: 7.65, 
-          cgst: 7.65, 
-          igst: 0, 
-          total: 100.3 
+        {
+          id: "2",
+          product: "Pillow Cover VC 85",
+          quantity: 1,
+          rate: 85,
+          subtotal: 85,
+          sgst: 7.65,
+          cgst: 7.65,
+          igst: 0,
+          total: 100.3
         }
       ],
       subtotal: 585,
@@ -141,16 +140,16 @@ const AutomationInvoice = () => {
       customerName: "Global Traders Ltd.",
       customerEmail: "finance@globaltraders.com",
       items: [
-        { 
-          id: "3", 
-          product: "Ceramic Bowl", 
-          quantity: 5, 
-          rate: 150, 
-          subtotal: 750, 
-          sgst: 67.5, 
-          cgst: 67.5, 
-          igst: 0, 
-          total: 885 
+        {
+          id: "3",
+          product: "Ceramic Bowl",
+          quantity: 5,
+          rate: 150,
+          subtotal: 750,
+          sgst: 67.5,
+          cgst: 67.5,
+          igst: 0,
+          total: 885
         }
       ],
       subtotal: 750,
@@ -191,7 +190,7 @@ const AutomationInvoice = () => {
     const cgstAmount = (subtotal * newItem.cgst) / 100;
     const igstAmount = (subtotal * newItem.igst) / 100;
     const total = subtotal + sgstAmount + cgstAmount + igstAmount;
-    
+
     return { subtotal, sgstAmount, cgstAmount, igstAmount, total };
   };
 
@@ -264,7 +263,7 @@ const AutomationInvoice = () => {
     }
 
     setIsSaving(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       const newInvoice = {
@@ -276,7 +275,7 @@ const AutomationInvoice = () => {
       };
 
       setInvoiceHistory(prev => [newInvoice, ...prev]);
-      
+
       // Reset current invoice
       setCurrentInvoice({
         id: `INV-${Date.now() + 1}`,
@@ -333,7 +332,7 @@ Grand Total: 690.3`;
       currentInvoice.items.forEach(item => {
         csvContent += `"${item.product}",${item.quantity},${item.rate},${item.subtotal},${item.sgst},${item.cgst},${item.igst},${item.total}\n`;
       });
-      
+
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -402,7 +401,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-        
+
         {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
         <div className="absolute top-40 right-40 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
@@ -421,7 +420,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
             Back to Dashboard
           </button>
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
             >
               <Receipt className="h-8 w-8 text-blue-400" />
@@ -442,18 +441,16 @@ Payment Method: ${currentInvoice.paymentMethod}`;
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
-              activeTab === 'create' 
-                ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
-                : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
-            }`}
+            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'create'
+              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
+              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
+              }`}
           >
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${
-                activeTab === 'create' 
-                  ? 'bg-blue-500/20 border border-blue-400/30' 
-                  : 'bg-white/5 border border-blue-400/20'
-              }`}>
+              <div className={`p-3 rounded-xl ${activeTab === 'create'
+                ? 'bg-blue-500/20 border border-blue-400/30'
+                : 'bg-white/5 border border-blue-400/20'
+                }`}>
                 <Plus className="h-6 w-6 text-blue-400" />
               </div>
               <div className="text-left">
@@ -461,25 +458,22 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                 <p className="text-blue-200/70 text-sm">Manual invoice creation</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${
-              activeTab === 'create' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-            }`} />
+            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'create' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
+              }`} />
           </button>
 
           <button
             onClick={() => setActiveTab('ocr')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
-              activeTab === 'ocr' 
-                ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
-                : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
-            }`}
+            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'ocr'
+              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
+              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
+              }`}
           >
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${
-                activeTab === 'ocr' 
-                  ? 'bg-blue-500/20 border border-blue-400/30' 
-                  : 'bg-white/5 border border-blue-400/20'
-              }`}>
+              <div className={`p-3 rounded-xl ${activeTab === 'ocr'
+                ? 'bg-blue-500/20 border border-blue-400/30'
+                : 'bg-white/5 border border-blue-400/20'
+                }`}>
                 <Camera className="h-6 w-6 text-blue-400" />
               </div>
               <div className="text-left">
@@ -487,25 +481,22 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                 <p className="text-blue-200/70 text-sm">Upload invoice images</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${
-              activeTab === 'ocr' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-            }`} />
+            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'ocr' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
+              }`} />
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
-              activeTab === 'history' 
-                ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
-                : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
-            }`}
+            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'history'
+              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
+              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
+              }`}
           >
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${
-                activeTab === 'history' 
-                  ? 'bg-blue-500/20 border border-blue-400/30' 
-                  : 'bg-white/5 border border-blue-400/20'
-              }`}>
+              <div className={`p-3 rounded-xl ${activeTab === 'history'
+                ? 'bg-blue-500/20 border border-blue-400/30'
+                : 'bg-white/5 border border-blue-400/20'
+                }`}>
                 <Eye className="h-6 w-6 text-blue-400" />
               </div>
               <div className="text-left">
@@ -513,9 +504,8 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                 <p className="text-blue-200/70 text-sm">View all past invoices</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${
-              activeTab === 'history' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-            }`} />
+            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'history' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
+              }`} />
           </button>
         </div>
 
@@ -535,12 +525,18 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <label className="block text-sm font-medium text-blue-100">
                       Invoice Number
                     </label>
-                    <input
-                      type="text"
-                      value={currentInvoice.invoiceNumber}
-                      onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={currentInvoice.invoiceNumber}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: text }))}
+                        onClear={() => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: "" }))}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
@@ -557,25 +553,37 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <label className="block text-sm font-medium text-blue-100">
                       Customer Name
                     </label>
-                    <input
-                      type="text"
-                      value={currentInvoice.customerName}
-                      onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerName: e.target.value }))}
-                      placeholder="Enter customer name"
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={currentInvoice.customerName}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerName: e.target.value }))}
+                        placeholder="Enter customer name"
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerName: text }))}
+                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerName: "" }))}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
                       Customer Email
                     </label>
-                    <input
-                      type="email"
-                      value={currentInvoice.customerEmail}
-                      onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerEmail: e.target.value }))}
-                      placeholder="customer@example.com"
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="email"
+                        value={currentInvoice.customerEmail}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerEmail: e.target.value }))}
+                        placeholder="customer@example.com"
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerEmail: text.replace(/\s/g, '').toLowerCase() }))}
+                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerEmail: "" }))}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -586,7 +594,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <Package className="h-6 w-6 text-blue-400" />
                   Add Invoice Items
                 </h2>
-                
+
                 {/* Quick Product Selection */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-blue-100 mb-3">
@@ -611,15 +619,21 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <label className="block text-sm font-medium text-blue-100">
                       Product Name
                     </label>
-                    <input
-                      type="text"
-                      value={newItem.product}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, product: e.target.value }))}
-                      placeholder="Enter product name"
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newItem.product}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, product: e.target.value }))}
+                        placeholder="Enter product name"
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setNewItem(prev => ({ ...prev, product: text }))}
+                        onClear={() => setNewItem(prev => ({ ...prev, product: "" }))}
+                      />
+                    </div>
                   </div>
-                  
+
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
                       Quantity
@@ -632,7 +646,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
-                  
+
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
                       Rate ($)
@@ -646,30 +660,54 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
-                  
+
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
                       Tax (%)
                     </label>
                     <div className="grid grid-cols-3 gap-2">
-                      <input
-                        value={newItem.sgst}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, sgst: parseFloat(e.target.value) || 0 }))}
-                        placeholder="SGST"
-                        className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <input
-                        value={newItem.cgst}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, cgst: parseFloat(e.target.value) || 0 }))}
-                        placeholder="CGST"
-                        className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <input
-                        value={newItem.igst}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, igst: parseFloat(e.target.value) || 0 }))}
-                        placeholder="IGST"
-                        className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
+                      <div className="relative group/voice">
+                        <input
+                          value={newItem.sgst}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, sgst: parseFloat(e.target.value) || 0 }))}
+                          placeholder="SGST"
+                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                        />
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
+                          <VoiceButton
+                            onTranscript={(text) => setNewItem(prev => ({ ...prev, sgst: parseFloat(text) || prev.sgst }))}
+                            onClear={() => setNewItem(prev => ({ ...prev, sgst: 0 }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="relative group/voice">
+                        <input
+                          value={newItem.cgst}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, cgst: parseFloat(e.target.value) || 0 }))}
+                          placeholder="CGST"
+                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                        />
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
+                          <VoiceButton
+                            onTranscript={(text) => setNewItem(prev => ({ ...prev, cgst: parseFloat(text) || prev.cgst }))}
+                            onClear={() => setNewItem(prev => ({ ...prev, cgst: 0 }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="relative group/voice">
+                        <input
+                          value={newItem.igst}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, igst: parseFloat(e.target.value) || 0 }))}
+                          placeholder="IGST"
+                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                        />
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
+                          <VoiceButton
+                            onTranscript={(text) => setNewItem(prev => ({ ...prev, igst: parseFloat(text) || prev.igst }))}
+                            onClear={() => setNewItem(prev => ({ ...prev, igst: 0 }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -686,22 +724,22 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                         <div className="text-blue-200/70 text-sm">Product:</div>
                         <div className="font-medium text-white">{newItem.product}</div>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Quantity:</div>
                         <div className="font-medium text-white">{newItem.quantity}</div>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Rate:</div>
                         <div className="font-medium text-blue-300">${newItem.rate.toFixed(2)}</div>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Subtotal:</div>
                         <div className="font-medium text-indigo-300">${itemPreview.subtotal.toFixed(2)}</div>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Total:</div>
                         <div className="font-bold text-blue-400 text-lg">${itemPreview.total.toFixed(2)}</div>
@@ -779,7 +817,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <Calculator className="h-6 w-6 text-blue-400" />
                   Invoice Summary
                 </h2>
-                
+
                 <div className="space-y-6">
                   <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
                     <span className="text-blue-100 text-lg">Subtotal</span>
@@ -787,14 +825,14 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       ${currentInvoice.subtotal.toFixed(2)}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
                     <span className="text-blue-100 text-lg">Total Tax</span>
                     <span className="text-xl font-semibold text-blue-400">
                       ${currentInvoice.totalTax.toFixed(2)}
                     </span>
                   </div>
-                  
+
                   <div className="py-4">
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-semibold text-white">Grand Total</span>
@@ -828,7 +866,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-blue-100">
                       Status
@@ -838,11 +876,10 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                         <button
                           key={status}
                           onClick={() => setCurrentInvoice(prev => ({ ...prev, status }))}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                            currentInvoice.status === status 
-                              ? 'bg-blue-500/30 text-white border border-blue-400/50 shadow-lg shadow-blue-500/30' 
-                              : 'bg-white/5 text-blue-200 border border-blue-400/20 hover:bg-white/10 hover:border-blue-400/30'
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${currentInvoice.status === status
+                            ? 'bg-blue-500/30 text-white border border-blue-400/50 shadow-lg shadow-blue-500/30'
+                            : 'bg-white/5 text-blue-200 border border-blue-400/20 hover:bg-white/10 hover:border-blue-400/30'
+                            }`}
                         >
                           {status.charAt(0).toUpperCase() + status.slice(1)}
                         </button>
@@ -856,11 +893,10 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <button
                     onClick={saveInvoice}
                     disabled={currentInvoice.items.length === 0 || isSaving}
-                    className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${
-                      currentInvoice.items.length === 0 || isSaving
-                        ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white hover:scale-[1.02] shadow-2xl shadow-blue-500/30'
-                    }`}
+                    className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${currentInvoice.items.length === 0 || isSaving
+                      ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white hover:scale-[1.02] shadow-2xl shadow-blue-500/30'
+                      }`}
                   >
                     {isSaving ? (
                       <>
@@ -874,7 +910,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       </>
                     )}
                   </button>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => exportInvoice('csv')}
@@ -883,7 +919,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       <Download className="h-4 w-4" />
                       Export CSV
                     </button>
-                    
+
                     <button
                       onClick={printInvoice}
                       className="py-3 bg-white/5 text-indigo-300 rounded-xl font-medium hover:bg-indigo-500/20 transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/40 flex items-center justify-center gap-2 backdrop-blur-xl"
@@ -892,7 +928,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       Print
                     </button>
                   </div>
-                  
+
                   <button
                     onClick={copyInvoiceDetails}
                     className="w-full py-3 bg-white/5 text-blue-200 rounded-xl font-medium hover:bg-white/10 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/30 flex items-center justify-center gap-2 backdrop-blur-xl"
@@ -944,7 +980,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
             <p className="text-blue-200/70 mb-8">
               Upload an invoice image to automatically extract text and populate fields
             </p>
-            
+
             {/* Upload Area */}
             <div className="mb-8">
               <label className="block text-sm font-medium text-blue-100 mb-4">
@@ -989,9 +1025,9 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     Image Preview
                   </label>
                   <div className="border border-blue-400/20 rounded-2xl overflow-hidden bg-black/20 backdrop-blur-xl">
-                    <img 
-                      src={uploadedImage} 
-                      alt="Uploaded invoice" 
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded invoice"
                       className="w-full h-80 object-contain"
                     />
                   </div>
@@ -1089,8 +1125,8 @@ Payment Method: ${currentInvoice.paymentMethod}`;
               {filteredHistory.length > 0 ? (
                 <div className="grid gap-6">
                   {filteredHistory.map((invoice, index) => (
-                    <div 
-                      key={invoice.id} 
+                    <div
+                      key={invoice.id}
                       className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-2xl p-6 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 group"
                     >
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -1099,12 +1135,11 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                             <h3 className="font-bold text-xl text-white group-hover:text-blue-300 transition-colors duration-300">
                               {invoice.invoiceNumber}
                             </h3>
-                            <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                              invoice.status === 'paid' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
+                            <span className={`px-3 py-1 rounded-lg text-sm font-medium ${invoice.status === 'paid' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
                               invoice.status === 'sent' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30' :
-                              invoice.status === 'overdue' ? 'bg-red-500/20 text-red-300 border border-red-400/30' :
-                              'bg-gray-500/20 text-gray-300 border border-gray-400/30'
-                            }`}>
+                                invoice.status === 'overdue' ? 'bg-red-500/20 text-red-300 border border-red-400/30' :
+                                  'bg-gray-500/20 text-gray-300 border border-gray-400/30'
+                              }`}>
                               {invoice.status.toUpperCase()}
                             </span>
                           </div>
@@ -1162,7 +1197,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                               invoice.items.forEach(item => {
                                 csvContent += `"${item.product}",${item.quantity},${item.rate},${item.subtotal},${item.sgst},${item.cgst},${item.igst},${item.total}\n`;
                               });
-                              
+
                               const blob = new Blob([csvContent], { type: 'text/csv' });
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');

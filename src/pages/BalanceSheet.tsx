@@ -1,23 +1,15 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS } from "@/lib/api";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Calculator, Download, TrendingUp, AlertCircle, CheckCircle, Building, Scale } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 const BalanceSheet = () => {
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const [formData, setFormData] = useState({
     currentAssets: "",
@@ -28,15 +20,6 @@ const BalanceSheet = () => {
   });
   const [balanceSheet, setBalanceSheet] = useState(null);
 
-  // Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -141,14 +124,9 @@ Powered by Advanced Financial Analytics Engine ✨
       {/* Animated Background Effects */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
 
-      {/* Mouse-following gradient orb */}
-      <div
-        className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-cyan-500/20 to-indigo-500/30 rounded-full blur-3xl transition-all duration-1000 pointer-events-none"
-        style={{
-          top: mousePosition.y / 20 - 400,
-          left: mousePosition.x / 20 - 400
-        }}
-      />
+      {/* Static gradient circles instead of mouse-following orb */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Floating particles */}
       <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
@@ -210,25 +188,37 @@ Powered by Advanced Financial Analytics Engine ✨
                 </h3>
                 <div className="space-y-2">
                   <Label htmlFor="currentAssets" className="text-white font-medium">Current Assets (₹)</Label>
-                  <Input
-                    id="currentAssets"
-                    type="number"
-                    placeholder="e.g., 150000.00"
-                    value={formData.currentAssets}
-                    onChange={(e) => handleInputChange("currentAssets", e.target.value)}
-                    className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="currentAssets"
+                      type="number"
+                      placeholder="e.g., 150000.00"
+                      value={formData.currentAssets}
+                      onChange={(e) => handleInputChange("currentAssets", e.target.value)}
+                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                    />
+                    <VoiceButton
+                      onTranscript={(text) => handleInputChange("currentAssets", text)}
+                      onClear={() => handleInputChange("currentAssets", "")}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nonCurrentAssets" className="text-white font-medium">Non-Current Assets (₹)</Label>
-                  <Input
-                    id="nonCurrentAssets"
-                    type="number"
-                    placeholder="e.g., 450000.00"
-                    value={formData.nonCurrentAssets}
-                    onChange={(e) => handleInputChange("nonCurrentAssets", e.target.value)}
-                    className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="nonCurrentAssets"
+                      type="number"
+                      placeholder="e.g., 450000.00"
+                      value={formData.nonCurrentAssets}
+                      onChange={(e) => handleInputChange("nonCurrentAssets", e.target.value)}
+                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                    />
+                    <VoiceButton
+                      onTranscript={(text) => handleInputChange("nonCurrentAssets", text)}
+                      onClear={() => handleInputChange("nonCurrentAssets", "")}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -242,25 +232,37 @@ Powered by Advanced Financial Analytics Engine ✨
                 </h3>
                 <div className="space-y-2">
                   <Label htmlFor="currentLiabilities" className="text-white font-medium">Current Liabilities (₹)</Label>
-                  <Input
-                    id="currentLiabilities"
-                    type="number"
-                    placeholder="e.g., 60000.00"
-                    value={formData.currentLiabilities}
-                    onChange={(e) => handleInputChange("currentLiabilities", e.target.value)}
-                    className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="currentLiabilities"
+                      type="number"
+                      placeholder="e.g., 60000.00"
+                      value={formData.currentLiabilities}
+                      onChange={(e) => handleInputChange("currentLiabilities", e.target.value)}
+                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                    />
+                    <VoiceButton
+                      onTranscript={(text) => handleInputChange("currentLiabilities", text)}
+                      onClear={() => handleInputChange("currentLiabilities", "")}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nonCurrentLiabilities" className="text-white font-medium">Non-Current Liabilities (₹)</Label>
-                  <Input
-                    id="nonCurrentLiabilities"
-                    type="number"
-                    placeholder="e.g., 140000.00"
-                    value={formData.nonCurrentLiabilities}
-                    onChange={(e) => handleInputChange("nonCurrentLiabilities", e.target.value)}
-                    className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="nonCurrentLiabilities"
+                      type="number"
+                      placeholder="e.g., 140000.00"
+                      value={formData.nonCurrentLiabilities}
+                      onChange={(e) => handleInputChange("nonCurrentLiabilities", e.target.value)}
+                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                    />
+                    <VoiceButton
+                      onTranscript={(text) => handleInputChange("nonCurrentLiabilities", text)}
+                      onClear={() => handleInputChange("nonCurrentLiabilities", "")}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -274,14 +276,20 @@ Powered by Advanced Financial Analytics Engine ✨
                 </h3>
                 <div className="space-y-2">
                   <Label htmlFor="equity" className="text-white font-medium">Equity (₹)</Label>
-                  <Input
-                    id="equity"
-                    type="number"
-                    placeholder="e.g., 400000.00"
-                    value={formData.equity}
-                    onChange={(e) => handleInputChange("equity", e.target.value)}
-                    className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="equity"
+                      type="number"
+                      placeholder="e.g., 400000.00"
+                      value={formData.equity}
+                      onChange={(e) => handleInputChange("equity", e.target.value)}
+                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                    />
+                    <VoiceButton
+                      onTranscript={(text) => handleInputChange("equity", text)}
+                      onClear={() => handleInputChange("equity", "")}
+                    />
+                  </div>
                 </div>
               </div>
 

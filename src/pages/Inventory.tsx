@@ -1,23 +1,14 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VoiceButton } from "@/components/ui/VoiceButton";
-import { ArrowLeft, Plus, Trash2, Package, Search, BarChart3, Archive } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
+import { ArrowLeft, Plus, Trash2, Package, Search, Archive } from "lucide-react";
 
 interface InventoryItem {
     _id?: string;
@@ -133,11 +124,6 @@ const Inventory = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-violet-950 to-purple-950 text-white overflow-hidden relative">
-            <style>{`
-                * { cursor: default !important; }
-                button, input, select, [role="button"] { cursor: pointer !important; }
-            `}</style>
-
             {/* Background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
@@ -190,13 +176,19 @@ const Inventory = () => {
                                         <CardTitle className="text-2xl font-bold text-violet-100">Inventory Items</CardTitle>
                                         <CardDescription className="text-violet-300/70">{items.length} total items in stock</CardDescription>
                                     </div>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-300" />
-                                        <Input
-                                            placeholder="Search items..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="pl-10 bg-white/5 border-violet-400/30 text-violet-100 placeholder:text-violet-300/40 w-64"
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-300" />
+                                            <Input
+                                                placeholder="Search items..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="pl-10 bg-white/5 border-violet-400/30 text-violet-100 placeholder:text-violet-300/40 w-64"
+                                            />
+                                        </div>
+                                        <VoiceButton
+                                            onTranscript={(text) => setSearchTerm(text)}
+                                            onClear={() => setSearchTerm("")}
                                         />
                                     </div>
                                 </div>
@@ -243,22 +235,34 @@ const Inventory = () => {
                             <CardContent className="space-y-6">
                                 <div className="space-y-3">
                                     <Label className="text-violet-100">Item Name</Label>
-                                    <Input
-                                        value={formData.itemName}
-                                        onChange={(e) => handleInputChange("itemName", e.target.value)}
-                                        className="bg-white/5 border-violet-400/30 text-violet-100"
-                                        placeholder="e.g. Office Chair"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={formData.itemName}
+                                            onChange={(e) => handleInputChange("itemName", e.target.value)}
+                                            className="bg-white/5 border-violet-400/30 text-violet-100"
+                                            placeholder="e.g. Office Chair"
+                                        />
+                                        <VoiceButton
+                                            onTranscript={(text) => handleInputChange("itemName", text)}
+                                            onClear={() => handleInputChange("itemName", "")}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-3">
                                         <Label className="text-violet-100">SKU</Label>
-                                        <Input
-                                            value={formData.sku}
-                                            onChange={(e) => handleInputChange("sku", e.target.value)}
-                                            className="bg-white/5 border-violet-400/30 text-violet-100"
-                                            placeholder="e.g. FURN-001"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                value={formData.sku}
+                                                onChange={(e) => handleInputChange("sku", e.target.value)}
+                                                className="bg-white/5 border-violet-400/30 text-violet-100"
+                                                placeholder="e.g. FURN-001"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("sku", text)}
+                                                onClear={() => handleInputChange("sku", "")}
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-3">
                                         <Label className="text-violet-100">Category</Label>
@@ -278,23 +282,35 @@ const Inventory = () => {
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-3">
                                         <Label className="text-violet-100">Price (₹)</Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.price}
-                                            onChange={(e) => handleInputChange("price", e.target.value)}
-                                            className="bg-white/5 border-violet-400/30 text-violet-100"
-                                            placeholder="0.00"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="number"
+                                                value={formData.price}
+                                                onChange={(e) => handleInputChange("price", e.target.value)}
+                                                className="bg-white/5 border-violet-400/30 text-violet-100"
+                                                placeholder="0.00"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("price", text)}
+                                                onClear={() => handleInputChange("price", "")}
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-3">
                                         <Label className="text-violet-100">Quantity</Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.quantity}
-                                            onChange={(e) => handleInputChange("quantity", e.target.value)}
-                                            className="bg-white/5 border-violet-400/30 text-violet-100"
-                                            placeholder="0"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="number"
+                                                value={formData.quantity}
+                                                onChange={(e) => handleInputChange("quantity", e.target.value)}
+                                                className="bg-white/5 border-violet-400/30 text-violet-100"
+                                                placeholder="0"
+                                            />
+                                            <VoiceButton
+                                                onTranscript={(text) => handleInputChange("quantity", text)}
+                                                onClear={() => handleInputChange("quantity", "")}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <Button onClick={addItem} className="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold h-12 rounded-xl mt-4">

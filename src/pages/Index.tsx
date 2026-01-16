@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [showDemo, setShowDemo] = useState(false);
 
   // 🧠 State to store backend data
@@ -15,15 +14,6 @@ const Index = () => {
   const [stats, setStats] = useState<{ icon: JSX.Element; value: string; label: string }[]>([]);
   const [testimonials, setTestimonials] = useState<{ name: string; role: string; feedback: string }[]>([]);
 
-  // 🖱️ Mouse tracking for background animation
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // 🖥️ Fetch data from backend on component mount
   useEffect(() => {
@@ -114,14 +104,10 @@ const Index = () => {
         </motion.div>
       )}
 
-      {/* Mouse-responsive animated background */}
+      {/* Responsive animated background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-br from-blue-500/30 via-cyan-500/20 to-transparent rounded-full blur-3xl transition-all duration-1000"
-          style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
-          }}
+          className="absolute w-[800px] h-[800px] bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-transparent rounded-full blur-3xl"
         ></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>

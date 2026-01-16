@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
-import { Mic, MicOff } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Mic, MicOff, Trash2 } from 'lucide-react';
 import { Button } from './button';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useToast } from '@/hooks/use-toast';
 
 interface VoiceButtonProps {
     onTranscript: (text: string) => void;
+    onClear?: () => void;
     language?: string;
     className?: string;
     size?: 'sm' | 'md' | 'lg';
@@ -13,17 +14,19 @@ interface VoiceButtonProps {
 
 export const VoiceButton: React.FC<VoiceButtonProps> = ({
     onTranscript,
+    onClear,
     language = 'en-US',
     className = '',
     size = 'sm',
 }) => {
     const { toast } = useToast();
+    const [isPressing, setIsPressing] = useState(false);
+    const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const {
         transcript,
         isListening,
         isSupported,
-        error,
         startListening,
         stopListening,
     } = useVoiceInput({
@@ -49,11 +52,41 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({
         }
     }, [transcript, onTranscript]);
 
-    const handleClick = () => {
-        if (isListening) {
-            stopListening();
-        } else {
-            startListening();
+    const handleLongPress = () => {
+        if (onClear) {
+            onClear();
+            toast({
+                title: "Cleared",
+                description: "Input field has been cleared.",
+                duration: 2000,
+            });
+        }
+    };
+
+    const startPress = () => {
+        setIsPressing(true);
+        pressTimerRef.current = setTimeout(() => {
+            handleLongPress();
+            setIsPressing(false);
+        }, 700); // 700ms long press
+    };
+
+    const cancelPress = () => {
+        if (pressTimerRef.current) {
+            clearTimeout(pressTimerRef.current);
+            pressTimerRef.current = null;
+        }
+        setIsPressing(false);
+    };
+
+    const handleClick = (e: React.MouseEvent) => {
+        // Only trigger voice if it wasn't a long press
+        if (!onClear || !isPressing) {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
         }
     };
 
@@ -79,17 +112,27 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({
             variant={isListening ? 'default' : 'outline'}
             size="icon"
             onClick={handleClick}
+            onMouseDown={onClear ? startPress : undefined}
+            onMouseUp={onClear ? cancelPress : undefined}
+            onMouseLeave={onClear ? cancelPress : undefined}
+            onTouchStart={onClear ? startPress : undefined}
+            onTouchEnd={onClear ? cancelPress : undefined}
             className={`${sizeClasses[size]} ${className} ${isListening
-                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                : isPressing
+                    ? 'bg-blue-500/40 border-blue-400 animate-pulse'
                     : 'border-blue-400/40 hover:bg-blue-500/20'
-                } transition-all duration-300`}
-            title={isListening ? 'Stop listening' : 'Click to speak'}
+                } transition-all duration-300 relative`}
+            title={onClear ? (isListening ? 'Stop listening (Hold to clear)' : 'Click to speak (Hold to clear)') : (isListening ? 'Stop listening' : 'Click to speak')}
         >
             {isListening ? (
                 <MicOff className="text-white" size={iconSizes[size]} />
+            ) : isPressing ? (
+                <Trash2 className="text-blue-200" size={iconSizes[size]} />
             ) : (
                 <Mic className="text-blue-400" size={iconSizes[size]} />
             )}
         </Button>
     );
 };
+

@@ -1,27 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Slider } from "@/components/ui/slider";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Upload, Search, FileText, Download, Shield, AlertTriangle, Filter, Plus, Cpu, Database, Calculator, History, Trash2, Eye } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface Transaction {
   id: string;
@@ -173,13 +162,13 @@ const FraudDetection = () => {
   const isolationForestDetection = (transactions: Transaction[], contamination: number) => {
     // Mock implementation of Isolation Forest
     // In production, this would use a proper ML library
-    
+
     const flaggedCount = Math.max(1, Math.floor(transactions.length * contamination));
-    
+
     // Simple heuristic: flag transactions with highest amounts
     const sortedTransactions = [...transactions]
       .sort((a, b) => b.amount - a.amount);
-    
+
     const flagged = sortedTransactions
       .slice(0, flaggedCount)
       .map(t => ({
@@ -188,7 +177,7 @@ const FraudDetection = () => {
         status: Math.random() > 0.7 ? 'Fraud' as const : 'Suspicious' as const,
         method: 'Isolation Forest'
       }));
-    
+
     return flagged;
   };
 
@@ -196,46 +185,47 @@ const FraudDetection = () => {
   const runDetection = () => {
     setIsProcessing(true);
     setDetectionComplete(false);
-    
+
     // Simulate processing delay
     setTimeout(() => {
       let newFlagged: Transaction[] = [];
-      
+
       switch (formData.algorithm) {
         case 'rule':
           // Rule-based detection
           newFlagged = transactions.map(t => ({
             ...t,
             fraudScore: t.amount >= formData.amountThreshold ? 1 : 0,
-            status: t.amount >= formData.amountThreshold ? 'Fraud' : 'Normal',
+            status: (t.amount >= formData.amountThreshold ? 'Fraud' : 'Normal') as 'Normal' | 'Suspicious' | 'Fraud',
             method: 'Rule-based'
           })).filter(t => t.status !== 'Normal');
           break;
-          
-        case 'zscore':
+
+        case 'zscore': {
           // Z-score detection simulation
           const amounts = transactions.map(t => t.amount);
           const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
           const std = Math.sqrt(amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length);
-          
+
           newFlagged = transactions.map(t => {
             const zScore = Math.abs((t.amount - mean) / std);
             const isFraud = zScore > formData.zscoreThreshold;
             return {
               ...t,
               fraudScore: isFraud ? Math.min(zScore / 10, 1) : 0,
-              status: isFraud ? (zScore > 5 ? 'Fraud' as const : 'Suspicious' as const) : 'Normal',
+              status: (isFraud ? (zScore > 5 ? 'Fraud' : 'Suspicious') : 'Normal') as 'Normal' | 'Suspicious' | 'Fraud',
               method: 'Z-score'
             };
           }).filter(t => t.status !== 'Normal');
           break;
-          
+        }
+
         case 'iforest':
           // Isolation Forest detection
           newFlagged = isolationForestDetection(transactions, formData.iforestContamination);
           break;
       }
-      
+
       setFlaggedTransactions(newFlagged);
       setDetectionStats({
         total: transactions.length,
@@ -248,15 +238,15 @@ const FraudDetection = () => {
       const historyEntry: DetectionHistory = {
         id: Date.now().toString(),
         timestamp: new Date(),
-        algorithm: formData.algorithm === 'rule' ? 'Rule-based' : 
-                  formData.algorithm === 'zscore' ? 'Z-score' : 'Isolation Forest',
+        algorithm: formData.algorithm === 'rule' ? 'Rule-based' :
+          formData.algorithm === 'zscore' ? 'Z-score' : 'Isolation Forest',
         totalTransactions: transactions.length,
         flaggedCount: newFlagged.length,
         parameters: formData.algorithm === 'rule' ? { amountThreshold: formData.amountThreshold } :
-                   formData.algorithm === 'zscore' ? { zscoreThreshold: formData.zscoreThreshold } :
-                   { iforestContamination: formData.iforestContamination }
+          formData.algorithm === 'zscore' ? { zscoreThreshold: formData.zscoreThreshold } :
+            { iforestContamination: formData.iforestContamination }
       };
-      
+
       setDetectionHistory(prev => [historyEntry, ...prev]);
       setIsProcessing(false);
       setDetectionComplete(true);
@@ -265,12 +255,12 @@ const FraudDetection = () => {
 
   // Export results
   const exportResults = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + "ID,Date,Amount,Description,Fraud Score,Status,Detection Method\n"
-      + flaggedTransactions.map(t => 
-          `${t.id},${t.date},${t.amount},${t.description},${t.fraudScore},${t.status},${t.method}`
-        ).join("\n");
-    
+      + flaggedTransactions.map(t =>
+        `${t.id},${t.date},${t.amount},${t.description},${t.fraudScore},${t.status},${t.method}`
+      ).join("\n");
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -296,13 +286,13 @@ const FraudDetection = () => {
   const loadHistoricalDetection = (history: DetectionHistory) => {
     setFormData(prev => ({
       ...prev,
-      algorithm: history.algorithm === 'Rule-based' ? 'rule' : 
-                history.algorithm === 'Z-score' ? 'zscore' : 'iforest',
+      algorithm: history.algorithm === 'Rule-based' ? 'rule' :
+        history.algorithm === 'Z-score' ? 'zscore' : 'iforest',
       amountThreshold: history.parameters.amountThreshold || 10000,
       zscoreThreshold: history.parameters.zscoreThreshold || 3.0,
       iforestContamination: history.parameters.iforestContamination || 0.01
     }));
-    
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -310,13 +300,13 @@ const FraudDetection = () => {
   // Handle history slider
   const handleHistoryScroll = (direction: 'left' | 'right') => {
     if (!historyContainerRef.current) return;
-    
+
     const container = historyContainerRef.current;
     const scrollAmount = 300;
-    const newPosition = direction === 'left' 
+    const newPosition = direction === 'left'
       ? Math.max(0, historyPosition - scrollAmount)
       : historyPosition + scrollAmount;
-    
+
     container.scrollTo({ left: newPosition, behavior: 'smooth' });
     setHistoryPosition(newPosition);
   };
@@ -361,14 +351,14 @@ const FraudDetection = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full grid-cols-2 backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-2xl p-1">
-            <TabsTrigger 
+            <TabsTrigger
               value="detection"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl"
             >
               <Search className="h-4 w-4" />
               Detection Engine
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="results"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl"
             >
@@ -380,7 +370,7 @@ const FraudDetection = () => {
           <TabsContent value="detection">
             <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
-              
+
               <CardHeader className="relative">
                 <div className="flex items-center justify-between">
                   <div>
@@ -443,20 +433,20 @@ const FraudDetection = () => {
                       <SelectValue placeholder="Select algorithm" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border border-blue-400/30 text-white">
-                      <SelectItem 
-                        value="rule" 
+                      <SelectItem
+                        value="rule"
                         className="text-blue-100 hover:bg-blue-600/50 focus:bg-blue-600/50 cursor-pointer"
                       >
                         Rule-based (amount threshold)
                       </SelectItem>
-                      <SelectItem 
-                        value="zscore" 
+                      <SelectItem
+                        value="zscore"
                         className="text-blue-100 hover:bg-blue-600/50 focus:bg-blue-600/50 cursor-pointer"
                       >
                         Z-score (statistical outliers)
                       </SelectItem>
-                      <SelectItem 
-                        value="iforest" 
+                      <SelectItem
+                        value="iforest"
                         className="text-blue-100 hover:bg-blue-600/50 focus:bg-blue-600/50 cursor-pointer"
                       >
                         Isolation Forest (ML)
@@ -470,12 +460,15 @@ const FraudDetection = () => {
                   {/* Amount Threshold */}
                   <div className="space-y-3">
                     <Label className="text-blue-300 text-sm">Amount Threshold ($)</Label>
-                    <Input
-                      type="number"
-                      value={formData.amountThreshold}
-                      onChange={(e) => handleInputChange('amountThreshold', parseFloat(e.target.value) || 0)}
-                      className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={formData.amountThreshold}
+                        onChange={(e) => handleInputChange('amountThreshold', parseFloat(e.target.value) || 0)}
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                      />
+                      <VoiceButton onTranscript={(text) => handleInputChange('amountThreshold', text)} />
+                    </div>
                   </div>
 
                   {/* Z-score Threshold */}
@@ -529,29 +522,38 @@ const FraudDetection = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-3">
                     <Label className="text-blue-300 text-sm">Date Column</Label>
-                    <Input
-                      value={formData.dateColumn}
-                      onChange={(e) => handleInputChange('dateColumn', e.target.value)}
-                      className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={formData.dateColumn}
+                        onChange={(e) => handleInputChange('dateColumn', e.target.value)}
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                      />
+                      <VoiceButton onTranscript={(text) => handleInputChange('dateColumn', text)} />
+                    </div>
                   </div>
 
                   <div className="space-y-3">
                     <Label className="text-blue-300 text-sm">Amount Column</Label>
-                    <Input
-                      value={formData.amountColumn}
-                      onChange={(e) => handleInputChange('amountColumn', e.target.value)}
-                      className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={formData.amountColumn}
+                        onChange={(e) => handleInputChange('amountColumn', e.target.value)}
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                      />
+                      <VoiceButton onTranscript={(text) => handleInputChange('amountColumn', text)} />
+                    </div>
                   </div>
 
                   <div className="space-y-3">
                     <Label className="text-blue-300 text-sm">Description Column</Label>
-                    <Input
-                      value={formData.descriptionColumn}
-                      onChange={(e) => handleInputChange('descriptionColumn', e.target.value)}
-                      className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={formData.descriptionColumn}
+                        onChange={(e) => handleInputChange('descriptionColumn', e.target.value)}
+                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                      />
+                      <VoiceButton onTranscript={(text) => handleInputChange('descriptionColumn', text)} />
+                    </div>
                   </div>
                 </div>
 
@@ -637,7 +639,7 @@ const FraudDetection = () => {
                   {detectionStats.total} total transactions analyzed using {formData.algorithm === 'rule' ? 'Rule-based' : formData.algorithm === 'zscore' ? 'Z-score' : 'Isolation Forest'} algorithm
                 </CardDescription>
               </CardHeader>
-              
+
               <CardContent>
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -678,17 +680,16 @@ const FraudDetection = () => {
                           {flaggedTransactions.map((transaction) => (
                             <TableRow key={transaction.id} className="hover:bg-white/5">
                               <TableCell className="text-blue-200">{transaction.date}</TableCell>
-                              <TableCell className={`font-semibold ${
-                                transaction.amount >= 10000 ? 'text-red-400' : 'text-blue-300'
-                              }`}>
+                              <TableCell className={`font-semibold ${transaction.amount >= 10000 ? 'text-red-400' : 'text-blue-300'
+                                }`}>
                                 ${transaction.amount.toLocaleString()}
                               </TableCell>
                               <TableCell className="text-blue-200">{transaction.description}</TableCell>
                               <TableCell>
                                 <Badge className={
                                   transaction.fraudScore > 0.7 ? 'bg-red-500/80 text-white' :
-                                  transaction.fraudScore > 0.3 ? 'bg-yellow-500/80 text-white' :
-                                  'bg-green-500/80 text-white'
+                                    transaction.fraudScore > 0.3 ? 'bg-yellow-500/80 text-white' :
+                                      'bg-green-500/80 text-white'
                                 }>
                                   {transaction.fraudScore.toFixed(2)}
                                 </Badge>
@@ -696,8 +697,8 @@ const FraudDetection = () => {
                               <TableCell>
                                 <Badge className={
                                   transaction.status === 'Fraud' ? 'bg-red-500/80 text-white' :
-                                  transaction.status === 'Suspicious' ? 'bg-yellow-500/80 text-white' :
-                                  'bg-green-500/80 text-white'
+                                    transaction.status === 'Suspicious' ? 'bg-yellow-500/80 text-white' :
+                                      'bg-green-500/80 text-white'
                                 }>
                                   {transaction.status}
                                 </Badge>
@@ -813,13 +814,13 @@ const FraudDetection = () => {
 
                   {/* History Slider */}
                   <div className="relative">
-                    <div 
+                    <div
                       ref={historyContainerRef}
                       className="flex overflow-x-auto scrollbar-hide gap-4 pb-4"
                       style={{ scrollBehavior: 'smooth' }}
                     >
                       {detectionHistory.map((history) => (
-                        <Card 
+                        <Card
                           key={history.id}
                           className="min-w-[300px] max-w-[350px] backdrop-blur-xl bg-white/5 border border-blue-400/20 rounded-2xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-shadow duration-300"
                         >
@@ -837,8 +838,8 @@ const FraudDetection = () => {
                                 </div>
                                 <Badge className={
                                   history.flaggedCount > 5 ? 'bg-red-500/80' :
-                                  history.flaggedCount > 2 ? 'bg-yellow-500/80' :
-                                  'bg-green-500/80'
+                                    history.flaggedCount > 2 ? 'bg-yellow-500/80' :
+                                      'bg-green-500/80'
                                 }>
                                   {history.flaggedCount} flagged
                                 </Badge>

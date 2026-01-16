@@ -1,19 +1,12 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, FileText, Plus, Trash2, TrendingUp, TrendingDown, Minus, Download, Sparkles, BarChart3 } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useToast } from "@/hooks/use-toast";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface CashFlowItem {
   description: string;
@@ -36,7 +29,7 @@ interface CashFlowStatement {
 const CashFlowStatement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [formData, setFormData] = useState({
     period: "",
   });
@@ -132,7 +125,7 @@ const CashFlowStatement = () => {
     const totalInflow = validInflowItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const totalOutflow = validOutflowItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const netCashFlow = totalInflow - totalOutflow;
-    
+
     let status = "neutral";
     if (netCashFlow > 0) status = "positive";
     if (netCashFlow < 0) status = "negative";
@@ -160,7 +153,6 @@ const CashFlowStatement = () => {
       return;
     }
 
-    // Filter out empty items
     const validInflowItems = inflowItems.filter(item => item.description && item.amount);
     const validOutflowItems = outflowItems.filter(item => item.description && item.amount);
 
@@ -196,7 +188,6 @@ const CashFlowStatement = () => {
       });
 
       if (response.ok) {
-        const result = await response.json();
         toast({
           title: "Success!",
           description: "Cash flow statement saved successfully!",
@@ -226,7 +217,6 @@ const CashFlowStatement = () => {
     }
   };
 
-  // ✅ Enhanced Download Slip with Professional Format
   const downloadSlip = (statement?: CashFlowStatement) => {
     const dataToUse = statement || (result ? {
       period: formData.period || "Current Statement",
@@ -254,27 +244,27 @@ const CashFlowStatement = () => {
 ║                     ${dataToUse.period.toUpperCase().padEnd(30)}         ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
-Date: ${new Date(dataToUse.createdAt).toLocaleDateString('en-IN', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
+Date: ${new Date(dataToUse.createdAt).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })}
 
 ────────────────────────────────────────────────────────────────────────
                             CASH INFLOWS
 ────────────────────────────────────────────────────────────────────────
-${dataToUse.inflowItems.map((item, index) => 
-  `${(index + 1).toString().padStart(2)}. ${item.description.padEnd(35)} ${item.category.padEnd(15)} ₹${parseFloat(item.amount).toFixed(2).padStart(12)}`
-).join('\n')}
+${dataToUse.inflowItems.map((item, index) =>
+      `${(index + 1).toString().padStart(2)}. ${item.description.padEnd(35)} ${item.category.padEnd(15)} ₹${parseFloat(item.amount).toFixed(2).padStart(12)}`
+    ).join('\n')}
 ${' '.repeat(55)}────────────────
 ${'TOTAL CASH INFLOW:'.padEnd(52)} ₹${dataToUse.totalInflow.toFixed(2).padStart(12)}
 ────────────────────────────────────────────────────────────────────────
                            CASH OUTFLOWS
 ────────────────────────────────────────────────────────────────────────
-${dataToUse.outflowItems.map((item, index) => 
-  `${(index + 1).toString().padStart(2)}. ${item.description.padEnd(35)} ${item.category.padEnd(15)} ₹${parseFloat(item.amount).toFixed(2).padStart(12)}`
-).join('\n')}
+${dataToUse.outflowItems.map((item, index) =>
+      `${(index + 1).toString().padStart(2)}. ${item.description.padEnd(35)} ${item.category.padEnd(15)} ₹${parseFloat(item.amount).toFixed(2).padStart(12)}`
+    ).join('\n')}
 ${' '.repeat(55)}────────────────
 ${'TOTAL CASH OUTFLOW:'.padEnd(52)} ₹${dataToUse.totalOutflow.toFixed(2).padStart(12)}
 ────────────────────────────────────────────────────────────────────────
@@ -285,22 +275,21 @@ Total Cash Outflow:       ₹${dataToUse.totalOutflow.toFixed(2).padStart(12)}
 ────────────────────────────────────────────────────────────────────────
 NET CASH FLOW:            ₹${dataToUse.netCashFlow.toFixed(2).padStart(12)}
 
-STATUS: ${dataToUse.status === 'positive' ? '🟢 POSITIVE CASH FLOW' : 
-          dataToUse.status === 'negative' ? '🔴 NEGATIVE CASH FLOW' : 
+STATUS: ${dataToUse.status === 'positive' ? '🟢 POSITIVE CASH FLOW' :
+        dataToUse.status === 'negative' ? '🔴 NEGATIVE CASH FLOW' :
           '🟡 BALANCED CASH FLOW'}
 
-${dataToUse.status === 'positive' ? 
-  '✓ Healthy cash position. Consider investment opportunities.' :
-  dataToUse.status === 'negative' ? 
-  '⚠️  Monitor expenses closely. Consider cost optimization.' :
-  '⚖️  Cash flow is balanced. Maintain current operations.'}
+${dataToUse.status === 'positive' ?
+        '✓ Healthy cash position. Consider investment opportunities.' :
+        dataToUse.status === 'negative' ?
+          '⚠️  Monitor expenses closely. Consider cost optimization.' :
+          '⚖️  Cash flow is balanced. Maintain current operations.'}
 
 ────────────────────────────────────────────────────────────────────────
 Generated: ${new Date().toLocaleString('en-IN')}
 Powered by Financial Automation Platform • www.finance-automation.com
     `.trim();
 
-    // Create and download text file
     const blob = new Blob([slipContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -347,7 +336,6 @@ Powered by Financial Automation Platform • www.finance-automation.com
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white">
-      {/* Header */}
       <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Button
@@ -374,10 +362,8 @@ Powered by Financial Automation Platform • www.finance-automation.com
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Input Form */}
           <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden">
             <CardHeader>
               <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
@@ -390,21 +376,22 @@ Powered by Financial Automation Platform • www.finance-automation.com
             </CardHeader>
 
             <CardContent className="space-y-6 p-8">
-              {/* Period Input */}
               <div className="space-y-3">
                 <Label className="text-blue-100 font-bold flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-cyan-400" />
                   Period
                 </Label>
-                <Input
-                  placeholder="e.g., January 2024, Q1 2024"
-                  value={formData.period}
-                  onChange={(e) => handleInputChange("period", e.target.value)}
-                  className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="e.g., January 2024, Q1 2024"
+                    value={formData.period}
+                    onChange={(e) => handleInputChange("period", e.target.value)}
+                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
+                  />
+                  <VoiceButton onTranscript={(text) => handleInputChange("period", text)} />
+                </div>
               </div>
 
-              {/* Cash Inflows */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-blue-100 font-bold text-lg flex items-center gap-2">
@@ -420,18 +407,19 @@ Powered by Financial Automation Platform • www.finance-automation.com
                     Add Item
                   </Button>
                 </div>
-                
+
                 {inflowItems.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-5">
+                    <div className="col-span-4 flex items-center gap-1">
                       <Input
                         placeholder="Description"
                         value={item.description}
                         onChange={(e) => handleInflowItemChange(index, 'description', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'description', text)} />
                     </div>
-                    <div className="col-span-4">
+                    <div className="col-span-3 flex items-center gap-1">
                       <Input
                         type="number"
                         placeholder="Amount"
@@ -439,16 +427,18 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleInflowItemChange(index, 'amount', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'amount', text)} />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-3 flex items-center gap-1">
                       <Input
                         placeholder="Category"
                         value={item.category}
                         onChange={(e) => handleInflowItemChange(index, 'category', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-green-400 focus:ring-2 focus:ring-green-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleInflowItemChange(index, 'category', text)} />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <Button
                         variant="destructive"
                         size="sm"
@@ -463,7 +453,6 @@ Powered by Financial Automation Platform • www.finance-automation.com
                 ))}
               </div>
 
-              {/* Cash Outflows */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label className="text-blue-100 font-bold text-lg flex items-center gap-2">
@@ -479,18 +468,19 @@ Powered by Financial Automation Platform • www.finance-automation.com
                     Add Item
                   </Button>
                 </div>
-                
+
                 {outflowItems.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-5">
+                    <div className="col-span-4 flex items-center gap-1">
                       <Input
                         placeholder="Description"
                         value={item.description}
                         onChange={(e) => handleOutflowItemChange(index, 'description', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'description', text)} />
                     </div>
-                    <div className="col-span-4">
+                    <div className="col-span-3 flex items-center gap-1">
                       <Input
                         type="number"
                         placeholder="Amount"
@@ -498,16 +488,18 @@ Powered by Financial Automation Platform • www.finance-automation.com
                         onChange={(e) => handleOutflowItemChange(index, 'amount', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'amount', text)} />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-3 flex items-center gap-1">
                       <Input
                         placeholder="Category"
                         value={item.category}
                         onChange={(e) => handleOutflowItemChange(index, 'category', e.target.value)}
                         className="bg-white/5 border-blue-400/30 text-blue-100 focus:border-red-400 focus:ring-2 focus:ring-red-400/30 transition-all duration-300"
                       />
+                      <VoiceButton onTranscript={(text) => handleOutflowItemChange(index, 'category', text)} />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <Button
                         variant="destructive"
                         size="sm"
@@ -522,7 +514,6 @@ Powered by Financial Automation Platform • www.finance-automation.com
                 ))}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-4 pt-4">
                 <Button
                   onClick={calculateCashFlow}
@@ -539,7 +530,6 @@ Powered by Financial Automation Platform • www.finance-automation.com
                 </Button>
               </div>
 
-              {/* Download Button for Current Data */}
               {result && (
                 <div className="pt-4 border-t border-blue-400/20">
                   <Button
@@ -554,9 +544,7 @@ Powered by Financial Automation Platform • www.finance-automation.com
             </CardContent>
           </Card>
 
-          {/* Results & History */}
           <div className="space-y-8">
-            {/* Results Card */}
             {result && (
               <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-3xl overflow-hidden">
                 <CardHeader>
@@ -585,15 +573,15 @@ Powered by Financial Automation Platform • www.finance-automation.com
                     <div className={`text-center p-4 rounded-xl border-2 ${getStatusBgColor(result.status)}`}>
                       <div className="text-lg font-bold mb-2">
                         {result.status === 'positive' ? '✅ Positive Cash Flow' :
-                         result.status === 'negative' ? '⚠️ Negative Cash Flow' :
-                         '⚖️ Balanced Cash Flow'}
+                          result.status === 'negative' ? '⚠️ Negative Cash Flow' :
+                            '⚖️ Balanced Cash Flow'}
                       </div>
                       <div className="text-sm opacity-80">
-                        {result.status === 'positive' ? 
+                        {result.status === 'positive' ?
                           'Healthy cash position. Consider investment opportunities.' :
-                         result.status === 'negative' ? 
-                          'Monitor expenses closely. Consider cost optimization.' :
-                         'Cash flow is balanced. Maintain current operations.'}
+                          result.status === 'negative' ?
+                            'Monitor expenses closely. Consider cost optimization.' :
+                            'Cash flow is balanced. Maintain current operations.'}
                       </div>
                     </div>
                   </div>
@@ -601,7 +589,6 @@ Powered by Financial Automation Platform • www.finance-automation.com
               </Card>
             )}
 
-            {/* History Card */}
             <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-3xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">

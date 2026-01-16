@@ -1,27 +1,16 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { ArrowLeft, Download, Calculator, Sparkles, Search, FileText, Database, Calendar, Clock, Building2, Users, Target, Network, GanttChart, BarChart3, Home, Cpu, AlertCircle } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface Task {
     id: string;
@@ -143,7 +132,7 @@ const CivilEngineering = () => {
 
         setProjectHistory(sampleData);
         setFilteredHistory(sampleData);
-        
+
         // Pre-calculate the sample project
         const tasksWithCPM = calculateCPM(formData.tasks);
         setCalculatedResults(tasksWithCPM);
@@ -518,7 +507,7 @@ Powered by Advanced CPM Engine ⚙️
                                             <Building2 className="h-4 w-4 text-cyan-400" />
                                             Project Name
                                         </Label>
-                                        <div className="relative">
+                                        <div className="flex items-center gap-2">
                                             <Input
                                                 id="projectName"
                                                 placeholder="Enter project name"
@@ -526,6 +515,7 @@ Powered by Advanced CPM Engine ⚙️
                                                 onChange={(e) => handleInputChange("projectName", e.target.value)}
                                                 className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300"
                                             />
+                                            <VoiceButton onTranscript={(text) => handleInputChange("projectName", text)} />
                                         </div>
                                     </div>
 
@@ -534,7 +524,7 @@ Powered by Advanced CPM Engine ⚙️
                                             <Target className="h-4 w-4 text-cyan-400" />
                                             Project ID
                                         </Label>
-                                        <div className="relative">
+                                        <div className="flex items-center gap-2">
                                             <Input
                                                 id="projectId"
                                                 placeholder="e.g., PROJ-2024-001"
@@ -542,6 +532,7 @@ Powered by Advanced CPM Engine ⚙️
                                                 onChange={(e) => handleInputChange("projectId", e.target.value)}
                                                 className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300"
                                             />
+                                            <VoiceButton onTranscript={(text) => handleInputChange("projectId", text)} />
                                         </div>
                                     </div>
 
@@ -599,13 +590,16 @@ Powered by Advanced CPM Engine ⚙️
                                             <FileText className="h-4 w-4 text-cyan-400" />
                                             Project Description
                                         </Label>
-                                        <textarea
-                                            id="projectDescription"
-                                            placeholder="Describe the project..."
-                                            value={formData.projectDescription}
-                                            onChange={(e) => handleInputChange("projectDescription", e.target.value)}
-                                            className="w-full min-h-[80px] bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl p-3 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 resize-y"
-                                        />
+                                        <div className="flex items-start gap-2">
+                                            <textarea
+                                                id="projectDescription"
+                                                placeholder="Describe the project..."
+                                                value={formData.projectDescription}
+                                                onChange={(e) => handleInputChange("projectDescription", e.target.value)}
+                                                className="w-full min-h-[80px] bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl p-3 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 resize-y"
+                                            />
+                                            <VoiceButton onTranscript={(text) => handleInputChange("projectDescription", text)} />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -631,12 +625,15 @@ Powered by Advanced CPM Engine ⚙️
                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                         <div className="space-y-2">
                                                             <Label className="text-white text-sm">Task Name</Label>
-                                                            <Input
-                                                                value={task.name}
-                                                                onChange={(e) => handleTaskChange(task.id, "name", e.target.value)}
-                                                                placeholder="e.g., A-Site preparation"
-                                                                className="bg-white/10 border-blue-400/30 text-white"
-                                                            />
+                                                            <div className="flex items-center gap-1">
+                                                                <Input
+                                                                    value={task.name}
+                                                                    onChange={(e) => handleTaskChange(task.id, "name", e.target.value)}
+                                                                    placeholder="e.g., A-Site preparation"
+                                                                    className="bg-white/10 border-blue-400/30 text-white"
+                                                                />
+                                                                <VoiceButton onTranscript={(text) => handleTaskChange(task.id, "name", text)} />
+                                                            </div>
                                                         </div>
 
                                                         <div className="space-y-2">
@@ -760,7 +757,7 @@ Powered by Advanced CPM Engine ⚙️
                                                     </p>
                                                 </div>
 
-                                                {/* CPM Table - Updated to match screenshot format */}
+                                                {/* CPM Table */}
                                                 <div className="mb-8 overflow-x-auto">
                                                     <div className="mb-4 flex justify-between items-center">
                                                         <div className="text-blue-300 text-sm">
@@ -768,13 +765,13 @@ Powered by Advanced CPM Engine ⚙️
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-blue-300 text-sm">Search:</span>
-                                                            <Input 
-                                                                placeholder="Search tasks..." 
+                                                            <Input
+                                                                placeholder="Search tasks..."
                                                                 className="bg-white/5 border-blue-400/30 w-40 text-white"
                                                             />
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <Table className="backdrop-blur-xl bg-white/5 border border-blue-400/20 rounded-2xl">
                                                         <TableHeader>
                                                             <TableRow className="border-b border-blue-400/30">
@@ -790,8 +787,8 @@ Powered by Advanced CPM Engine ⚙️
                                                         </TableHeader>
                                                         <TableBody>
                                                             {calculatedResults.tasks.map((task) => (
-                                                                <TableRow 
-                                                                    key={task.id} 
+                                                                <TableRow
+                                                                    key={task.id}
                                                                     className={`${task.critical ? "bg-red-500/10" : ""} hover:bg-white/5`}
                                                                 >
                                                                     <TableCell className="font-bold text-white">
@@ -824,7 +821,7 @@ Powered by Advanced CPM Engine ⚙️
                                                             ))}
                                                         </TableBody>
                                                     </Table>
-                                                    
+
                                                     <div className="mt-4 text-sm text-blue-300/70">
                                                         <div className="flex justify-between items-center">
                                                             <span>Showing 1 to {calculatedResults.tasks.length} of {calculatedResults.tasks.length} entries</span>
@@ -855,7 +852,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                     </span>
                                                                 </div>
                                                                 <div className="relative h-4 bg-blue-900/30 rounded-full overflow-hidden">
-                                                                    <div 
+                                                                    <div
                                                                         className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-cyan-500'}`}
                                                                         style={{
                                                                             left: `${(task.es || 0) / calculatedResults.totalDuration * 100}%`,
@@ -863,7 +860,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                         }}
                                                                     ></div>
                                                                     {!task.critical && (
-                                                                        <div 
+                                                                        <div
                                                                             className="absolute h-full bg-gradient-to-r from-purple-500/30 to-violet-500/30 rounded-full border border-dashed border-purple-400/50"
                                                                             style={{
                                                                                 left: `${(task.ls || 0) / calculatedResults.totalDuration * 100}%`,
@@ -938,13 +935,16 @@ Powered by Advanced CPM Engine ⚙️
                                 <div className="flex gap-3 items-center">
                                     <div className="relative flex-1">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400/60" />
-                                        <Input
-                                            placeholder="Search by project name, ID, or status..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                            className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-white border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                placeholder="Search by project name, ID, or status..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                                className="pl-12 h-12 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 focus:border-cyan-400/50 rounded-2xl placeholder:text-blue-400/40 focus:ring-2 focus:ring-cyan-400/30 transition-all duration-300"
+                                            />
+                                            <VoiceButton onTranscript={(text) => setSearchTerm(text)} />
+                                        </div>
                                     </div>
                                     <Button
                                         onClick={handleSearch}
@@ -1082,7 +1082,6 @@ Powered by Advanced CPM Engine ⚙️
                     </TabsContent>
                 </Tabs>
 
-                {/* Bottom floating info */}
                 <div className="mt-8 text-center">
                     <p className="text-blue-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-blue-400/20">
                         Powered by Advanced CPM Engine ⚙️ | Civil Engineering Automation

@@ -1,29 +1,17 @@
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Button } from "@/components/ui/button";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Input } from "@/components/ui/input";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Label } from "@/components/ui/label";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Badge } from "@/components/ui/badge";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Calendar } from "@/components/ui/calendar";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { format } from "date-fns";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, DollarSign, Filter, BarChart3, FileText } from "lucide-react";
-import { VoiceButton } from "@/components/ui/VoiceButton";
 
 interface BookkeepingEntry {
     id: string;
@@ -256,28 +244,13 @@ const Bookkeeping = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950 text-white overflow-hidden relative">
-            {/* NORMAL CURSOR - No custom cursor effects */}
-            <style>{`
-        * {
-          cursor: default !important;
-        }
-        button, input, select, [role="button"] {
-          cursor: pointer !important;
-        }
-      `}</style>
-
-            {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {/* Grid overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-
-                {/* Floating particles */}
                 <div className="absolute top-20 left-20 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
                 <div className="absolute top-40 right-40 w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
                 <div className="absolute bottom-40 left-60 w-2 h-2 bg-green-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
             </div>
 
-            {/* Header */}
             <header className="relative backdrop-blur-xl bg-white/5 border-b border-emerald-400/20 shadow-2xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Button
@@ -304,7 +277,6 @@ const Bookkeeping = () => {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-emerald-400/20 rounded-2xl p-1">
@@ -331,7 +303,6 @@ const Bookkeeping = () => {
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* Entries Tab */}
                     <TabsContent value="entries">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
@@ -455,7 +426,6 @@ const Bookkeeping = () => {
                         </Card>
                     </TabsContent>
 
-                    {/* Add Entry Tab */}
                     <TabsContent value="add">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
@@ -471,7 +441,6 @@ const Bookkeeping = () => {
                             </CardHeader>
 
                             <CardContent className="space-y-6">
-                                {/* Date Selection */}
                                 <div className="space-y-3">
                                     <Label className="text-emerald-100 font-bold flex items-center gap-2">
                                         <CalendarIcon className="h-4 w-4 text-teal-400" />
@@ -499,21 +468,25 @@ const Bookkeeping = () => {
                                     </Popover>
                                 </div>
 
-                                {/* Description */}
                                 <div className="space-y-3">
                                     <Label htmlFor="description" className="text-emerald-100 font-bold">
                                         Description
                                     </Label>
-                                    <Input
-                                        id="description"
-                                        placeholder="Enter transaction description"
-                                        value={formData.description}
-                                        onChange={(e) => handleInputChange("description", e.target.value)}
-                                        className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="description"
+                                            placeholder="Enter transaction description"
+                                            value={formData.description}
+                                            onChange={(e) => handleInputChange("description", e.target.value)}
+                                            className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+                                        />
+                                        <VoiceButton
+                                            onTranscript={(text) => handleInputChange("description", text)}
+                                            onClear={() => handleInputChange("description", "")}
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* Type and Category */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-3">
                                         <Label className="text-emerald-100 font-bold">Type</Label>
@@ -572,22 +545,26 @@ const Bookkeeping = () => {
                                     </div>
                                 </div>
 
-                                {/* Amount */}
                                 <div className="space-y-3">
                                     <Label htmlFor="amount" className="text-emerald-100 font-bold">
                                         Amount (₹)
                                     </Label>
-                                    <Input
-                                        id="amount"
-                                        type="number"
-                                        placeholder="0.00"
-                                        value={formData.amount}
-                                        onChange={(e) => handleInputChange("amount", e.target.value)}
-                                        className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="amount"
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={formData.amount}
+                                            onChange={(e) => handleInputChange("amount", e.target.value)}
+                                            className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+                                        />
+                                        <VoiceButton
+                                            onTranscript={(text) => handleInputChange("amount", text)}
+                                            onClear={() => handleInputChange("amount", "")}
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* Add Button */}
                                 <Button
                                     onClick={addEntry}
                                     className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-emerald-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/70"
@@ -599,7 +576,6 @@ const Bookkeeping = () => {
                         </Card>
                     </TabsContent>
 
-                    {/* Analytics Tab */}
                     <TabsContent value="analytics">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
@@ -615,7 +591,6 @@ const Bookkeeping = () => {
                             </CardHeader>
 
                             <CardContent>
-                                {/* Summary Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                     <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl border border-green-400/30 rounded-2xl">
                                         <CardContent className="pt-6">
@@ -673,7 +648,6 @@ const Bookkeeping = () => {
                                     </Card>
                                 </div>
 
-                                {/* Category Breakdown */}
                                 <div className="space-y-4">
                                     <h3 className="text-xl font-bold text-emerald-100">Category Breakdown</h3>
                                     <div className="space-y-3">
@@ -723,7 +697,6 @@ const Bookkeeping = () => {
                     </TabsContent>
                 </Tabs>
 
-                {/* Bottom floating info */}
                 <div className="mt-8 text-center">
                     <p className="text-emerald-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-emerald-400/20">
                         Powered by Financial Automation Engine ✨
