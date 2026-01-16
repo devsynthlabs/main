@@ -65,22 +65,10 @@ interface Invoice {
   paymentMethod: string;
 }
 
-interface Trail {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
-}
-
 const AutomationInvoice = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Cursor effects state
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState<Trail[]>([]);
-  const [isHovering, setIsHovering] = useState(false);
+
   const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history'>('create');
 
   // State for invoice creation
@@ -195,37 +183,6 @@ const AutomationInvoice = () => {
     { name: "MS Straw Tumbler", rate: 210 }
   ];
 
-  // Mouse tracking with enhanced trail effect
-  useEffect(() => {
-    let trailId = 0;
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      
-      // Create multiple trail particles
-      const newTrails: Trail[] = [];
-      for (let i = 0; i < 3; i++) {
-        const trail: Trail = {
-          id: trailId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-          size: Math.random() * 8 + 4,
-          delay: i * 50,
-        };
-        newTrails.push(trail);
-      }
-      
-      setCursorTrail((prev) => [...prev, ...newTrails].slice(-30));
-      
-      // Remove trails after animation
-      setTimeout(() => {
-        setCursorTrail((prev) => prev.filter((t) => !newTrails.find(nt => nt.id === t.id)));
-      }, 800);
-    };
-    
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // Calculate item totals
   const calculateItemTotal = () => {
@@ -441,94 +398,8 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-      {/* Enhanced Custom Cursor */}
-      <div 
-        className="fixed pointer-events-none z-[99999]"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        <div className="relative">
-          {/* Outer rotating ring */}
-          <div className="absolute inset-0 w-10 h-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/60 rounded-full animate-spin" style={{ animationDuration: '3s' }}>
-              <div className="absolute top-0 left-1/2 w-1 h-1 bg-blue-400 rounded-full -translate-x-1/2"></div>
-            </div>
-          </div>
-          
-          {/* Middle pulsing ring */}
-          <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
-          </div>
-          
-          {/* Inner glow */}
-          <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-blue-400/30 rounded-full blur-md"></div>
-          
-          {/* Center dot */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${
-            isHovering ? 'bg-yellow-400 scale-150' : 'bg-blue-400'
-          }`}></div>
-          
-          {/* Crosshair lines */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent -translate-x-1/2"></div>
-            <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-blue-400 to-transparent -translate-y-1/2"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Cursor Trail Particles */}
-      {cursorTrail.map((trail) => (
-        <div
-          key={trail.id}
-          className="fixed pointer-events-none z-[99998] animate-[trail_0.8s_ease-out_forwards]"
-          style={{
-            left: trail.x,
-            top: trail.y,
-            width: trail.size,
-            height: trail.size,
-            animationDelay: `${trail.delay}ms`,
-          }}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-400 rounded-full blur-[2px] shadow-lg shadow-blue-400/50"></div>
-        </div>
-      ))}
-
-      <style>{`
-        @keyframes trail {
-          0% {
-            transform: scale(1) translateY(0);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(0) translateY(-40px);
-            opacity: 0;
-          }
-        }
-        
-        input, select, button, textarea, [role="button"], [role="tab"] {
-          cursor: auto !important;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Mouse-following gradient */}
-        <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/30 via-indigo-500/20 to-purple-500/30 rounded-full blur-3xl transition-all duration-1000"
-          style={{
-            top: mousePosition.y / 20 - 400,
-            left: mousePosition.x / 20 - 400,
-          }}
-        />
-        
         {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
         
@@ -544,8 +415,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <button
             onClick={handleBackToDashboard}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className="flex items-center text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1 mb-6 px-4 py-2 rounded-xl"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -554,8 +423,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
           <div className="flex items-center gap-4">
             <div 
               className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <Receipt className="h-8 w-8 text-blue-400" />
             </div>
@@ -575,8 +442,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
           <button
             onClick={() => setActiveTab('create')}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
               activeTab === 'create' 
                 ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
@@ -603,8 +468,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
           <button
             onClick={() => setActiveTab('ocr')}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
               activeTab === 'ocr' 
                 ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
@@ -631,8 +494,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
           <button
             onClick={() => setActiveTab('history')}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${
               activeTab === 'history' 
                 ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30' 
@@ -678,8 +539,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       type="text"
                       value={currentInvoice.invoiceNumber}
                       onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -691,8 +550,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       type="date"
                       value={currentInvoice.date}
                       onChange={(e) => setCurrentInvoice(prev => ({ ...prev, date: e.target.value }))}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -705,8 +562,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       value={currentInvoice.customerName}
                       onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerName: e.target.value }))}
                       placeholder="Enter customer name"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -719,8 +574,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       value={currentInvoice.customerEmail}
                       onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerEmail: e.target.value }))}
                       placeholder="customer@example.com"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -744,8 +597,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       <button
                         key={index}
                         onClick={() => loadPredefinedProduct(product.name, product.rate)}
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-4 py-2 bg-white/5 text-blue-100 rounded-xl text-sm hover:bg-blue-500/20 hover:text-white transition-all duration-300 border border-blue-400/20 hover:border-blue-400/40 backdrop-blur-xl"
                       >
                         {product.name} (${product.rate})
@@ -765,8 +616,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       value={newItem.product}
                       onChange={(e) => setNewItem(prev => ({ ...prev, product: e.target.value }))}
                       placeholder="Enter product name"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -780,8 +629,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       value={newItem.quantity}
                       onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
                       min="1"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -796,8 +643,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       onChange={(e) => setNewItem(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 }))}
                       min="0"
                       step="0.01"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                     />
                   </div>
@@ -811,24 +656,18 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                         value={newItem.sgst}
                         onChange={(e) => setNewItem(prev => ({ ...prev, sgst: parseFloat(e.target.value) || 0 }))}
                         placeholder="SGST"
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                       />
                       <input
                         value={newItem.cgst}
                         onChange={(e) => setNewItem(prev => ({ ...prev, cgst: parseFloat(e.target.value) || 0 }))}
                         placeholder="CGST"
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                       />
                       <input
                         value={newItem.igst}
                         onChange={(e) => setNewItem(prev => ({ ...prev, igst: parseFloat(e.target.value) || 0 }))}
                         placeholder="IGST"
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                       />
                     </div>
@@ -873,8 +712,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
                 <button
                   onClick={addItemToInvoice}
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                   className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3"
                 >
                   <Plus className="h-5 w-5" />
@@ -920,8 +757,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                             <td className="py-4 px-6">
                               <button
                                 onClick={() => removeItem(item.id)}
-                                onMouseEnter={() => setIsHovering(true)}
-                                onMouseLeave={() => setIsHovering(false)}
                                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all duration-300"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -980,8 +815,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       <select
                         value={currentInvoice.paymentMethod}
                         onChange={(e) => setCurrentInvoice(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10 appearance-none"
                       >
                         <option value="Bank Transfer">Bank Transfer</option>
@@ -1005,8 +838,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                         <button
                           key={status}
                           onClick={() => setCurrentInvoice(prev => ({ ...prev, status }))}
-                          onMouseEnter={() => setIsHovering(true)}
-                          onMouseLeave={() => setIsHovering(false)}
                           className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
                             currentInvoice.status === status 
                               ? 'bg-blue-500/30 text-white border border-blue-400/50 shadow-lg shadow-blue-500/30' 
@@ -1025,8 +856,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <button
                     onClick={saveInvoice}
                     disabled={currentInvoice.items.length === 0 || isSaving}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${
                       currentInvoice.items.length === 0 || isSaving
                         ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
@@ -1049,8 +878,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => exportInvoice('csv')}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-blue-500/20 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/40 flex items-center justify-center gap-2 backdrop-blur-xl"
                     >
                       <Download className="h-4 w-4" />
@@ -1059,8 +886,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     
                     <button
                       onClick={printInvoice}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="py-3 bg-white/5 text-indigo-300 rounded-xl font-medium hover:bg-indigo-500/20 transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/40 flex items-center justify-center gap-2 backdrop-blur-xl"
                     >
                       <Printer className="h-4 w-4" />
@@ -1070,8 +895,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   
                   <button
                     onClick={copyInvoiceDetails}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="w-full py-3 bg-white/5 text-blue-200 rounded-xl font-medium hover:bg-white/10 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/30 flex items-center justify-center gap-2 backdrop-blur-xl"
                   >
                     <Copy className="h-4 w-4" />
@@ -1142,8 +965,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="px-6 py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-blue-500/20 transition-all duration-300 border border-blue-400/30 hover:border-blue-400/50 backdrop-blur-xl"
                   >
                     {uploadedImage ? "Change Image" : "Browse Files"}
@@ -1214,16 +1035,12 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                             alert("Auto-filled VC Pillow from OCR text!");
                           }
                         }}
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-blue-500/30"
                       >
                         Auto-fill Fields
                       </button>
                       <button
                         onClick={() => navigator.clipboard.writeText(ocrText)}
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         className="px-6 py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-white/10 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/30"
                       >
                         Copy Text
@@ -1263,8 +1080,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       placeholder="Search invoices..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                       className="pl-12 pr-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10 w-64"
                     />
                   </div>
@@ -1277,8 +1092,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <div 
                       key={invoice.id} 
                       className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-2xl p-6 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 group"
-                      onMouseEnter={() => setIsHovering(true)}
-                      onMouseLeave={() => setIsHovering(false)}
                     >
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-4">
@@ -1339,8 +1152,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                               setCurrentInvoice(invoice);
                               setActiveTab('create');
                             }}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                             className="px-6 py-3 bg-blue-500/20 text-blue-300 rounded-xl font-medium hover:bg-blue-500/30 transition-all duration-300 border border-blue-400/30 hover:border-blue-400/50"
                           >
                             View
@@ -1359,8 +1170,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                               a.download = `${invoice.invoiceNumber}.csv`;
                               a.click();
                             }}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                             className="px-6 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl font-medium hover:bg-indigo-500/30 transition-all duration-300 border border-indigo-400/30 hover:border-indigo-400/50 flex items-center gap-2"
                           >
                             <Download className="h-4 w-4" />

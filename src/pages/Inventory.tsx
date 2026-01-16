@@ -45,7 +45,6 @@ const Inventory = () => {
         category: "General"
     });
 
-    const [isHovering, setIsHovering] = useState(false);
 
     // Fetch Items
     useEffect(() => {

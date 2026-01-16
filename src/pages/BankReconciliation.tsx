@@ -61,7 +61,6 @@ interface ReconciliationSummary {
 const BankReconciliation = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("reconcile");
-    const [isHovering, setIsHovering] = useState(false);
     const [isReconciling, setIsReconciling] = useState(false);
 
     // Sample Data State
@@ -361,8 +360,6 @@ Match Score: ${result.matchScore}%
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Button
                         variant="ghost"
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         onClick={handleBackToDashboard}
                         className="mb-4 text-cyan-200 hover:text-cyan-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
                     >
@@ -372,8 +369,6 @@ Match Score: ${result.matchScore}%
                     <div className="flex items-center gap-4">
                         <div
                             className="p-3 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 rounded-2xl backdrop-blur-xl border border-cyan-400/30 hover:rotate-12 transition-transform duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <BanknoteIcon className="h-8 w-8 text-cyan-400" />
                         </div>
@@ -394,8 +389,6 @@ Match Score: ${result.matchScore}%
                         <TabsTrigger
                             value="reconcile"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <RefreshCw className="h-4 w-4" />
                             Reconcile
@@ -403,8 +396,6 @@ Match Score: ${result.matchScore}%
                         <TabsTrigger
                             value="results"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <FileText className="h-4 w-4" />
                             Results
@@ -412,8 +403,6 @@ Match Score: ${result.matchScore}%
                         <TabsTrigger
                             value="add"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <Upload className="h-4 w-4" />
                             Add Entries
@@ -424,8 +413,6 @@ Match Score: ${result.matchScore}%
                     <TabsContent value="reconcile">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <CardHeader>
                                 <CardTitle className="text-2xl font-bold text-cyan-100 flex items-center gap-2">
@@ -574,8 +561,6 @@ Match Score: ${result.matchScore}%
                     <TabsContent value="results">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <CardHeader>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

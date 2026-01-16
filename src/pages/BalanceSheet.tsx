@@ -138,86 +138,6 @@ Powered by Advanced Financial Analytics Engine ✨
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-      {/* Advanced Custom Cursor System */}
-      <div
-        className="fixed pointer-events-none z-[99999]"
-        style={{
-          left: mousePosition.x,
-          top: mousePosition.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {/* Main cursor container */}
-        <div className="relative">
-          {/* 1. Rotating Outer Ring with marker dot */}
-          <div className="absolute inset-0 w-10 h-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-cyan-400/60 rounded-full animate-spin" style={{ animationDuration: '3s' }}>
-              <div className="absolute top-0 left-1/2 w-1 h-1 bg-cyan-400 rounded-full -translate-x-1/2"></div>
-            </div>
-          </div>
-
-          {/* 2. Middle Pulsing Ring */}
-          <div className="absolute inset-0 w-8 h-8 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-full h-full border-2 border-blue-400/80 rounded-full animate-pulse"></div>
-          </div>
-
-          {/* 3. Inner Glow */}
-          <div className="absolute inset-0 w-6 h-6 -translate-x-1/2 -translate-y-1/2 bg-cyan-400/30 rounded-full blur-md"></div>
-
-          {/* 4. Center Dot - Main cursor indicator */}
-          <div className={`absolute inset-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200 ${isHovering ? 'bg-yellow-400 scale-150 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : 'bg-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
-            }`}></div>
-
-          {/* 5. Crosshair Lines */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            {/* Horizontal line */}
-            <div className="absolute w-16 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent -translate-x-1/2"></div>
-            {/* Vertical line */}
-            <div className="absolute h-16 w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent -translate-y-1/2"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Sparkle Particle Trail System */}
-      {cursorTrail.map((trail) => (
-        <div
-          key={trail.id}
-          className="fixed pointer-events-none z-[99998] animate-[sparkleTrail_0.8s_ease-out_forwards]"
-          style={{
-            left: trail.x,
-            top: trail.y,
-            width: trail.size,
-            height: trail.size,
-            animationDelay: `${trail.delay}ms`,
-          }}
-        >
-          {/* Sparkle particle with star shape */}
-          <div className="relative w-full h-full">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-400 rounded-full blur-[2px] shadow-lg shadow-cyan-400/50"></div>
-            {/* Star points */}
-            <div className="absolute top-0 left-1/2 w-[2px] h-full bg-cyan-400/60 -translate-x-1/2"></div>
-            <div className="absolute top-1/2 left-0 w-full h-[2px] bg-cyan-400/60 -translate-y-1/2"></div>
-          </div>
-        </div>
-      ))}
-
-      <style>{`
-        @keyframes sparkleTrail {
-          0% {
-            transform: scale(1) translateY(0) rotate(0deg);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(0) translateY(-40px) rotate(180deg);
-            opacity: 0;
-          }
-        }
-        
-        * {
-          cursor: none !important;
-        }
-      `}</style>
-
       {/* Animated Background Effects */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
 
@@ -241,8 +161,6 @@ Powered by Advanced Financial Analytics Engine ✨
           <Button
             variant="ghost"
             onClick={handleBackToDashboard}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
             className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 transition-all duration-300 group backdrop-blur-xl"
           >
             <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
@@ -251,8 +169,6 @@ Powered by Advanced Financial Analytics Engine ✨
           <div className="flex items-center gap-4">
             <div
               className="p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 shadow-2xl shadow-blue-500/40"
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <Scale className="h-8 w-8 text-blue-300" />
             </div>
@@ -271,8 +187,6 @@ Powered by Advanced Financial Analytics Engine ✨
           {/* Input Card */}
           <Card
             className="backdrop-blur-2xl bg-white/10 border border-blue-400/30 shadow-2xl shadow-blue-500/40 rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -302,8 +216,6 @@ Powered by Advanced Financial Analytics Engine ✨
                     placeholder="e.g., 150000.00"
                     value={formData.currentAssets}
                     onChange={(e) => handleInputChange("currentAssets", e.target.value)}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
                   />
                 </div>
@@ -315,8 +227,6 @@ Powered by Advanced Financial Analytics Engine ✨
                     placeholder="e.g., 450000.00"
                     value={formData.nonCurrentAssets}
                     onChange={(e) => handleInputChange("nonCurrentAssets", e.target.value)}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
                   />
                 </div>
@@ -338,8 +248,6 @@ Powered by Advanced Financial Analytics Engine ✨
                     placeholder="e.g., 60000.00"
                     value={formData.currentLiabilities}
                     onChange={(e) => handleInputChange("currentLiabilities", e.target.value)}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
                   />
                 </div>
@@ -351,8 +259,6 @@ Powered by Advanced Financial Analytics Engine ✨
                     placeholder="e.g., 140000.00"
                     value={formData.nonCurrentLiabilities}
                     onChange={(e) => handleInputChange("nonCurrentLiabilities", e.target.value)}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
                   />
                 </div>
@@ -374,8 +280,6 @@ Powered by Advanced Financial Analytics Engine ✨
                     placeholder="e.g., 400000.00"
                     value={formData.equity}
                     onChange={(e) => handleInputChange("equity", e.target.value)}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
                   />
                 </div>
@@ -383,8 +287,6 @@ Powered by Advanced Financial Analytics Engine ✨
 
               <Button
                 onClick={generateBalanceSheet}
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
               >
                 <Calculator className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
@@ -397,8 +299,6 @@ Powered by Advanced Financial Analytics Engine ✨
           {balanceSheet && (
             <Card
               className={`backdrop-blur-2xl ${balanceSheet.balanced ? 'bg-slate-800/90 border-emerald-400/60 shadow-emerald-500/60' : 'bg-slate-800/90 border-red-400/60 shadow-red-500/60'} border-2 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500 animate-in fade-in slide-in-from-right`}
-              onMouseEnter={() => setIsHovering(true)}
-              onMouseLeave={() => setIsHovering(false)}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${balanceSheet.balanced ? 'from-emerald-500/10 via-transparent to-cyan-500/10' : 'from-red-500/10 via-transparent to-orange-500/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
@@ -482,8 +382,6 @@ Powered by Advanced Financial Analytics Engine ✨
 
                 <Button
                   onClick={downloadReport}
-                  onMouseEnter={() => setIsHovering(true)}
-                  onMouseLeave={() => setIsHovering(false)}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
                 >
                   <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform" />

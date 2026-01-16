@@ -46,7 +46,6 @@ const Bookkeeping = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("entries");
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [isHovering, setIsHovering] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -283,8 +282,6 @@ const Bookkeeping = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Button
                         variant="ghost"
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
                         onClick={handleBackToDashboard}
                         className="mb-4 text-emerald-200 hover:text-emerald-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
                     >
@@ -294,8 +291,6 @@ const Bookkeeping = () => {
                     <div className="flex items-center gap-4">
                         <div
                             className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl backdrop-blur-xl border border-emerald-400/30 hover:rotate-12 transition-transform duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <DollarSign className="h-8 w-8 text-emerald-400" />
                         </div>
@@ -316,8 +311,6 @@ const Bookkeeping = () => {
                         <TabsTrigger
                             value="entries"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <FileText className="h-4 w-4" />
                             Entries
@@ -325,8 +318,6 @@ const Bookkeeping = () => {
                         <TabsTrigger
                             value="add"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <Plus className="h-4 w-4" />
                             Add Entry
@@ -334,8 +325,6 @@ const Bookkeeping = () => {
                         <TabsTrigger
                             value="analytics"
                             className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <BarChart3 className="h-4 w-4" />
                             Analytics
@@ -346,8 +335,6 @@ const Bookkeeping = () => {
                     <TabsContent value="entries">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <CardHeader>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -474,8 +461,6 @@ const Bookkeeping = () => {
                     <TabsContent value="add">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <CardHeader>
                                 <CardTitle className="text-2xl font-bold text-emerald-100 flex items-center gap-2">
@@ -620,8 +605,6 @@ const Bookkeeping = () => {
                     <TabsContent value="analytics">
                         <Card
                             className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
                         >
                             <CardHeader>
                                 <CardTitle className="text-2xl font-bold text-emerald-100 flex items-center gap-2">
