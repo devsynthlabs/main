@@ -22,6 +22,7 @@ import Inventory from "./pages/Inventory";
 import BankReconciliation from "./pages/BankReconciliation";
 import FraudDetection from "./pages/FraudDetection";
 import AutomationInvoice from "./pages/AutomationInvoice";
+import PublicInvoiceView from "./pages/PublicInvoiceView";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/bank-reconciliation" element={<BankReconciliation />} />
           <Route path="/fraud-detection" element={<FraudDetection />} />
           <Route path="/invoice" element={<AutomationInvoice />} />
+          <Route path="/invoice/view/:id" element={<PublicInvoiceView />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

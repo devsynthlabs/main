@@ -12,6 +12,7 @@ import {
   Calculator,
   Eye,
   Copy,
+  MessageCircle,
   CheckCircle,
   Camera,
   Loader2,
@@ -35,7 +36,7 @@ import {
 } from "lucide-react";
 
 // Mock API URL - Replace with your actual backend URL
-const API_BASE_URL = "http://localhost:5000/api/invoices";
+const API_BASE_URL = "http://localhost:5001/api/invoice";
 
 interface InvoiceItem {
   id: string;
@@ -256,44 +257,86 @@ const AutomationInvoice = () => {
   };
 
   // Save invoice
-  const saveInvoice = () => {
+  const saveInvoice = async () => {
     if (currentInvoice.items.length === 0) {
-      alert("Please add items to the invoice");
+      alert("Please add at least one item to the invoice.");
+      return;
+    }
+
+    if (!currentInvoice.customerName?.trim() || !currentInvoice.customerEmail?.trim()) {
+      alert("Please enter both customer name and email address.");
       return;
     }
 
     setIsSaving(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const newInvoice = {
-        ...currentInvoice,
-        id: `INV-${Date.now()}`,
-        invoiceNumber: `INV-${new Date().getFullYear()}-${(invoiceHistory.length + 1).toString().padStart(3, '0')}`,
-        date: new Date().toISOString().split('T')[0],
-        status: 'sent' as const
+    try {
+      const invoiceDateStr = currentInvoice.date || new Date().toISOString().split('T')[0];
+      const dateObj = new Date(invoiceDateStr);
+      const dueDateObj = new Date(dateObj.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      // Validate totals
+      if (isNaN(currentInvoice.grandTotal) || currentInvoice.grandTotal <= 0) {
+        throw new Error("Invoice total must be greater than zero. Please add items.");
+      }
+
+      // Map frontend fields to backend schema
+      const backendInvoiceData = {
+        invoiceNumber: currentInvoice.invoiceNumber,
+        invoiceDate: invoiceDateStr,
+        dueDate: dueDateObj.toISOString(),
+        customerName: currentInvoice.customerName.trim(),
+        customerEmail: currentInvoice.customerEmail.trim(),
+        businessName: "Saaiss Software Solution",
+        businessEmail: "info@saaiss.in",
+        items: currentInvoice.items.map(item => ({
+          productName: item.product,
+          quantity: item.quantity,
+          unitPrice: item.rate,
+          total: item.total
+        })),
+        subtotal: currentInvoice.subtotal,
+        taxAmount: currentInvoice.totalTax,
+        grandTotal: currentInvoice.grandTotal,
+        paymentMethod: currentInvoice.paymentMethod.toLowerCase().replace(" ", "_"),
+        status: 'sent',
+        balanceDue: currentInvoice.grandTotal
       };
 
-      setInvoiceHistory(prev => [newInvoice, ...prev]);
+      console.log("📤 Sending Invoice to Backend:", backendInvoiceData);
 
-      // Reset current invoice
-      setCurrentInvoice({
-        id: `INV-${Date.now() + 1}`,
-        invoiceNumber: `INV-${new Date().getFullYear()}-${(invoiceHistory.length + 2).toString().padStart(3, '0')}`,
-        date: new Date().toISOString().split('T')[0],
-        customerName: "",
-        customerEmail: "",
-        items: [],
-        subtotal: 0,
-        totalTax: 0,
-        grandTotal: 0,
-        status: 'draft',
-        paymentMethod: "Bank Transfer"
+      const response = await fetch(`${API_BASE_URL}/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(backendInvoiceData),
       });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        const savedInvoice = {
+          ...currentInvoice,
+          id: data.invoiceId,
+          status: 'sent' as const
+        };
+
+        setInvoiceHistory(prev => [savedInvoice, ...prev]);
+        setCurrentInvoice(prev => ({ ...prev, id: data.invoiceId }));
+
+        alert("Invoice saved successfully! You can now share it as a link.");
+      } else {
+        // If there are validation errors, show them
+        const errorMsg = data.errors ? `${data.message}: ${data.errors.join(", ")}` : data.message;
+        throw new Error(errorMsg || "Failed to save invoice");
+      }
+    } catch (error: any) {
+      console.error("Save Error:", error);
+      alert(`Error saving invoice: ${error.message}`);
+    } finally {
       setIsSaving(false);
-      alert("Invoice saved successfully!");
-    }, 1000);
+    }
   };
 
   // Handle file upload for OCR
@@ -369,6 +412,33 @@ Payment Method: ${currentInvoice.paymentMethod}`;
     navigator.clipboard.writeText(details)
       .then(() => alert("Invoice details copied to clipboard!"))
       .catch(err => console.error("Failed to copy:", err));
+  };
+
+  // Share on WhatsApp
+  const shareOnWhatsApp = () => {
+    if (!currentInvoice.id || currentInvoice.id.startsWith('INV-')) {
+      alert("Please save the invoice first to generate a shareable link!");
+      return;
+    }
+
+    const host = window.location.origin;
+    const shareUrl = `${host}/invoice/view/${currentInvoice.id}`;
+
+    const message = [
+      `📑 *NEW INVOICE RECEIVED*`,
+      `──────────────────────────`,
+      `*Invoice No:* ${currentInvoice.invoiceNumber}`,
+      `*Customer:* ${currentInvoice.customerName}`,
+      `*Amount:* $${currentInvoice.grandTotal.toFixed(2)}`,
+      `──────────────────────────`,
+      `🔗 *View Full Invoice Online:*`,
+      shareUrl,
+      `──────────────────────────`,
+      `_Generated via Invoice Automation System_`
+    ].join('\n');
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
   // Load predefined product
@@ -935,6 +1005,14 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   >
                     <Copy className="h-4 w-4" />
                     Copy Details
+                  </button>
+
+                  <button
+                    onClick={shareOnWhatsApp}
+                    className="w-full py-3 bg-[#25D366]/10 text-[#25D366] rounded-xl font-bold hover:bg-[#25D366]/20 transition-all duration-300 border border-[#25D366]/30 hover:border-[#25D366]/50 flex items-center justify-center gap-2 backdrop-blur-xl shadow-lg shadow-[#25D366]/10"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    Share on WhatsApp
                   </button>
                 </div>
               </div>
