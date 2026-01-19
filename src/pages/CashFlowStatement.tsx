@@ -287,7 +287,7 @@ ${dataToUse.status === 'positive' ?
 
 ────────────────────────────────────────────────────────────────────────
 Generated: ${new Date().toLocaleString('en-IN')}
-Powered by Financial Automation Platform • www.finance-automation.com
+Powered by Sri Andal Financial Automation Private Limited
     `.trim();
 
     const blob = new Blob([slipContent], { type: 'text/plain;charset=utf-8' });
