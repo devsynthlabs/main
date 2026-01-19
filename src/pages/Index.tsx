@@ -23,7 +23,7 @@ const Index = () => {
         if (data.features) setFeatures(data.features);
 
         if (data.stats) {
-          const mappedStats = data.stats.map((stat: unknown, index: number) => {
+          const mappedStats = data.stats.map((stat: any, index: number) => {
             const icons = [<TrendingUp key={1} className="w-8 h-8" />, <Users key={2} className="w-8 h-8" />, <BarChart3 key={3} className="w-8 h-8" />];
             return {
               icon: icons[index % icons.length],
@@ -135,8 +135,9 @@ const Index = () => {
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                Financial Automation
+              <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)] leading-tight">
+                Sri Andal<br />
+                <span className="text-sm font-bold opacity-80">Financial Automation Private Limited</span>
               </h1>
               <p className="text-xs text-blue-300/70 font-bold">Powered by AI</p>
             </div>

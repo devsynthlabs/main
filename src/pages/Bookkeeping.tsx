@@ -34,6 +34,10 @@ const Bookkeeping = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("entries");
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+        from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Start of month
+        to: new Date()
+    });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -122,8 +126,6 @@ const Bookkeeping = () => {
     // Filter State
     const [filterType, setFilterType] = useState<string>("all");
     const [filterCategory, setFilterCategory] = useState<string>("all");
-    const [filteredEntries, setFilteredEntries] = useState<BookkeepingEntry[]>([]);
-
     // Financial Summary
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary>({
         totalIncome: 0,
@@ -132,29 +134,19 @@ const Bookkeeping = () => {
         entryCount: 0
     });
 
-    // Calculate financial summary
-    useEffect(() => {
-        const totalIncome = entries
-            .filter(entry => entry.type === 'Income')
-            .reduce((sum, entry) => sum + entry.amount, 0);
-
-        const totalExpenses = entries
-            .filter(entry => entry.type === 'Expenses')
-            .reduce((sum, entry) => sum + entry.amount, 0);
-
-        const netBalance = totalIncome - totalExpenses;
-
-        setFinancialSummary({
-            totalIncome,
-            totalExpenses,
-            netBalance,
-            entryCount: entries.length
-        });
-    }, [entries]);
+    const [filteredEntries, setFilteredEntries] = useState<BookkeepingEntry[]>([]);
 
     // Filter entries
     useEffect(() => {
         let filtered = entries;
+
+        // Date Range Filter
+        if (dateRange.from && dateRange.to) {
+            filtered = filtered.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= dateRange.from! && entryDate <= dateRange.to!;
+            });
+        }
 
         if (filterType !== "all") {
             filtered = filtered.filter(entry => entry.type === filterType);
@@ -165,7 +157,27 @@ const Bookkeeping = () => {
         }
 
         setFilteredEntries(filtered);
-    }, [entries, filterType, filterCategory]);
+    }, [entries, filterType, filterCategory, dateRange]);
+
+    // Financial Summary (based on filtered entries)
+    useEffect(() => {
+        const totalIncome = filteredEntries
+            .filter(entry => entry.type === 'Income')
+            .reduce((sum, entry) => sum + entry.amount, 0);
+
+        const totalExpenses = filteredEntries
+            .filter(entry => entry.type === 'Expenses')
+            .reduce((sum, entry) => sum + entry.amount, 0);
+
+        const netBalance = totalIncome - totalExpenses;
+
+        setFinancialSummary({
+            totalIncome,
+            totalExpenses,
+            netBalance,
+            entryCount: filteredEntries.length
+        });
+    }, [filteredEntries]);
 
     // Get unique categories
     const categories = Array.from(new Set(entries.map(entry => entry.category)));
@@ -268,8 +280,9 @@ const Bookkeeping = () => {
                             <DollarSign className="h-8 w-8 text-emerald-400" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(20,184,166,0.8)]">
-                                Office Bookkeeping
+                            <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(20,184,166,0.8)] leading-tight">
+                                Sri Andal<br />
+                                <span className="text-xl opacity-80">Financial Automation Private Limited</span>
                             </h1>
                             <p className="text-emerald-200/80 font-medium mt-1">Track income and expenses with financial insights</p>
                         </div>
@@ -278,6 +291,45 @@ const Bookkeeping = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-2xl bg-white/5 border border-emerald-400/20 rounded-3xl p-6 shadow-2xl">
+                    <div>
+                        <h2 className="text-xl font-bold text-emerald-100 mb-1">Financial Period</h2>
+                        <p className="text-emerald-300/60 text-sm">Select a date range to filter transactions and analytics</p>
+                    </div>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="w-full md:w-[300px] justify-start text-left font-normal bg-white/10 border-emerald-400/30 text-emerald-100 hover:bg-white/20 h-12 rounded-xl"
+                            >
+                                <CalendarIcon className="mr-2 h-5 w-5 text-teal-400" />
+                                {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <span className="font-semibold text-lg">
+                                            {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")}
+                                        </span>
+                                    ) : (
+                                        <span className="font-semibold text-lg">{format(dateRange.from, "MMM dd, yyyy")}</span>
+                                    )
+                                ) : (
+                                    <span className="text-lg">Pick a date range</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-slate-900 border-emerald-400/30" align="end">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={{ from: dateRange.from, to: dateRange.to }}
+                                onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
+                                numberOfMonths={1}
+                                className="bg-slate-900 text-emerald-100"
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-emerald-400/20 rounded-2xl p-1">
                         <TabsTrigger
@@ -598,10 +650,17 @@ const Bookkeeping = () => {
                                                 <div className="p-2 bg-green-500/30 rounded-lg">
                                                     <TrendingUp className="h-5 w-5 text-green-300" />
                                                 </div>
-                                                <span className="text-green-300 text-sm font-medium">Total Income</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-green-300 text-sm font-medium">Total Income</span>
+                                                    <span className="text-green-400/80 text-xs font-bold">
+                                                        {financialSummary.totalIncome + financialSummary.totalExpenses > 0
+                                                            ? Math.round((financialSummary.totalIncome / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
+                                                            : 0}% of turnover
+                                                    </span>
+                                                </div>
                                             </div>
                                             <p className="text-3xl font-bold text-green-100">₹{financialSummary.totalIncome.toLocaleString()}</p>
-                                            <p className="text-green-300/60 text-sm mt-1">From {entries.filter(e => e.type === 'Income').length} income entries</p>
+                                            <p className="text-green-300/60 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Income').length} income entries</p>
                                         </CardContent>
                                     </Card>
 
@@ -611,10 +670,17 @@ const Bookkeeping = () => {
                                                 <div className="p-2 bg-red-500/30 rounded-lg">
                                                     <TrendingDown className="h-5 w-5 text-red-300" />
                                                 </div>
-                                                <span className="text-red-300 text-sm font-medium">Total Expenses</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-red-300 text-sm font-medium">Total Expenses</span>
+                                                    <span className="text-red-400/80 text-xs font-bold">
+                                                        {financialSummary.totalIncome + financialSummary.totalExpenses > 0
+                                                            ? Math.round((financialSummary.totalExpenses / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
+                                                            : 0}% of turnover
+                                                    </span>
+                                                </div>
                                             </div>
                                             <p className="text-3xl font-bold text-red-100">₹{financialSummary.totalExpenses.toLocaleString()}</p>
-                                            <p className="text-red-300/60 text-sm mt-1">From {entries.filter(e => e.type === 'Expenses').length} expense entries</p>
+                                            <p className="text-red-300/60 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Expenses').length} expense entries</p>
                                         </CardContent>
                                     </Card>
 
@@ -642,7 +708,11 @@ const Bookkeeping = () => {
                                             </p>
                                             <p className={`text-sm mt-1 ${financialSummary.netBalance >= 0 ? 'text-teal-300/60' : 'text-orange-300/60'
                                                 }`}>
-                                                {financialSummary.netBalance >= 0 ? 'Profit' : 'Loss'}
+                                                {financialSummary.netBalance >= 0 ? 'Profit Margin' : 'Loss Margin'}: {
+                                                    financialSummary.totalIncome > 0
+                                                        ? Math.round((financialSummary.netBalance / financialSummary.totalIncome) * 100)
+                                                        : 0
+                                                }%
                                             </p>
                                         </CardContent>
                                     </Card>
@@ -652,7 +722,7 @@ const Bookkeeping = () => {
                                     <h3 className="text-xl font-bold text-emerald-100">Category Breakdown</h3>
                                     <div className="space-y-3">
                                         {categories.map(category => {
-                                            const categoryEntries = entries.filter(e => e.category === category);
+                                            const categoryEntries = filteredEntries.filter(e => e.category === category);
                                             const categoryIncome = categoryEntries
                                                 .filter(e => e.type === 'Income')
                                                 .reduce((sum, e) => sum + e.amount, 0);
@@ -660,6 +730,8 @@ const Bookkeeping = () => {
                                                 .filter(e => e.type === 'Expenses')
                                                 .reduce((sum, e) => sum + e.amount, 0);
                                             const total = categoryIncome + categoryExpenses;
+
+                                            if (categoryEntries.length === 0) return null;
 
                                             return (
                                                 <div key={category} className="p-4 backdrop-blur-xl bg-white/5 border border-emerald-400/10 rounded-2xl">
@@ -699,7 +771,7 @@ const Bookkeeping = () => {
 
                 <div className="mt-8 text-center">
                     <p className="text-emerald-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-emerald-400/20">
-                        Powered by Financial Automation Engine ✨
+                        Powered by Sri Andal Financial Automation Private Limited ✨
                     </p>
                 </div>
             </main>

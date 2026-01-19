@@ -741,42 +741,24 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                           value={newItem.sgst}
                           onChange={(e) => setNewItem(prev => ({ ...prev, sgst: parseFloat(e.target.value) || 0 }))}
                           placeholder="SGST"
-                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                         />
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
-                          <VoiceButton
-                            onTranscript={(text) => setNewItem(prev => ({ ...prev, sgst: parseFloat(text) || prev.sgst }))}
-                            onClear={() => setNewItem(prev => ({ ...prev, sgst: 0 }))}
-                          />
-                        </div>
                       </div>
                       <div className="relative group/voice">
                         <input
                           value={newItem.cgst}
                           onChange={(e) => setNewItem(prev => ({ ...prev, cgst: parseFloat(e.target.value) || 0 }))}
                           placeholder="CGST"
-                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                         />
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
-                          <VoiceButton
-                            onTranscript={(text) => setNewItem(prev => ({ ...prev, cgst: parseFloat(text) || prev.cgst }))}
-                            onClear={() => setNewItem(prev => ({ ...prev, cgst: 0 }))}
-                          />
-                        </div>
                       </div>
                       <div className="relative group/voice">
                         <input
                           value={newItem.igst}
                           onChange={(e) => setNewItem(prev => ({ ...prev, igst: parseFloat(e.target.value) || 0 }))}
                           placeholder="IGST"
-                          className="w-full pl-3 pr-10 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
                         />
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 scale-75">
-                          <VoiceButton
-                            onTranscript={(text) => setNewItem(prev => ({ ...prev, igst: parseFloat(text) || prev.igst }))}
-                            onClear={() => setNewItem(prev => ({ ...prev, igst: 0 }))}
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
