@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, FileText, Plus, Trash2, TrendingUp, TrendingDown, Minus, Download, Sparkles, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
+import { API_BASE_URL } from "@/lib/api";
 interface CashFlowItem {
   description: string;
   amount: string;
@@ -59,7 +59,7 @@ const CashFlowStatement = () => {
   const fetchStatements = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("http://localhost:5000/api/cashflow-statement/all", {
+      const response = await fetch(`${API_BASE_URL}/cashflow-statement/all`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -168,7 +168,7 @@ const CashFlowStatement = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch("http://localhost:5000/api/cashflow-statement/create", {
+      const response = await fetch(`${API_BASE_URL}/cashflow-statement/create`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

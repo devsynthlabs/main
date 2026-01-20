@@ -34,9 +34,7 @@ import {
   Shield,
   Banknote
 } from "lucide-react";
-
-// Mock API URL - Replace with your actual backend URL
-const API_BASE_URL = "http://localhost:5001/api/invoice";
+import { API_BASE_URL } from "@/lib/api";
 
 interface InvoiceItem {
   id: string;

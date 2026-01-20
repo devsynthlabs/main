@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2, Package, Search, Archive } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface InventoryItem {
     _id?: string;
@@ -44,7 +45,7 @@ const Inventory = () => {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/inventory/all');
+            const res = await fetch(`${API_BASE_URL}/inventory/all`);
             if (res.ok) {
                 const data = await res.json();
                 setItems(data);
@@ -67,7 +68,7 @@ const Inventory = () => {
         }
 
         try {
-            const res = await fetch('http://localhost:5000/api/inventory/add', {
+            const res = await fetch(`${API_BASE_URL}/inventory/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -101,7 +102,7 @@ const Inventory = () => {
         if (!window.confirm("Are you sure you want to delete this item?")) return;
 
         try {
-            const res = await fetch(`http://localhost:5000/api/inventory/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/inventory/${id}`, {
                 method: 'DELETE'
             });
 
