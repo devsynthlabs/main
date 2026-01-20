@@ -31,6 +31,10 @@ export const API_ENDPOINTS = {
   TAX: `${API_BASE_URL}/tax`,
   BALANCE: `${API_BASE_URL}/balance`,
   PROFIT_LOSS: `${API_BASE_URL}/profitloss`,
+
+  // Invoice endpoint
+  INVOICE: `${API_BASE_URL}/invoice`,
+  INVOICE_SUMMARY: `${API_BASE_URL}/invoice-summary`,
 } as const;
 
 // Helper function for making API requests

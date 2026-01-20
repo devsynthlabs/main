@@ -34,7 +34,7 @@ import {
   Shield,
   Banknote
 } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/api";
 
 interface InvoiceItem {
   id: string;
@@ -303,7 +303,7 @@ const AutomationInvoice = () => {
 
       console.log("📤 Sending Invoice to Backend:", backendInvoiceData);
 
-      const response = await fetch(`${API_BASE_URL}/create`, {
+      const response = await fetch(`${API_ENDPOINTS.INVOICE}/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

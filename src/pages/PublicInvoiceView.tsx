@@ -16,6 +16,7 @@ import {
     CreditCard,
     ChevronRight
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface InvoiceItem {
     productName: string;
@@ -51,7 +52,7 @@ const PublicInvoiceView = () => {
     useEffect(() => {
         const fetchInvoice = async () => {
             try {
-                const response = await fetch(`http://localhost:5001/api/invoice/${id}`);
+                const response = await fetch(`${API_BASE_URL}/invoice/${id}`);
                 if (!response.ok) {
                     throw new Error("Invoice not found or could not be loaded");
                 }
