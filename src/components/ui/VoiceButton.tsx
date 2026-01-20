@@ -35,6 +35,9 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({
             onTranscript(text);
         },
         onError: (err) => {
+            // Ignore benign "aborted" error which happens when stopping quickly
+            if (err.includes('aborted')) return;
+
             toast({
                 variant: 'destructive',
                 title: 'Voice Input Error',
@@ -43,11 +46,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({
         },
     });
 
-    useEffect(() => {
-        if (transcript) {
-            onTranscript(transcript);
-        }
-    }, [transcript, onTranscript]);
+
 
     const handleStartListening = (e: React.MouseEvent | React.TouchEvent) => {
         e.preventDefault();

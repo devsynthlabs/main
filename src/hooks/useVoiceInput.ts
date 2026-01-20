@@ -31,6 +31,14 @@ export const useVoiceInput = ({
     const [isSupported, setIsSupported] = useState(false);
 
     const recognitionRef = useRef<any>(null);
+    const onResultRef = useRef(onResult);
+    const onErrorRef = useRef(onError);
+
+    // Update refs when callbacks change
+    useEffect(() => {
+        onResultRef.current = onResult;
+        onErrorRef.current = onError;
+    }, [onResult, onError]);
 
     // Check browser support
     useEffect(() => {
@@ -62,8 +70,8 @@ export const useVoiceInput = ({
                 const fullTranscript = finalTranscript || interimTranscript;
                 setTranscript(fullTranscript.trim());
 
-                if (finalTranscript && onResult) {
-                    onResult(finalTranscript.trim());
+                if (finalTranscript && onResultRef.current) {
+                    onResultRef.current(finalTranscript.trim());
                 }
             };
 
@@ -72,8 +80,8 @@ export const useVoiceInput = ({
                 setError(errorMessage);
                 setIsListening(false);
 
-                if (onError) {
-                    onError(errorMessage);
+                if (onErrorRef.current) {
+                    onErrorRef.current(errorMessage);
                 }
             };
 
@@ -87,7 +95,7 @@ export const useVoiceInput = ({
                 recognitionRef.current.stop();
             }
         };
-    }, [language, continuous, interimResults, onResult, onError]);
+    }, [language, continuous, interimResults]);
 
     const startListening = useCallback(() => {
         if (!isSupported) {

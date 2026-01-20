@@ -239,7 +239,7 @@ const Dashboard = () => {
             <div>
               <h1 className="text-2xl font-black text-white drop-shadow-2xl tracking-tight leading-tight">
                 Sri Andal<br />
-                <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Sri Andal Financial Automation Private Limited</span>
+                <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Financial Automation Private Limited</span>
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <Activity className="h-3 w-3 text-green-400 animate-pulse" />
