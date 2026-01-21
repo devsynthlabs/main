@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, DollarSign, Filter, BarChart3, FileText } from "lucide-react";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, isSameDay, isToday, isYesterday, startOfDay, endOfDay } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, DollarSign, Filter, BarChart3, FileText, Loader2 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface BookkeepingEntry {
     id: string;
@@ -48,80 +51,40 @@ const Bookkeeping = () => {
     });
 
     // Entries State
-    const [entries, setEntries] = useState<BookkeepingEntry[]>([
-        {
-            id: "1",
-            date: new Date("2025-07-01"),
-            description: "Uber ride to meeting",
-            type: "Expenses",
-            amount: 1500,
-            category: "Transportation",
-            createdAt: new Date()
-        },
-        {
-            id: "2",
-            date: new Date("2025-07-02"),
-            description: "Office chair purchase",
-            type: "Expenses",
-            amount: 12000,
-            category: "Furniture",
-            createdAt: new Date()
-        },
-        {
-            id: "3",
-            date: new Date("2025-07-03"),
-            description: "Monthly Internet bill",
-            type: "Expenses",
-            amount: 6000,
-            category: "Utilities",
-            createdAt: new Date()
-        },
-        {
-            id: "4",
-            date: new Date("2025-07-04"),
-            description: "Flight to conference",
-            type: "Expenses",
-            amount: 30000,
-            category: "Travel",
-            createdAt: new Date()
-        },
-        {
-            id: "5",
-            date: new Date("2025-07-05"),
-            description: "Printer ink order",
-            type: "Expenses",
-            amount: 4500,
-            category: "Office Supplies",
-            createdAt: new Date()
-        },
-        {
-            id: "6",
-            date: new Date("2025-07-07"),
-            description: "Team Lunch",
-            type: "Expenses",
-            amount: 8000,
-            category: "Food & Entertainment",
-            createdAt: new Date()
-        },
-        {
-            id: "7",
-            date: new Date("2025-07-08"),
-            description: "Hotel stay for seminar",
-            type: "Expenses",
-            amount: 50000,
-            category: "Travel",
-            createdAt: new Date()
-        },
-        {
-            id: "8",
-            date: new Date("2025-07-09"),
-            description: "Sale of Goods",
-            type: "Income",
-            amount: 150000,
-            category: "Sales",
-            createdAt: new Date()
+    const [entries, setEntries] = useState<BookkeepingEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch entries from API
+    useEffect(() => {
+        fetchEntries();
+    }, []);
+
+    const fetchEntries = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_BASE_URL}/bookkeeping/all`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setEntries(data.entries.map((entry: any) => ({
+                    ...entry,
+                    date: new Date(entry.date),
+                    createdAt: new Date(entry.createdAt),
+                    type: (entry.type === 'income' || entry.type === 'Income') ? 'Income' : 'Expenses'
+                })));
+            } else {
+                console.error("Failed to fetch bookkeeping entries");
+            }
+        } catch (error) {
+            console.error("Error fetching entries:", error);
+        } finally {
+            setIsLoading(false);
         }
-    ]);
+    };
 
     // Filter State
     const [filterType, setFilterType] = useState<string>("all");
@@ -179,6 +142,55 @@ const Bookkeeping = () => {
         });
     }, [filteredEntries]);
 
+    // Handle Date Presets
+    const handlePreset = (preset: 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth') => {
+        const today = new Date();
+        let from = today;
+        let to = today;
+
+        switch (preset) {
+            case 'today':
+                from = startOfDay(today);
+                to = endOfDay(today);
+                break;
+            case 'yesterday':
+                const yesterday = subDays(today, 1);
+                from = startOfDay(yesterday);
+                to = endOfDay(yesterday);
+                break;
+            case 'week':
+                from = startOfDay(subDays(today, 6));
+                to = endOfDay(today);
+                break;
+            case 'month':
+                from = startOfMonth(today);
+                to = endOfMonth(today);
+                break;
+            case 'lastMonth':
+                const lastMonth = subMonths(today, 1);
+                from = startOfMonth(lastMonth);
+                to = endOfMonth(lastMonth);
+                break;
+        }
+        setDateRange({ from, to });
+    };
+
+    // Group entries for display
+    const getGroupedEntries = () => {
+        const groups: Record<string, BookkeepingEntry[]> = {};
+        filteredEntries.forEach(entry => {
+            const dateKey = format(new Date(entry.date), 'yyyy-MM-dd');
+            if (!groups[dateKey]) {
+                groups[dateKey] = [];
+            }
+            groups[dateKey].push(entry);
+        });
+        return groups;
+    };
+
+    const groupedEntries = getGroupedEntries();
+    const sortedGroupKeys = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
     // Get unique categories
     const categories = Array.from(new Set(entries.map(entry => entry.category)));
 
@@ -188,40 +200,84 @@ const Bookkeeping = () => {
     };
 
     // Add new entry
-    const addEntry = () => {
+    const addEntry = async () => {
         if (!formData.description || !formData.amount) {
-            alert("Please fill in all required fields");
+            toast.error("Please fill in all required fields");
             return;
         }
 
-        const newEntry: BookkeepingEntry = {
-            id: Date.now().toString(),
-            date: selectedDate,
-            description: formData.description,
-            type: formData.type,
-            amount: parseFloat(formData.amount),
-            category: formData.category,
-            createdAt: new Date()
-        };
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_BASE_URL}/bookkeeping/add`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    date: selectedDate,
+                    description: formData.description,
+                    type: formData.type.toLowerCase() === 'income' ? 'income' : 'expense', // Backend expects lowercase
+                    amount: parseFloat(formData.amount),
+                    category: formData.category
+                })
+            });
 
-        setEntries(prev => [newEntry, ...prev]);
+            if (response.ok) {
+                const data = await response.json();
+                const newEntry = {
+                    ...data.entry,
+                    date: new Date(data.entry.date),
+                    createdAt: new Date(data.entry.createdAt),
+                    // Map backend type back to frontend expected capitalization if needed or update frontend to handle lowercase
+                    type: data.entry.type === 'income' ? 'Income' : 'Expenses'
+                };
 
-        // Reset form
-        setFormData({
-            description: "",
-            type: "Expenses",
-            amount: "",
-            category: "General"
-        });
-        setSelectedDate(new Date());
+                setEntries(prev => [newEntry, ...prev]);
 
-        alert("Entry added successfully!");
+                // Reset form
+                setFormData({
+                    description: "",
+                    type: "Expenses",
+                    amount: "",
+                    category: "General"
+                });
+                setSelectedDate(new Date());
+
+                toast.success("Entry added successfully!");
+                setActiveTab("entries");
+            } else {
+                const errorData = await response.json();
+                toast.error(`Error adding entry: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error("Error adding entry:", error);
+            toast.error("Failed to add entry. Please try again.");
+        }
     };
 
     // Delete entry
-    const deleteEntry = (id: string) => {
+    const deleteEntry = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this entry?")) {
-            setEntries(prev => prev.filter(entry => entry.id !== id));
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`${API_BASE_URL}/bookkeeping/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    setEntries(prev => prev.filter(entry => entry.id !== id));
+                    toast.success("Entry deleted successfully");
+                } else {
+                    toast.error("Failed to delete entry");
+                }
+            } catch (error) {
+                console.error("Error deleting entry:", error);
+                toast.error("Error deleting entry");
+            }
         }
     };
 
@@ -281,8 +337,7 @@ const Bookkeeping = () => {
                         </div>
                         <div>
                             <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(20,184,166,0.8)] leading-tight">
-                                Sri Andal<br />
-                                <span className="text-xl opacity-80">Financial Automation Private Limited</span>
+                                Bookkeeping Automation
                             </h1>
                             <p className="text-emerald-200/80 font-medium mt-1">Track income and expenses with financial insights</p>
                         </div>
@@ -291,44 +346,88 @@ const Bookkeeping = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-2xl bg-white/5 border border-emerald-400/20 rounded-3xl p-6 shadow-2xl">
-                    <div>
-                        <h2 className="text-xl font-bold text-emerald-100 mb-1">Financial Period</h2>
-                        <p className="text-emerald-300/60 text-sm">Select a date range to filter transactions and analytics</p>
-                    </div>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="w-full md:w-[300px] justify-start text-left font-normal bg-white/10 border-emerald-400/30 text-emerald-100 hover:bg-white/20 h-12 rounded-xl"
-                            >
-                                <CalendarIcon className="mr-2 h-5 w-5 text-teal-400" />
-                                {dateRange?.from ? (
-                                    dateRange.to ? (
-                                        <span className="font-semibold text-lg">
-                                            {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")}
-                                        </span>
+                {activeTab === 'analytics' && (
+                    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-2xl bg-white/5 border border-emerald-400/20 rounded-3xl p-6 shadow-2xl">
+                        <div>
+                            <h2 className="text-xl font-bold text-emerald-100 mb-2">Financial Period</h2>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreset('today')}
+                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
+                                >
+                                    Today
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreset('yesterday')}
+                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
+                                >
+                                    Yesterday
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreset('week')}
+                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
+                                >
+                                    Last 7 Days
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreset('month')}
+                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
+                                >
+                                    This Month
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePreset('lastMonth')}
+                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
+                                >
+                                    Last Month
+                                </Button>
+                            </div>
+                            <p className="text-emerald-300/60 text-sm">Select a date range to filter transactions</p>
+                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="w-full md:w-[300px] justify-start text-left font-normal bg-white/10 border-emerald-400/30 text-emerald-100 hover:bg-white/20 h-12 rounded-xl"
+                                >
+                                    <CalendarIcon className="mr-2 h-5 w-5 text-teal-400" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <span className="font-semibold text-lg">
+                                                {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")}
+                                            </span>
+                                        ) : (
+                                            <span className="font-semibold text-lg">{format(dateRange.from, "MMM dd, yyyy")}</span>
+                                        )
                                     ) : (
-                                        <span className="font-semibold text-lg">{format(dateRange.from, "MMM dd, yyyy")}</span>
-                                    )
-                                ) : (
-                                    <span className="text-lg">Pick a date range</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 bg-slate-900 border-emerald-400/30" align="end">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={dateRange?.from}
-                                selected={{ from: dateRange.from, to: dateRange.to }}
-                                onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
-                                numberOfMonths={1}
-                                className="bg-slate-900 text-emerald-100"
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
+                                        <span className="text-lg">Pick a date range</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-slate-900 border-emerald-400/30" align="end">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={{ from: dateRange.from, to: dateRange.to }}
+                                    onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
+                                    numberOfMonths={1}
+                                    className="bg-slate-900 text-emerald-100"
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                )}
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
                     <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-emerald-400/20 rounded-2xl p-1">
@@ -408,62 +507,81 @@ const Bookkeeping = () => {
                             </CardHeader>
 
                             <CardContent>
-                                {filteredEntries.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {filteredEntries.map((entry) => (
-                                            <div
-                                                key={entry.id}
-                                                className="p-4 backdrop-blur-xl bg-white/5 border border-emerald-400/10 rounded-2xl hover:border-emerald-400/30 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1"
-                                            >
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-2">
-                                                            <Badge
-                                                                className={`px-3 py-1 rounded-full ${entry.type === 'Income'
-                                                                    ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80 text-white'
-                                                                    : 'bg-gradient-to-r from-red-500/80 to-pink-500/80 text-white'
-                                                                    }`}
-                                                            >
-                                                                {entry.type === 'Income' ? '💰 Income' : '💸 Expense'}
-                                                            </Badge>
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="border-emerald-400/40 text-emerald-300"
-                                                            >
-                                                                {entry.category}
-                                                            </Badge>
-                                                            <span className="text-emerald-300/60 text-sm">
-                                                                {format(new Date(entry.date), 'MMM dd, yyyy')}
-                                                            </span>
-                                                        </div>
+                                {isLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20">
+                                        <Loader2 className="h-10 w-10 text-emerald-400 animate-spin mb-4" />
+                                        <p className="text-emerald-300">Loading your entries...</p>
+                                    </div>
+                                ) : filteredEntries.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {sortedGroupKeys.map(dateKey => {
+                                            const dateObj = new Date(dateKey);
+                                            let dateLabel = format(dateObj, 'EEEE, MMMM do, yyyy');
+                                            if (isToday(dateObj)) dateLabel = "Today";
+                                            if (isYesterday(dateObj)) dateLabel = "Yesterday";
 
-                                                        <h3 className="text-lg font-semibold text-emerald-100 mb-1">
-                                                            {entry.description}
-                                                        </h3>
-
-                                                        <div className="flex items-center gap-4 text-sm text-emerald-300/80">
-                                                            <span>Added: {format(new Date(entry.createdAt), 'MMM dd, yyyy')}</span>
-                                                        </div>
+                                            return (
+                                                <div key={dateKey} className="space-y-3">
+                                                    <div className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-md py-2 px-3 rounded-lg border-l-4 border-emerald-500 inline-block shadow-lg">
+                                                        <h4 className="text-emerald-100 font-bold text-sm tracking-wide uppercase flex items-center gap-2">
+                                                            <CalendarIcon className="h-4 w-4 text-emerald-400" />
+                                                            {dateLabel}
+                                                        </h4>
                                                     </div>
 
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        <div className={`text-2xl font-bold ${entry.type === 'Income' ? 'text-green-400' : 'text-red-400'
-                                                            }`}>
-                                                            {entry.type === 'Income' ? '+' : '-'}₹{entry.amount.toLocaleString()}
-                                                        </div>
-
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => deleteEntry(entry.id)}
-                                                            className="text-red-300 hover:text-red-100 hover:bg-red-500/20"
+                                                    {groupedEntries[dateKey].map((entry) => (
+                                                        <div
+                                                            key={entry.id}
+                                                            className="ml-2 p-4 backdrop-blur-xl bg-white/5 border border-emerald-400/10 rounded-2xl hover:border-emerald-400/30 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 group"
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-3 mb-2">
+                                                                        <Badge
+                                                                            className={`px-3 py-1 rounded-full ${entry.type === 'Income'
+                                                                                ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80 text-white'
+                                                                                : 'bg-gradient-to-r from-red-500/80 to-pink-500/80 text-white'
+                                                                                }`}
+                                                                        >
+                                                                            {entry.type === 'Income' ? '💰 Income' : '💸 Expense'}
+                                                                        </Badge>
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className="border-emerald-400/40 text-emerald-300"
+                                                                        >
+                                                                            {entry.category}
+                                                                        </Badge>
+                                                                        <span className="text-emerald-300/40 text-xs hidden sm:inline-block">
+                                                                            {format(new Date(entry.createdAt), 'h:mm a')}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <h3 className="text-lg font-semibold text-emerald-100 mb-1 group-hover:text-emerald-50 transition-colors">
+                                                                        {entry.description}
+                                                                    </h3>
+                                                                </div>
+
+                                                                <div className="flex flex-col items-end gap-2">
+                                                                    <div className={`text-2xl font-bold ${entry.type === 'Income' ? 'text-green-400' : 'text-red-400'
+                                                                        }`}>
+                                                                        {entry.type === 'Income' ? '+' : '-'}₹{entry.amount.toLocaleString()}
+                                                                    </div>
+
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => deleteEntry(entry.id)}
+                                                                        className="text-red-300/60 hover:text-red-200 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
@@ -648,19 +766,19 @@ const Bookkeeping = () => {
                                         <CardContent className="pt-6">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className="p-2 bg-green-500/30 rounded-lg">
-                                                    <TrendingUp className="h-5 w-5 text-green-300" />
+                                                    <TrendingUp className="h-5 w-5 text-green-700" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-green-300 text-sm font-medium">Total Income</span>
-                                                    <span className="text-green-400/80 text-xs font-bold">
+                                                    <span className="text-green-800 text-sm font-bold">Total Income</span>
+                                                    <span className="text-green-700 text-xs font-bold">
                                                         {financialSummary.totalIncome + financialSummary.totalExpenses > 0
                                                             ? Math.round((financialSummary.totalIncome / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
                                                             : 0}% of turnover
                                                     </span>
                                                 </div>
                                             </div>
-                                            <p className="text-3xl font-bold text-green-100">₹{financialSummary.totalIncome.toLocaleString()}</p>
-                                            <p className="text-green-300/60 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Income').length} income entries</p>
+                                            <p className="text-3xl font-black text-green-900">₹{financialSummary.totalIncome.toLocaleString()}</p>
+                                            <p className="text-green-800 text-sm mt-1 font-medium">From {filteredEntries.filter(e => e.type === 'Income').length} income entries</p>
                                         </CardContent>
                                     </Card>
 
@@ -668,19 +786,19 @@ const Bookkeeping = () => {
                                         <CardContent className="pt-6">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className="p-2 bg-red-500/30 rounded-lg">
-                                                    <TrendingDown className="h-5 w-5 text-red-300" />
+                                                    <TrendingDown className="h-5 w-5 text-red-700" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-red-300 text-sm font-medium">Total Expenses</span>
-                                                    <span className="text-red-400/80 text-xs font-bold">
+                                                    <span className="text-red-800 text-sm font-bold">Total Expenses</span>
+                                                    <span className="text-red-700 text-xs font-bold">
                                                         {financialSummary.totalIncome + financialSummary.totalExpenses > 0
                                                             ? Math.round((financialSummary.totalExpenses / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
                                                             : 0}% of turnover
                                                     </span>
                                                 </div>
                                             </div>
-                                            <p className="text-3xl font-bold text-red-100">₹{financialSummary.totalExpenses.toLocaleString()}</p>
-                                            <p className="text-red-300/60 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Expenses').length} expense entries</p>
+                                            <p className="text-3xl font-black text-red-900">₹{financialSummary.totalExpenses.toLocaleString()}</p>
+                                            <p className="text-red-800 text-sm mt-1 font-medium">From {filteredEntries.filter(e => e.type === 'Expenses').length} expense entries</p>
                                         </CardContent>
                                     </Card>
 
@@ -694,19 +812,19 @@ const Bookkeeping = () => {
                                                     ? 'bg-teal-500/30'
                                                     : 'bg-orange-500/30'
                                                     }`}>
-                                                    <DollarSign className={`h-5 w-5 ${financialSummary.netBalance >= 0 ? 'text-teal-300' : 'text-orange-300'
+                                                    <DollarSign className={`h-5 w-5 ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
                                                         }`} />
                                                 </div>
-                                                <span className={`text-sm font-medium ${financialSummary.netBalance >= 0 ? 'text-teal-300' : 'text-orange-300'
+                                                <span className={`text-sm font-bold ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
                                                     }`}>
                                                     Net Balance
                                                 </span>
                                             </div>
-                                            <p className={`text-3xl font-bold ${financialSummary.netBalance >= 0 ? 'text-teal-100' : 'text-orange-100'
+                                            <p className={`text-3xl font-black ${financialSummary.netBalance >= 0 ? 'text-teal-900' : 'text-orange-900'
                                                 }`}>
                                                 {financialSummary.netBalance >= 0 ? '+' : ''}₹{financialSummary.netBalance.toLocaleString()}
                                             </p>
-                                            <p className={`text-sm mt-1 ${financialSummary.netBalance >= 0 ? 'text-teal-300/60' : 'text-orange-300/60'
+                                            <p className={`text-sm mt-1 font-medium ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
                                                 }`}>
                                                 {financialSummary.netBalance >= 0 ? 'Profit Margin' : 'Loss Margin'}: {
                                                     financialSummary.totalIncome > 0
@@ -720,48 +838,109 @@ const Bookkeeping = () => {
 
                                 <div className="space-y-4">
                                     <h3 className="text-xl font-bold text-emerald-100">Category Breakdown</h3>
-                                    <div className="space-y-3">
-                                        {categories.map(category => {
-                                            const categoryEntries = filteredEntries.filter(e => e.category === category);
-                                            const categoryIncome = categoryEntries
-                                                .filter(e => e.type === 'Income')
-                                                .reduce((sum, e) => sum + e.amount, 0);
-                                            const categoryExpenses = categoryEntries
-                                                .filter(e => e.type === 'Expenses')
-                                                .reduce((sum, e) => sum + e.amount, 0);
-                                            const total = categoryIncome + categoryExpenses;
+                                    {/* Chart & Grid Section */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        {/* Chart Section */}
+                                        <div className="lg:col-span-1 bg-white/5 backdrop-blur-xl border border-emerald-400/20 rounded-3xl p-6 flex flex-col items-center justify-center relative min-h-[400px]">
+                                            <h4 className="absolute top-6 left-6 text-lg font-bold text-emerald-100">Expense Distribution</h4>
 
-                                            if (categoryEntries.length === 0) return null;
-
-                                            return (
-                                                <div key={category} className="p-4 backdrop-blur-xl bg-white/5 border border-emerald-400/10 rounded-2xl">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="font-medium text-emerald-100">{category}</span>
-                                                        <Badge className="bg-emerald-500/20 text-emerald-300">
-                                                            {categoryEntries.length} entries
-                                                        </Badge>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-green-300">Income: ₹{categoryIncome.toLocaleString()}</span>
-                                                            <span className="text-red-300">Expenses: ₹{categoryExpenses.toLocaleString()}</span>
-                                                        </div>
-
-                                                        <div className="flex h-2 bg-slate-700 rounded-full overflow-hidden">
-                                                            <div
-                                                                className="bg-green-500 h-full"
-                                                                style={{ width: `${total > 0 ? (categoryIncome / total) * 100 : 0}%` }}
+                                            {filteredEntries.filter(e => e.type === 'Expenses').length > 0 ? (
+                                                <div className="w-full h-[300px] mt-8">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={categories.map(cat => ({
+                                                                    name: cat,
+                                                                    value: filteredEntries
+                                                                        .filter(e => e.category === cat && e.type === 'Expenses')
+                                                                        .reduce((sum, e) => sum + e.amount, 0)
+                                                                })).filter(d => d.value > 0)}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={60}
+                                                                outerRadius={100}
+                                                                paddingAngle={5}
+                                                                dataKey="value"
+                                                            >
+                                                                {categories.map((entry, index) => (
+                                                                    <Cell key={`cell-${index}`} fill={[
+                                                                        '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
+                                                                    ][index % 8]} stroke="rgba(0,0,0,0.2)" />
+                                                                ))}
+                                                            </Pie>
+                                                            <Tooltip
+                                                                formatter={(value: number) => `₹${value.toLocaleString()}`}
+                                                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#34d399', borderRadius: '12px', color: '#fff' }}
+                                                                itemStyle={{ color: '#34d399' }}
                                                             />
-                                                            <div
-                                                                className="bg-red-500 h-full"
-                                                                style={{ width: `${total > 0 ? (categoryExpenses / total) * 100 : 0}%` }}
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
                                                 </div>
-                                            );
-                                        })}
+                                            ) : (
+                                                <div className="flex flex-col items-center text-emerald-300/40">
+                                                    <div className="p-4 rounded-full bg-white/5 mb-4">
+                                                        <BarChart3 className="h-8 w-8" />
+                                                    </div>
+                                                    <p>No expense data to display</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Grid Cards Section */}
+                                        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {categories.map((category, index) => {
+                                                const categoryEntries = filteredEntries.filter(e => e.category === category);
+                                                const categoryIncome = categoryEntries
+                                                    .filter(e => e.type === 'Income')
+                                                    .reduce((sum, e) => sum + e.amount, 0);
+                                                const categoryExpenses = categoryEntries
+                                                    .filter(e => e.type === 'Expenses')
+                                                    .reduce((sum, e) => sum + e.amount, 0);
+
+                                                if (categoryEntries.length === 0) return null;
+
+                                                const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+                                                const cardColor = COLORS[index % COLORS.length];
+
+                                                return (
+                                                    <div key={category} className="group relative overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 hover:border-emerald-500/30 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+                                                        <div className="absolute left-0 top-0 bottom-0 w-1 opacity-60 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: cardColor }} />
+
+                                                        <div className="p-5">
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <div>
+                                                                    <h4 className="font-bold text-lg text-emerald-50 group-hover:text-white transition-colors">{category}</h4>
+                                                                    <p className="text-xs text-emerald-300/60">{categoryEntries.length} transactions</p>
+                                                                </div>
+                                                                <div className="p-2 rounded-lg bg-white/5 text-emerald-300">
+                                                                    <FileText className="h-4 w-4" style={{ color: cardColor }} />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-end justify-between">
+                                                                <div>
+                                                                    <p className="text-xs text-emerald-200/50 uppercase tracking-wider font-semibold mb-1">Total Flow</p>
+                                                                    <p className="text-xl font-bold text-white">₹{(categoryIncome + categoryExpenses).toLocaleString()}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    {categoryExpenses > 0 && (
+                                                                        <p className="text-sm font-medium text-red-400">
+                                                                            -₹{categoryExpenses.toLocaleString()}
+                                                                        </p>
+                                                                    )}
+                                                                    {categoryIncome > 0 && (
+                                                                        <p className="text-sm font-medium text-green-400">
+                                                                            +₹{categoryIncome.toLocaleString()}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>

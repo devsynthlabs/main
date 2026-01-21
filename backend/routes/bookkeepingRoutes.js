@@ -1,25 +1,29 @@
 import express from "express";
-import mongoose from "mongoose";
+import BookkeepingEntry from "../models/BookkeepingEntry.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-// ✅ Bookkeeping Schema
-const bookkeepingSchema = new mongoose.Schema({
-    date: { type: Date, required: true },
-    description: { type: String, required: true },
-    type: { type: String, enum: ['Income', 'Expenses'], required: true },
-    amount: { type: Number, required: true },
-    category: { type: String, default: 'General' },
-    createdAt: { type: Date, default: Date.now },
-});
+// Middleware to verify token (local definition since server.js isn't exporting it)
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
 
-const Bookkeeping = mongoose.model("Bookkeeping", bookkeepingSchema);
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(400).json({ message: "Invalid token" });
+    }
+};
 
 // ✅ POST route to add bookkeeping entry
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, async (req, res) => {
     try {
         const { date, description, type, amount, category } = req.body;
-        const newEntry = new Bookkeeping({
+        const newEntry = new BookkeepingEntry({
+            userId: req.user.id,
             date: new Date(date),
             description,
             type,
@@ -37,18 +41,18 @@ router.post("/add", async (req, res) => {
     }
 });
 
-// ✅ GET route to fetch all bookkeeping entries
-router.get("/all", async (req, res) => {
+// ✅ GET route to fetch all bookkeeping entries (for the logged-in user)
+router.get("/all", verifyToken, async (req, res) => {
     try {
-        const entries = await Bookkeeping.find().sort({ date: -1 });
+        const entries = await BookkeepingEntry.find({ userId: req.user.id }).sort({ date: -1 });
 
         // Calculate totals
         const totalIncome = entries
-            .filter(entry => entry.type === 'Income')
+            .filter(entry => entry.type === 'income') // Note: model uses lowercase 'income'
             .reduce((sum, entry) => sum + entry.amount, 0);
 
         const totalExpenses = entries
-            .filter(entry => entry.type === 'Expenses')
+            .filter(entry => entry.type === 'expense') // Note: model uses lowercase 'expense'
             .reduce((sum, entry) => sum + entry.amount, 0);
 
         const netBalance = totalIncome - totalExpenses;
@@ -69,13 +73,13 @@ router.get("/all", async (req, res) => {
 });
 
 // ✅ DELETE route to remove an entry
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedEntry = await Bookkeeping.findByIdAndDelete(id);
+        const deletedEntry = await BookkeepingEntry.findOneAndDelete({ _id: id, userId: req.user.id });
 
         if (!deletedEntry) {
-            return res.status(404).json({ message: "Entry not found" });
+            return res.status(404).json({ message: "Entry not found or unauthorized" });
         }
 
         res.json({ message: "Entry deleted successfully", deletedEntry });
@@ -86,16 +90,16 @@ router.delete("/:id", async (req, res) => {
 });
 
 // ✅ GET route for financial summary
-router.get("/summary", async (req, res) => {
+router.get("/summary", verifyToken, async (req, res) => {
     try {
-        const entries = await Bookkeeping.find();
+        const entries = await BookkeepingEntry.find({ userId: req.user.id });
 
         const totalIncome = entries
-            .filter(entry => entry.type === 'Income')
+            .filter(entry => entry.type === 'income')
             .reduce((sum, entry) => sum + entry.amount, 0);
 
         const totalExpenses = entries
-            .filter(entry => entry.type === 'Expenses')
+            .filter(entry => entry.type === 'expense')
             .reduce((sum, entry) => sum + entry.amount, 0);
 
         const netBalance = totalIncome - totalExpenses;
@@ -105,7 +109,7 @@ router.get("/summary", async (req, res) => {
             if (!acc[entry.category]) {
                 acc[entry.category] = { income: 0, expenses: 0 };
             }
-            if (entry.type === 'Income') {
+            if (entry.type === 'income') {
                 acc[entry.category].income += entry.amount;
             } else {
                 acc[entry.category].expenses += entry.amount;
