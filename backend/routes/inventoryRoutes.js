@@ -5,6 +5,11 @@ const router = express.Router();
 
 // ✅ Inventory Schema
 const inventorySchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
     itemName: { type: String, required: true },
     sku: { type: String, required: true },
     quantity: { type: Number, required: true, default: 0 },
@@ -15,11 +20,31 @@ const inventorySchema = new mongoose.Schema({
 
 const InventoryItem = mongoose.model("InventoryItem", inventorySchema);
 
+import jwt from "jsonwebtoken";
+import Sale from "../models/Sale.js";
+
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+        return res.status(401).json({ message: "Access denied. No token provided." });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(400).json({ message: "Invalid token" });
+    }
+};
+
 // ✅ POST route to add inventory item
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, async (req, res) => {
     try {
         const { itemName, sku, quantity, price, category } = req.body;
         const newItem = new InventoryItem({
+            userId: req.user.id,
             itemName,
             sku,
             quantity,
@@ -37,10 +62,10 @@ router.post("/add", async (req, res) => {
     }
 });
 
-// ✅ GET route to fetch all inventory items
-router.get("/all", async (req, res) => {
+// ✅ GET route to fetch all inventory items (User Specific)
+router.get("/all", verifyToken, async (req, res) => {
     try {
-        const items = await InventoryItem.find().sort({ lastUpdated: -1 });
+        const items = await InventoryItem.find({ userId: req.user.id }).sort({ lastUpdated: -1 });
         res.json(items);
     } catch (error) {
         console.error("Error fetching inventory:", error);
@@ -48,11 +73,78 @@ router.get("/all", async (req, res) => {
     }
 });
 
-// ✅ DELETE route
-router.delete("/:id", async (req, res) => {
+// ✅ POST route to sell item (Decrement stock & Record Sale)
+router.post("/sell/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        await InventoryItem.findByIdAndDelete(id);
+        const { quantitySold, gstRate = 18 } = req.body; // Default GST 18% if not provided
+
+        const item = await InventoryItem.findOne({ _id: id, userId: req.user.id });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        if (item.quantity < quantitySold) {
+            return res.status(400).json({ message: "Insufficient stock" });
+        }
+
+        // Financial Calculations
+        const subtotal = item.price * quantitySold;
+        const gstAmount = (subtotal * gstRate) / 100;
+        const grandTotal = subtotal + gstAmount;
+
+        // Create Sale Record
+        const newSale = new Sale({
+            userId: req.user.id,
+            inventoryItemId: item._id,
+            itemName: item.itemName,
+            sku: item.sku,
+            quantitySold,
+            unitPrice: item.price,
+            subtotal,
+            gstRate,
+            gstAmount,
+            grandTotal
+        });
+
+        // Update Inventory
+        item.quantity -= quantitySold;
+        item.lastUpdated = Date.now();
+
+        await Promise.all([item.save(), newSale.save()]);
+
+        res.json({
+            message: "Item sold successfully",
+            item,
+            sale: newSale
+        });
+    } catch (error) {
+        console.error("Error selling item:", error);
+        res.status(500).json({ message: "Error selling item", error });
+    }
+});
+
+// ✅ GET route to fetch sales history
+router.get("/sales", verifyToken, async (req, res) => {
+    try {
+        const sales = await Sale.find({ userId: req.user.id }).sort({ saleDate: -1 });
+        res.json(sales);
+    } catch (error) {
+        console.error("Error fetching sales:", error);
+        res.status(500).json({ message: "Error fetching sales history" });
+    }
+});
+
+// ✅ DELETE route
+router.delete("/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedItem = await InventoryItem.findOneAndDelete({ _id: id, userId: req.user.id });
+
+        if (!deletedItem) {
+            return res.status(404).json({ message: "Item not found or unauthorized" });
+        }
+
         res.json({ message: "Item deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error deleting item", error });
