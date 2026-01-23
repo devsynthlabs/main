@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Upload, Search, FileText, Download, Shield, AlertTriangle, Filter, Plus, Cpu, Database, Calculator, History, Trash2, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 interface Transaction {
   id: string;
@@ -80,177 +81,139 @@ const FraudDetection = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyPosition, setHistoryPosition] = useState(0);
 
-  // Sample Data
-  const sampleTransactions: Transaction[] = [
-    { id: "1", date: "2024-01-15", amount: 150.00, description: "Online Shopping", fraudScore: 0, status: 'Normal', method: 'Rule-based' },
-    { id: "2", date: "2024-01-15", amount: 12500.00, description: "Wire Transfer", fraudScore: 1, status: 'Fraud', method: 'Rule-based' },
-    { id: "3", date: "2024-01-14", amount: 75.50, description: "Grocery Store", fraudScore: 0, status: 'Normal', method: 'Rule-based' },
-    { id: "4", date: "2024-01-14", amount: 3200.00, description: "ATM Withdrawal", fraudScore: 0.8, status: 'Suspicious', method: 'Z-score' },
-    { id: "5", date: "2024-01-13", amount: 280.00, description: "Restaurant", fraudScore: 0, status: 'Normal', method: 'Rule-based' },
-    { id: "6", date: "2024-01-13", amount: 18500.00, description: "International Transfer", fraudScore: 1, status: 'Fraud', method: 'Rule-based' },
-    { id: "7", date: "2024-01-12", amount: 4500.00, description: "Electronics Purchase", fraudScore: 0.6, status: 'Suspicious', method: 'Z-score' },
-    { id: "8", date: "2024-01-12", amount: 95.00, description: "Fuel Station", fraudScore: 0, status: 'Normal', method: 'Rule-based' },
-  ];
+  // Sample Data (kept for type safety reference if needed, but unused)
+  const sampleTransactions: Transaction[] = [];
 
-  // Initialize with sample data
+  // Fetch stats and history on mount
   useEffect(() => {
-    setTransactions(sampleTransactions);
-    const flagged = sampleTransactions.filter(t => t.status !== 'Normal');
-    setFlaggedTransactions(flagged);
-    setDetectionStats({
-      total: sampleTransactions.length,
-      fraud: sampleTransactions.filter(t => t.status === 'Fraud').length,
-      suspicious: sampleTransactions.filter(t => t.status === 'Suspicious').length,
-      normal: sampleTransactions.filter(t => t.status === 'Normal').length
-    });
-
-    // Load sample history
-    const sampleHistory: DetectionHistory[] = [
-      {
-        id: "1",
-        timestamp: new Date('2024-01-15T10:30:00'),
-        algorithm: 'Rule-based',
-        totalTransactions: 8,
-        flaggedCount: 2,
-        parameters: { amountThreshold: 10000 }
-      },
-      {
-        id: "2",
-        timestamp: new Date('2024-01-14T14:45:00'),
-        algorithm: 'Z-score',
-        totalTransactions: 12,
-        flaggedCount: 3,
-        parameters: { zscoreThreshold: 3.0 }
-      },
-      {
-        id: "3",
-        timestamp: new Date('2024-01-13T09:15:00'),
-        algorithm: 'Isolation Forest',
-        totalTransactions: 15,
-        flaggedCount: 4,
-        parameters: { iforestContamination: 0.05 }
-      }
-    ];
-    setDetectionHistory(sampleHistory);
+    fetchStats();
+    fetchHistory();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/fraud-detection/stats');
+      const data = await res.json();
+      if (res.ok) {
+        setDetectionStats({
+          total: data.overview.totalTransactions || 0,
+          fraud: data.overview.flaggedTransactions || 0,
+          suspicious: data.overview.falsePositives || 0,
+          normal: (data.overview.totalTransactions || 0) - (data.overview.flaggedTransactions || 0)
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/fraud-detection/analysis');
+      const data = await res.json();
+      if (res.ok && data.analyses) {
+        const mappedHistory: DetectionHistory[] = data.analyses.map((a: any) => ({
+          id: a.analysisId,
+          timestamp: new Date(a.createdAt),
+          algorithm: a.algorithm,
+          totalTransactions: a.totalTransactions,
+          flaggedCount: a.flaggedTransactions,
+          parameters: a.parameters
+        }));
+        setDetectionHistory(mappedHistory);
+      }
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    }
+  };
 
   // Handle form input changes
   const handleInputChange = (field: keyof FormData, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Handle file upload
+  // Handle file upload selection
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file);
-      // In a real app, you would parse the CSV/Excel file here
-      // For now, we'll use sample data
-      setTransactions(sampleTransactions);
-      const flagged = sampleTransactions.filter(t => t.status !== 'Normal');
-      setFlaggedTransactions(flagged);
-      setDetectionStats({
-        total: sampleTransactions.length,
-        fraud: sampleTransactions.filter(t => t.status === 'Fraud').length,
-        suspicious: sampleTransactions.filter(t => t.status === 'Suspicious').length,
-        normal: sampleTransactions.filter(t => t.status === 'Normal').length
-      });
+      // We don't parse the file here anymore, we send it to backend
     }
   };
 
-  // Isolation Forest Algorithm Implementation
-  const isolationForestDetection = (transactions: Transaction[], contamination: number) => {
-    // Mock implementation of Isolation Forest
-    // In production, this would use a proper ML library
+  // Run detection (Upload file to backend)
+  const runDetection = async () => {
+    if (!uploadedFile) {
+      toast.error("Please upload a file first");
+      return;
+    }
 
-    const flaggedCount = Math.max(1, Math.floor(transactions.length * contamination));
-
-    // Simple heuristic: flag transactions with highest amounts
-    const sortedTransactions = [...transactions]
-      .sort((a, b) => b.amount - a.amount);
-
-    const flagged = sortedTransactions
-      .slice(0, flaggedCount)
-      .map(t => ({
-        ...t,
-        fraudScore: Math.random() * 0.5 + 0.5, // Random score 0.5-1.0
-        status: Math.random() > 0.7 ? 'Fraud' as const : 'Suspicious' as const,
-        method: 'Isolation Forest'
-      }));
-
-    return flagged;
-  };
-
-  // Run detection algorithm
-  const runDetection = () => {
     setIsProcessing(true);
     setDetectionComplete(false);
 
-    // Simulate processing delay
-    setTimeout(() => {
-      let newFlagged: Transaction[] = [];
+    const formDataObj = new FormData();
+    formDataObj.append('file', uploadedFile);
+    formDataObj.append('algorithm', formData.algorithm === 'rule' ? 'rule_based' : formData.algorithm === 'zscore' ? 'zscore' : 'isolation_forest');
 
-      switch (formData.algorithm) {
-        case 'rule':
-          // Rule-based detection
-          newFlagged = transactions.map(t => ({
-            ...t,
-            fraudScore: t.amount >= formData.amountThreshold ? 1 : 0,
-            status: (t.amount >= formData.amountThreshold ? 'Fraud' : 'Normal') as 'Normal' | 'Suspicious' | 'Fraud',
-            method: 'Rule-based'
-          })).filter(t => t.status !== 'Normal');
-          break;
+    // Construct parameters based on algorithm
+    let params: any = {
+      dateColumn: formData.dateColumn,
+      amountColumn: formData.amountColumn,
+      descColumn: formData.descriptionColumn
+    };
 
-        case 'zscore': {
-          // Z-score detection simulation
-          const amounts = transactions.map(t => t.amount);
-          const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-          const std = Math.sqrt(amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length);
+    if (formData.algorithm === 'rule') {
+      params.threshold = formData.amountThreshold;
+    } else if (formData.algorithm === 'zscore') {
+      params.zThreshold = formData.zscoreThreshold;
+    } else if (formData.algorithm === 'iforest') {
+      params.contamination = formData.iforestContamination;
+    }
 
-          newFlagged = transactions.map(t => {
-            const zScore = Math.abs((t.amount - mean) / std);
-            const isFraud = zScore > formData.zscoreThreshold;
-            return {
-              ...t,
-              fraudScore: isFraud ? Math.min(zScore / 10, 1) : 0,
-              status: (isFraud ? (zScore > 5 ? 'Fraud' : 'Suspicious') : 'Normal') as 'Normal' | 'Suspicious' | 'Fraud',
-              method: 'Z-score'
-            };
-          }).filter(t => t.status !== 'Normal');
-          break;
-        }
+    formDataObj.append('parameters', JSON.stringify(params));
+    formDataObj.append('userId', 'demo-user'); // Replace with actual user ID
 
-        case 'iforest':
-          // Isolation Forest detection
-          newFlagged = isolationForestDetection(transactions, formData.iforestContamination);
-          break;
-      }
-
-      setFlaggedTransactions(newFlagged);
-      setDetectionStats({
-        total: transactions.length,
-        fraud: newFlagged.filter(t => t.status === 'Fraud').length,
-        suspicious: newFlagged.filter(t => t.status === 'Suspicious').length,
-        normal: transactions.length - newFlagged.length
+    try {
+      const res = await fetch('http://localhost:5000/api/fraud-detection/upload', {
+        method: 'POST',
+        body: formDataObj
       });
+      const data = await res.json();
 
-      // Add to history
-      const historyEntry: DetectionHistory = {
-        id: Date.now().toString(),
-        timestamp: new Date(),
-        algorithm: formData.algorithm === 'rule' ? 'Rule-based' :
-          formData.algorithm === 'zscore' ? 'Z-score' : 'Isolation Forest',
-        totalTransactions: transactions.length,
-        flaggedCount: newFlagged.length,
-        parameters: formData.algorithm === 'rule' ? { amountThreshold: formData.amountThreshold } :
-          formData.algorithm === 'zscore' ? { zscoreThreshold: formData.zscoreThreshold } :
-            { iforestContamination: formData.iforestContamination }
-      };
+      if (res.ok) {
+        toast.success("Detection completed successfully!");
 
-      setDetectionHistory(prev => [historyEntry, ...prev]);
+        // Map backend response to frontend transaction model
+        const flagged: Transaction[] = data.transactions.map((tx: any) => ({
+          id: tx.transactionId,
+          date: new Date(tx.date).toLocaleDateString(),
+          amount: tx.amount,
+          description: tx.description,
+          fraudScore: tx.fraudScore,
+          status: tx.fraudScore > 0.8 ? 'Fraud' : 'Suspicious',
+          method: tx.detectionMethod
+        }));
+
+        setFlaggedTransactions(flagged);
+        setDetectionComplete(true);
+        // Also update total stats locally or re-fetch?
+        // Note: we can't easily update 'transactions' state with *all* transactions 
+        // because backend only returned flagged ones for performance/preview.
+        // We will just show flagged ones.
+        setTransactions([]);
+
+        // Refresh stats and history
+        fetchStats();
+        fetchHistory();
+      } else {
+        toast.error(data.message || "Error running detection");
+      }
+    } catch (error) {
+      console.error("Detection error:", error);
+      toast.error("Failed to connect to server");
+    } finally {
       setIsProcessing(false);
-      setDetectionComplete(true);
-    }, 1500);
+    }
   };
 
   // Export results
@@ -279,6 +242,7 @@ const FraudDetection = () => {
   const clearHistory = () => {
     if (window.confirm("Are you sure you want to clear all detection history?")) {
       setDetectionHistory([]);
+      // Ideally call backend to clear history too
     }
   };
 
@@ -408,15 +372,20 @@ const FraudDetection = () => {
                     />
                     <Button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full h-20 bg-white/5 backdrop-blur-xl text-blue-100 border-2 border-dashed border-blue-400/30 hover:border-blue-400/60 hover:bg-white/10 rounded-2xl flex flex-col items-center justify-center gap-2"
+                      className="w-full h-24 bg-white/5 backdrop-blur-xl text-blue-100 border-2 border-dashed border-blue-400/30 hover:border-blue-400/60 hover:bg-white/10 rounded-2xl flex flex-col items-center justify-center gap-2"
                     >
                       <Upload className="h-6 w-6" />
                       <span className="font-medium">
-                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Click to upload CSV or Excel file"}
+                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Upload CSV / Excel"}
                       </span>
-                      <span className="text-sm text-blue-300/60">Supports .csv, .xlsx, .xls</span>
                     </Button>
                   </div>
+                  {uploadedFile && (
+                    <p className="text-sm text-green-400 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                      File selected ready for upload.
+                    </p>
+                  )}
                 </div>
 
                 {/* Detection Algorithm Selection */}
@@ -573,7 +542,7 @@ const FraudDetection = () => {
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     onClick={runDetection}
-                    disabled={isProcessing || transactions.length === 0}
+                    disabled={isProcessing || !uploadedFile}
                     className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50"
                   >
                     {isProcessing ? (
