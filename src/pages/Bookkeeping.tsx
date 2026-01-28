@@ -54,10 +54,69 @@ const Bookkeeping = () => {
     const [entries, setEntries] = useState<BookkeepingEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch entries from API
+    // Categories State
+    const [customCategories, setCustomCategories] = useState<any[]>([]);
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+
+    const DEFAULT_CATEGORIES = [
+        "General", "Transportation", "Furniture", "Utilities", "Travel",
+        "Office Supplies", "Food & Entertainment", "Sales", "Services", "Equipment"
+    ];
+
+    // Fetch entries and categories from API
     useEffect(() => {
         fetchEntries();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_BASE_URL}/bookkeeping/categories`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setCustomCategories(data.categories);
+            }
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        }
+    };
+
+    const addCategory = async () => {
+        if (!newCategoryName.trim()) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_BASE_URL}/bookkeeping/categories`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: newCategoryName })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setCustomCategories(prev => [...prev, data.category]);
+                setFormData(prev => ({ ...prev, category: data.category.name }));
+                setNewCategoryName("");
+                setIsAddingCategory(false);
+                toast.success("Category added successfully");
+            } else {
+                const errorData = await response.json();
+                toast.error(errorData.message || "Failed to add category");
+            }
+        } catch (error) {
+            console.error("Error adding category:", error);
+            toast.error("Error adding category");
+        }
+    };
 
     const fetchEntries = async () => {
         setIsLoading(true);
@@ -191,8 +250,9 @@ const Bookkeeping = () => {
     const groupedEntries = getGroupedEntries();
     const sortedGroupKeys = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+    const allCategories = [...DEFAULT_CATEGORIES, ...customCategories.map(c => c.name)];
+
     // Get unique categories
-    const categories = Array.from(new Set(entries.map(entry => entry.category)));
 
     // Handle form input changes
     const handleInputChange = (field: string, value: string) => {
@@ -489,8 +549,11 @@ const Bookkeeping = () => {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="all">All Categories</SelectItem>
-                                                {categories.map(category => (
+                                                {DEFAULT_CATEGORIES.map(category => (
                                                     <SelectItem key={category} value={category}>{category}</SelectItem>
+                                                ))}
+                                                {customCategories.map(cat => (
+                                                    <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -688,10 +751,7 @@ const Bookkeeping = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <Label htmlFor="category" className="text-emerald-100 font-bold">
-                                            Category
-                                        </Label>
+                                    <div className="flex flex-col gap-2">
                                         <Select
                                             value={formData.category}
                                             onValueChange={(value) => handleInputChange("category", value)}
@@ -700,18 +760,50 @@ const Bookkeeping = () => {
                                                 <SelectValue placeholder="Select category" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="General">General</SelectItem>
-                                                <SelectItem value="Transportation">Transportation</SelectItem>
-                                                <SelectItem value="Furniture">Furniture</SelectItem>
-                                                <SelectItem value="Utilities">Utilities</SelectItem>
-                                                <SelectItem value="Travel">Travel</SelectItem>
-                                                <SelectItem value="Office Supplies">Office Supplies</SelectItem>
-                                                <SelectItem value="Food & Entertainment">Food & Entertainment</SelectItem>
-                                                <SelectItem value="Sales">Sales</SelectItem>
-                                                <SelectItem value="Services">Services</SelectItem>
-                                                <SelectItem value="Equipment">Equipment</SelectItem>
+                                                {DEFAULT_CATEGORIES.map(category => (
+                                                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                                                ))}
+                                                {customCategories.map(cat => (
+                                                    <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
+
+                                        {!isAddingCategory ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setIsAddingCategory(true)}
+                                                className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 justify-start h-8 px-2"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Add New Category
+                                            </Button>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="Category name"
+                                                    value={newCategoryName}
+                                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                                    className="h-8 bg-white/5 border-emerald-400/30 text-emerald-100 text-xs"
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    onClick={addCategory}
+                                                    className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                >
+                                                    Add
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setIsAddingCategory(false)}
+                                                    className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -849,7 +941,7 @@ const Bookkeeping = () => {
                                                     <ResponsiveContainer width="100%" height="100%">
                                                         <PieChart>
                                                             <Pie
-                                                                data={categories.map(cat => ({
+                                                                data={allCategories.map(cat => ({
                                                                     name: cat,
                                                                     value: filteredEntries
                                                                         .filter(e => e.category === cat && e.type === 'Expenses')
@@ -862,7 +954,7 @@ const Bookkeeping = () => {
                                                                 paddingAngle={5}
                                                                 dataKey="value"
                                                             >
-                                                                {categories.map((entry, index) => (
+                                                                {allCategories.map((entry, index) => (
                                                                     <Cell key={`cell-${index}`} fill={[
                                                                         '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
                                                                     ][index % 8]} stroke="rgba(0,0,0,0.2)" />
@@ -889,7 +981,7 @@ const Bookkeeping = () => {
 
                                         {/* Grid Cards Section */}
                                         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {categories.map((category, index) => {
+                                            {allCategories.map((category, index) => {
                                                 const categoryEntries = filteredEntries.filter(e => e.category === category);
                                                 const categoryIncome = categoryEntries
                                                     .filter(e => e.type === 'Income')
@@ -954,7 +1046,7 @@ const Bookkeeping = () => {
                     </p>
                 </div>
             </main>
-        </div>
+        </div >
     );
 };
 

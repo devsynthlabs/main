@@ -1,5 +1,6 @@
 import express from "express";
 import BookkeepingEntry from "../models/BookkeepingEntry.js";
+import Category from "../models/Category.js";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
@@ -129,6 +130,63 @@ router.get("/summary", verifyToken, async (req, res) => {
     } catch (error) {
         console.error("Error generating summary:", error);
         res.status(500).json({ message: "Error generating financial summary", error });
+    }
+});
+
+// ✅ GET route to fetch all categories for the user
+router.get("/categories", verifyToken, async (req, res) => {
+    try {
+        const customCategories = await Category.find({ userId: req.user.id });
+        res.json({ categories: customCategories });
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ message: "Error fetching categories" });
+    }
+});
+
+// ✅ POST route to add a new category
+router.post("/categories", verifyToken, async (req, res) => {
+    try {
+        const { name, type } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ message: "Category name is required" });
+        }
+
+        const newCategory = new Category({
+            userId: req.user.id,
+            name,
+            type: type || "all"
+        });
+
+        await newCategory.save();
+        res.status(201).json({
+            message: "Category added successfully",
+            category: newCategory
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Category name already exists" });
+        }
+        console.error("Error adding category:", error);
+        res.status(500).json({ message: "Error adding category" });
+    }
+});
+
+// ✅ DELETE route to remove a category
+router.delete("/categories/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedCategory = await Category.findOneAndDelete({ _id: id, userId: req.user.id });
+
+        if (!deletedCategory) {
+            return res.status(404).json({ message: "Category not found or unauthorized" });
+        }
+
+        res.json({ message: "Category deleted successfully", deletedCategory });
+    } catch (error) {
+        console.error("Error deleting category:", error);
+        res.status(500).json({ message: "Error deleting category" });
     }
 });
 
