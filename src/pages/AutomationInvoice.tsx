@@ -32,8 +32,10 @@ import {
   Receipt,
   Building,
   Shield,
-  Banknote
+  Banknote,
+  Mic
 } from "lucide-react";
+import { parseVoiceInvoiceText } from "@/lib/voiceInvoiceParser";
 import { API_ENDPOINTS } from "@/lib/api";
 
 interface InvoiceItem {
@@ -67,7 +69,7 @@ const AutomationInvoice = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history' | 'voice'>('create');
 
   // State for invoice creation
   const [currentInvoice, setCurrentInvoice] = useState<Invoice>({
@@ -163,6 +165,10 @@ const AutomationInvoice = () => {
   const [ocrText, setOcrText] = useState("");
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  // State for voice dictation
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
@@ -423,16 +429,27 @@ Payment Method: ${currentInvoice.paymentMethod}`;
     const shareUrl = `${host}/invoice/view/${currentInvoice.id}`;
 
     const message = [
-      `📑 *NEW INVOICE RECEIVED*`,
-      `──────────────────────────`,
-      `*Invoice No:* ${currentInvoice.invoiceNumber}`,
-      `*Customer:* ${currentInvoice.customerName}`,
-      `*Amount:* $${currentInvoice.grandTotal.toFixed(2)}`,
-      `──────────────────────────`,
-      `🔗 *View Full Invoice Online:*`,
-      shareUrl,
-      `──────────────────────────`,
-      `_Generated via Invoice Automation System_`
+      `*INVOICE: ${currentInvoice.invoiceNumber}*`,
+      `__________________________`,
+      ` `,
+      `Dear *${currentInvoice.customerName}*,`,
+      ` `,
+      `A new invoice has been generated for your recent transaction with *Saaiss Software Solution*.`,
+      ` `,
+      `*Bill Summary:*`,
+      `• Invoice ID: #${currentInvoice.invoiceNumber}`,
+      `• Date: ${currentInvoice.date}`,
+      `• Total Amount: $${currentInvoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      ` `,
+      `You can view, download, or pay your invoice online using the secure link below:`,
+      `🔗 ${shareUrl}`,
+      ` `,
+      `If you have any questions regarding this invoice, please feel free to reach out to us.`,
+      ` `,
+      `Best regards,`,
+      `*Saaiss Software Solution*`,
+      `__________________________`,
+      `_Powered by Sri Andal Financial Automation_`
     ].join('\n');
 
     const encodedMessage = encodeURIComponent(message);
@@ -451,6 +468,74 @@ Payment Method: ${currentInvoice.paymentMethod}`;
   // Handle back to dashboard
   const handleBackToDashboard = () => {
     navigate("/dashboard");
+  };
+
+  // Apply parsed voice data
+  const handleApplyVoiceData = () => {
+    if (!voiceTranscript) return;
+
+    setIsProcessingVoice(true);
+
+    // Process the transcript
+    const parsedData = parseVoiceInvoiceText(voiceTranscript);
+
+    setTimeout(() => {
+      let fieldsUpdated = 0;
+
+      if (parsedData.invoiceNumber) {
+        setCurrentInvoice(prev => ({ ...prev, invoiceNumber: parsedData.invoiceNumber || prev.invoiceNumber }));
+        fieldsUpdated++;
+      }
+
+      if (parsedData.customerName) {
+        setCurrentInvoice(prev => ({ ...prev, customerName: parsedData.customerName || prev.customerName }));
+        fieldsUpdated++;
+      }
+
+      if (parsedData.items.length > 0) {
+        let newItems: InvoiceItem[] = [...currentInvoice.items];
+
+        parsedData.items.forEach(item => {
+          const subtotal = item.quantity * item.rate;
+          const sgstAmount = (subtotal * 9) / 100; // Default 9%
+          const cgstAmount = (subtotal * 9) / 100; // Default 9%
+
+          newItems.push({
+            id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            product: item.product,
+            quantity: item.quantity,
+            rate: item.rate,
+            subtotal,
+            sgst: sgstAmount,
+            cgst: cgstAmount,
+            igst: 0,
+            total: subtotal + sgstAmount + cgstAmount
+          });
+        });
+
+        const newSubtotal = newItems.reduce((sum, item) => sum + item.subtotal, 0);
+        const newTotalTax = newItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
+
+        setCurrentInvoice(prev => ({
+          ...prev,
+          items: newItems,
+          subtotal: newSubtotal,
+          totalTax: newTotalTax,
+          grandTotal: newSubtotal + newTotalTax
+        }));
+
+        fieldsUpdated += parsedData.items.length;
+      }
+
+      setIsProcessingVoice(false);
+
+      if (fieldsUpdated > 0) {
+        alert(`Voice data applied! Updated ${fieldsUpdated} fields/items.`);
+        setActiveTab('create');
+      } else {
+        alert("Could not extract any invoice details from the transcript. Try being more specific (e.g., 'invoice number...', 'customer...', 'item...')");
+      }
+    }, 1000);
   };
 
   // Calculate item preview
@@ -506,7 +591,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Tabs Navigation */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
           <button
             onClick={() => setActiveTab('create')}
             className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'create'
@@ -573,6 +658,29 @@ Payment Method: ${currentInvoice.paymentMethod}`;
               </div>
             </div>
             <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'history' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
+              }`} />
+          </button>
+
+          <button
+            onClick={() => setActiveTab('voice')}
+            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'voice'
+              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
+              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
+              }`}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${activeTab === 'voice'
+                ? 'bg-blue-500/20 border border-blue-400/30'
+                : 'bg-white/5 border border-blue-400/20'
+                }`}>
+                <Mic className="h-6 w-6 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-xl font-bold text-white">Voice Input</h3>
+                <p className="text-blue-200/70 text-sm">Dictate invoice details</p>
+              </div>
+            </div>
+            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'voice' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
               }`} />
           </button>
         </div>
@@ -1284,6 +1392,108 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        {/* Voice Tab */}
+        {activeTab === 'voice' && (
+          <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+              <Mic className="h-6 w-6 text-blue-400" />
+              Voice Dictation Mode
+            </h2>
+            <p className="text-blue-200/70 mb-8">
+              Dictate your invoice details naturally. Mention invoice number, customer name, and items with quantities and rates.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Dictation Area */}
+              <div className="space-y-6">
+                <div className="border-2 border-dashed border-blue-400/30 rounded-3xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl relative group">
+                  <div className="flex flex-col items-center gap-6">
+                    <VoiceButton
+                      onTranscript={(text) => setVoiceTranscript(prev => prev + " " + text)}
+                      onClear={() => setVoiceTranscript("")}
+                      size="lg"
+                      className="scale-150 mb-4"
+                    />
+                    <div>
+                      <p className="text-xl font-bold text-white mb-2">
+                        Hold the mic to speak
+                      </p>
+                      <p className="text-sm text-blue-300/80">
+                        Try: "Invoice number INV-101, customer John Doe, add item Table quantity 2 rate 5000"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleApplyVoiceData}
+                    disabled={!voiceTranscript || isProcessingVoice}
+                    className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${!voiceTranscript || isProcessingVoice
+                      ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white hover:scale-[1.02] shadow-2xl shadow-blue-500/30'
+                      }`}
+                  >
+                    {isProcessingVoice ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-5 w-5" />
+                        Apply Voice Data
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setVoiceTranscript("")}
+                    className="px-6 py-4 bg-white/5 text-blue-300 rounded-2xl font-medium hover:bg-red-500/20 hover:text-red-300 transition-all duration-300 border border-blue-400/20 hover:border-red-400/30"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Transcript Display */}
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-blue-100">
+                  Live Transcript Preview
+                </label>
+                <div className="border border-blue-400/20 rounded-2xl p-6 bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl min-h-[300px] relative">
+                  <textarea
+                    value={voiceTranscript}
+                    onChange={(e) => setVoiceTranscript(e.target.value)}
+                    placeholder="Transcript will appear here as you speak, or you can type/edit manually..."
+                    className="w-full h-full min-h-[250px] bg-transparent text-white font-medium leading-relaxed resize-none focus:outline-none placeholder:text-blue-300/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Guidelines */}
+            <div className="mt-12 p-6 rounded-2xl bg-blue-500/5 border border-blue-400/10">
+              <h3 className="text-lg font-bold text-blue-300 mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Voice Command Tips
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-white">Invoice No:</p>
+                  <p className="text-xs text-blue-200/60 font-mono">"invoice number ABC-123"</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-white">Customer:</p>
+                  <p className="text-xs text-blue-200/60 font-mono">"customer name Jane Smith"</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-white">Adding Items:</p>
+                  <p className="text-xs text-blue-200/60 font-mono">"item Laptop quantity 1 price 45000"</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
