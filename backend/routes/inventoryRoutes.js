@@ -15,6 +15,9 @@ const inventorySchema = new mongoose.Schema({
     quantity: { type: Number, required: true, default: 0 },
     price: { type: Number, required: true },
     category: { type: String, default: 'General' },
+    sgst: { type: Number, default: 0 },
+    cgst: { type: Number, default: 0 },
+    igst: { type: Number, default: 0 },
     lastUpdated: { type: Date, default: Date.now },
 });
 
@@ -22,6 +25,7 @@ const InventoryItem = mongoose.model("InventoryItem", inventorySchema);
 
 import jwt from "jsonwebtoken";
 import Sale from "../models/Sale.js";
+import Category from "../models/Category.js";
 
 // Middleware to verify token
 const verifyToken = (req, res, next) => {
@@ -42,14 +46,17 @@ const verifyToken = (req, res, next) => {
 // ✅ POST route to add inventory item
 router.post("/add", verifyToken, async (req, res) => {
     try {
-        const { itemName, sku, quantity, price, category } = req.body;
+        const { itemName, sku, quantity, price, category, sgst, cgst, igst } = req.body;
         const newItem = new InventoryItem({
             userId: req.user.id,
             itemName,
             sku,
             quantity,
             price,
-            category
+            category,
+            sgst: Number(sgst) || 0,
+            cgst: Number(cgst) || 0,
+            igst: Number(igst) || 0
         });
         await newItem.save();
         res.status(201).json({
@@ -88,12 +95,19 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
             return res.status(400).json({ message: "Insufficient stock" });
         }
 
-        // Financial Calculations
+        // Financial Calculations using Item's stored taxes
         const subtotal = item.price * quantitySold;
-        const gstAmount = (subtotal * gstRate) / 100;
-        const grandTotal = subtotal + gstAmount;
 
-        // Create Sale Record
+        const sgstAmount = (subtotal * (item.sgst || 0)) / 100;
+        const cgstAmount = (subtotal * (item.cgst || 0)) / 100;
+        const igstAmount = (subtotal * (item.igst || 0)) / 100;
+
+        const totalGstAmount = sgstAmount + cgstAmount + igstAmount;
+        const totalGstRate = (item.sgst || 0) + (item.cgst || 0) + (item.igst || 0);
+
+        const grandTotal = subtotal + totalGstAmount;
+
+        // Create Sale Record with breakdown
         const newSale = new Sale({
             userId: req.user.id,
             inventoryItemId: item._id,
@@ -102,8 +116,14 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
             quantitySold,
             unitPrice: item.price,
             subtotal,
-            gstRate,
-            gstAmount,
+            sgstRate: item.sgst || 0,
+            cgstRate: item.cgst || 0,
+            igstRate: item.igst || 0,
+            sgstAmount,
+            cgstAmount,
+            igstAmount,
+            gstRate: totalGstRate,
+            gstAmount: totalGstAmount,
             grandTotal
         });
 
@@ -148,6 +168,63 @@ router.delete("/:id", verifyToken, async (req, res) => {
         res.json({ message: "Item deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error deleting item", error });
+    }
+});
+
+// ✅ GET route to fetch all categories for the user
+router.get("/categories", verifyToken, async (req, res) => {
+    try {
+        const customCategories = await Category.find({ userId: req.user.id, type: "inventory" });
+        res.json({ categories: customCategories });
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ message: "Error fetching categories" });
+    }
+});
+
+// ✅ POST route to add a new category
+router.post("/categories", verifyToken, async (req, res) => {
+    try {
+        const { name } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ message: "Category name is required" });
+        }
+
+        const newCategory = new Category({
+            userId: req.user.id,
+            name,
+            type: "inventory"
+        });
+
+        await newCategory.save();
+        res.status(201).json({
+            message: "Category added successfully",
+            category: newCategory
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Category name already exists" });
+        }
+        console.error("Error adding category:", error);
+        res.status(500).json({ message: "Error adding category" });
+    }
+});
+
+// ✅ DELETE route to remove a category
+router.delete("/categories/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedCategory = await Category.findOneAndDelete({ _id: id, userId: req.user.id, type: "inventory" });
+
+        if (!deletedCategory) {
+            return res.status(404).json({ message: "Category not found or unauthorized" });
+        }
+
+        res.json({ message: "Category deleted successfully", deletedCategory });
+    } catch (error) {
+        console.error("Error deleting category:", error);
+        res.status(500).json({ message: "Error deleting category" });
     }
 });
 

@@ -12,7 +12,7 @@ const categorySchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["income", "expense", "all"],
+        enum: ["income", "expense", "all", "inventory"],
         default: "all",
     },
     createdAt: {
