@@ -35,8 +35,9 @@ import {
   Banknote,
   Mic
 } from "lucide-react";
-import { parseVoiceInvoiceText } from "@/lib/voiceInvoiceParser";
+import { parseVoiceInvoiceText, parseInvoiceText } from "@/lib/voiceInvoiceParser";
 import { API_ENDPOINTS } from "@/lib/api";
+import Tesseract from "tesseract.js";
 
 interface InvoiceItem {
   id: string;
@@ -163,6 +164,7 @@ const AutomationInvoice = () => {
 
   // State for OCR
   const [ocrText, setOcrText] = useState("");
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
@@ -344,32 +346,30 @@ const AutomationInvoice = () => {
   };
 
   // Handle file upload for OCR
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsProcessingOcr(true);
+    setOcrProgress(0);
     setUploadedImage(URL.createObjectURL(file));
 
-    // Simulate OCR processing
-    setTimeout(() => {
-      const mockOcrText = `INVOICE #INV-2024-003
-Date: ${new Date().toISOString().split('T')[0]}
-Customer: Global Traders Ltd.
-
-Product                Qty   Rate   Total
-VC Pillow              2     250    500
-Pillow Cover VC 85     1     85     85
-
-Subtotal: 585
-SGST (9%): 52.65
-CGST (9%): 52.65
-IGST (0%): 0
-Grand Total: 690.3`;
-
-      setOcrText(mockOcrText);
+    try {
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        }
+      });
+      setOcrText(result.data.text);
+    } catch (error) {
+      console.error("OCR Error:", error);
+      alert("Failed to extract text from image.");
+    } finally {
       setIsProcessingOcr(false);
-    }, 2000);
+      setOcrProgress(0);
+    }
   };
 
   // Export invoice
@@ -1209,7 +1209,13 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <div className="border border-blue-400/20 rounded-2xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl">
                     <div className="flex flex-col items-center gap-4">
                       <div className="h-12 w-12 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin" />
-                      <p className="text-white font-bold text-lg">Processing OCR...</p>
+                      <p className="text-white font-bold text-lg">Processing OCR... {ocrProgress}%</p>
+                      <div className="w-full max-w-xs bg-blue-900/40 rounded-full h-2 mt-2 border border-blue-400/20 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-blue-400 to-indigo-500 h-full transition-all duration-300"
+                          style={{ width: `${ocrProgress}%` }}
+                        />
+                      </div>
                       <p className="text-sm text-blue-300/80">Extracting text from image</p>
                     </div>
                   </div>
@@ -1224,17 +1230,45 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <div className="mt-6 flex gap-3">
                       <button
                         onClick={() => {
-                          if (ocrText.includes("VC Pillow")) {
-                            setNewItem({
-                              product: "VC Pillow",
-                              quantity: 2,
-                              rate: 250,
-                              sgst: 9,
-                              cgst: 9,
-                              igst: 0
+                          const parsed = parseInvoiceText(ocrText);
+
+                          if (parsed.items.length > 0 || parsed.invoiceNumber || parsed.customerName) {
+                            const newInvoiceItems = parsed.items.map(item => {
+                              const subtotal = item.quantity * item.rate;
+                              const sgst = (subtotal * 9) / 100; // Default 9%
+                              const cgst = (subtotal * 9) / 100;
+                              const igst = 0;
+                              return {
+                                id: Math.random().toString(36).substr(2, 9),
+                                product: item.product,
+                                quantity: item.quantity,
+                                rate: item.rate,
+                                subtotal: subtotal,
+                                sgst: sgst,
+                                cgst: cgst,
+                                igst: igst,
+                                total: subtotal + sgst + cgst + igst
+                              };
                             });
+
+                            const newSubtotal = newInvoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
+                            const newTotalTax = newInvoiceItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
+
+                            setCurrentInvoice(prev => ({
+                              ...prev,
+                              invoiceNumber: parsed.invoiceNumber || prev.invoiceNumber,
+                              customerName: parsed.customerName || prev.customerName,
+                              date: parsed.invoiceDate || prev.date,
+                              items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
+                              subtotal: newInvoiceItems.length > 0 ? newSubtotal : prev.subtotal,
+                              totalTax: newInvoiceItems.length > 0 ? newTotalTax : prev.totalTax,
+                              grandTotal: newInvoiceItems.length > 0 ? (newSubtotal + newTotalTax) : prev.grandTotal
+                            }));
+
                             setActiveTab('create');
-                            alert("Auto-filled VC Pillow from OCR text!");
+                            alert(`Extracted details from OCR!`);
+                          } else {
+                            alert("Extracted text, but couldn't identify specific fields. You can manually copy the text.");
                           }
                         }}
                         className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-blue-500/30"
