@@ -23,40 +23,58 @@ import BankReconciliation from "./pages/BankReconciliation";
 import FraudDetection from "./pages/FraudDetection";
 import AutomationInvoice from "./pages/AutomationInvoice";
 import PublicInvoiceView from "./pages/PublicInvoiceView";
+import ServerIssues from "./pages/ServerIssues";
+
+
+
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/payroll" element={<Payroll />} />
-          <Route path="/tax-gst" element={<TaxGST />} />
+const App = () => {
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
 
-          <Route path="/balance-sheet" element={<BalanceSheet />} />
-          <Route path="/profit-loss" element={<ProfitLoss />} />
-          <Route path="/cashflow" element={<CashFlow />} />
-          <Route path="*" element={<NotFound />} />
-          <Route path="/civil-engineering" element={<CivilEngineering />} />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
 
-          <Route path="/cashflow-statement" element={<CashFlowStatement />} />
-          <Route path="/financial-ratios" element={<FinancialRatios />} />
-          <Route path="/bookkeeping" element={<Bookkeeping />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/bank-reconciliation" element={<BankReconciliation />} />
-          <Route path="/fraud-detection" element={<FraudDetection />} />
-          <Route path="/invoice" element={<AutomationInvoice />} />
-          <Route path="/invoice/view/:id" element={<PublicInvoiceView />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            {/* Maintenance Mode Gates */}
+            <Route
+              path="/auth"
+              element={isMaintenanceMode ? <ServerIssues /> : <Auth />}
+            />
+
+            <Route
+              path="/dashboard"
+              element={isMaintenanceMode ? <ServerIssues /> : <Dashboard />}
+            />
+
+            <Route path="/payroll" element={isMaintenanceMode ? <ServerIssues /> : <Payroll />} />
+            <Route path="/tax-gst" element={isMaintenanceMode ? <ServerIssues /> : <TaxGST />} />
+            <Route path="/balance-sheet" element={isMaintenanceMode ? <ServerIssues /> : <BalanceSheet />} />
+            <Route path="/profit-loss" element={isMaintenanceMode ? <ServerIssues /> : <ProfitLoss />} />
+            <Route path="/cashflow" element={isMaintenanceMode ? <ServerIssues /> : <CashFlow />} />
+            <Route path="/civil-engineering" element={isMaintenanceMode ? <ServerIssues /> : <CivilEngineering />} />
+            <Route path="/cashflow-statement" element={isMaintenanceMode ? <ServerIssues /> : <CashFlowStatement />} />
+            <Route path="/financial-ratios" element={isMaintenanceMode ? <ServerIssues /> : <FinancialRatios />} />
+            <Route path="/bookkeeping" element={isMaintenanceMode ? <ServerIssues /> : <Bookkeeping />} />
+            <Route path="/inventory" element={isMaintenanceMode ? <ServerIssues /> : <Inventory />} />
+            <Route path="/bank-reconciliation" element={isMaintenanceMode ? <ServerIssues /> : <BankReconciliation />} />
+            <Route path="/fraud-detection" element={isMaintenanceMode ? <ServerIssues /> : <FraudDetection />} />
+            <Route path="/invoice" element={isMaintenanceMode ? <ServerIssues /> : <AutomationInvoice />} />
+            <Route path="/invoice/view/:id" element={<PublicInvoiceView />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
 
 export default App;
