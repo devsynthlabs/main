@@ -249,7 +249,7 @@ const Auth = () => {
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Sri Andal Financial Automation Private Limited",
+        name: "SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED",
         description: `${subscriptionPlans[selectedPlan].name} - ₹${subscriptionPlans[selectedPlan].totalAmount}`,
         order_id: orderData.orderId,
         handler: async function (response: RazorpayResponse) {
@@ -380,7 +380,7 @@ const Auth = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                  Sri Andal Financial Automation Private Limited
+                  SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
                 </h1>
                 <p className="text-blue-200 text-sm">Powered by AI Technology</p>
               </div>

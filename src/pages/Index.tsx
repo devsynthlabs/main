@@ -82,7 +82,7 @@ const Index = () => {
                 width="100%"
                 height="100%"
                 src="https://www.youtube.com/embed/L83KfmWD3Pg?si=et24Kysqr38PY2XI&autoplay=1"
-                title="Sri Andal Financial Automation Private Limited Demo"
+                title="SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED Demo"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -94,7 +94,7 @@ const Index = () => {
             {/* Video Info */}
             <div className="mt-6 text-center">
               <h3 className="text-2xl font-bold text-white mb-2">
-                Sri Andal Financial Automation Private Limited Demo
+                SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED Demo
               </h3>
               <p className="text-blue-200">
                 See how our platform transforms financial management for businesses
@@ -136,8 +136,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)] leading-tight">
-                Sri Andal<br />
-                <span className="text-sm font-bold opacity-80">Financial Automation Private Limited</span>
+                SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
               </h1>
               <p className="text-xs text-blue-300/70 font-bold">Powered by AI</p>
             </div>
@@ -442,7 +441,7 @@ const Index = () => {
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/60 group-hover:rotate-12 transition-transform duration-300">
                   <Building2 className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="font-black text-white">Sri Andal Financial Automation Private Limited</h4>
+                <h4 className="font-black text-white">SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED</h4>
               </div>
               <p className="text-blue-200/70 text-sm font-medium">Empowering businesses with intelligent financial solutions.</p>
             </div>
@@ -473,7 +472,7 @@ const Index = () => {
           </div>
           <div className="border-t border-blue-400/20 pt-8 text-center">
             <p className="text-blue-200/60 text-sm font-medium">
-              © 2025 Sri Andal Financial Automation Private Limited. All rights reserved.
+              © 2025 SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED. All rights reserved.
             </p>
           </div>
         </div>

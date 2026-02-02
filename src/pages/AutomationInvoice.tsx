@@ -58,6 +58,8 @@ interface Invoice {
   date: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
+  customerGSTIN: string;
   items: InvoiceItem[];
   subtotal: number;
   totalTax: number;
@@ -79,6 +81,8 @@ const AutomationInvoice = () => {
     date: new Date().toISOString().split('T')[0],
     customerName: "",
     customerEmail: "",
+    customerPhone: "",
+    customerGSTIN: "",
     items: [],
     subtotal: 0,
     totalTax: 0,
@@ -105,6 +109,8 @@ const AutomationInvoice = () => {
       date: "2024-01-15",
       customerName: "Tech Solutions Inc.",
       customerEmail: "accounting@techsolutions.com",
+      customerPhone: "9876543210",
+      customerGSTIN: "33AAAAA1234A1Z5",
       items: [
         {
           id: "1",
@@ -141,6 +147,8 @@ const AutomationInvoice = () => {
       date: "2024-01-10",
       customerName: "Global Traders Ltd.",
       customerEmail: "finance@globaltraders.com",
+      customerPhone: "9123456789",
+      customerGSTIN: "33BBBBB5678B1Z2",
       items: [
         {
           id: "3",
@@ -293,7 +301,9 @@ const AutomationInvoice = () => {
         dueDate: dueDateObj.toISOString(),
         customerName: currentInvoice.customerName.trim(),
         customerEmail: currentInvoice.customerEmail.trim(),
-        businessName: "Saaiss Software Solution",
+        customerPhone: currentInvoice.customerPhone?.trim(),
+        customerGSTIN: currentInvoice.customerGSTIN?.trim(),
+        businessName: "SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED",
         businessEmail: "info@saaiss.in",
         items: currentInvoice.items.map(item => ({
           productName: item.product,
@@ -405,11 +415,11 @@ Customer: ${currentInvoice.customerName}
 Email: ${currentInvoice.customerEmail}
 
 Items:
-${currentInvoice.items.map(item => `- ${item.product}: ${item.quantity} x $${item.rate} = $${item.total}`).join('\n')}
+${currentInvoice.items.map(item => `- ${item.product}: ${item.quantity} x ₹${item.rate} = ₹${item.total}`).join('\n')}
 
-Subtotal: $${currentInvoice.subtotal.toFixed(2)}
-Tax: $${currentInvoice.totalTax.toFixed(2)}
-Grand Total: $${currentInvoice.grandTotal.toFixed(2)}
+Subtotal: ₹${currentInvoice.subtotal.toFixed(2)}
+Tax: ₹${currentInvoice.totalTax.toFixed(2)}
+Grand Total: ₹${currentInvoice.grandTotal.toFixed(2)}
 Status: ${currentInvoice.status}
 Payment Method: ${currentInvoice.paymentMethod}`;
 
@@ -434,12 +444,12 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       ` `,
       `Dear *${currentInvoice.customerName}*,`,
       ` `,
-      `A new invoice has been generated for your recent transaction with *Saaiss Software Solution*.`,
+      `A new invoice has been generated for your recent transaction with *SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED*.`,
       ` `,
       `*Bill Summary:*`,
       `• Invoice ID: #${currentInvoice.invoiceNumber}`,
       `• Date: ${currentInvoice.date}`,
-      `• Total Amount: $${currentInvoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `• Total Amount: ₹${currentInvoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       ` `,
       `You can view, download, or pay your invoice online using the secure link below:`,
       `🔗 ${shareUrl}`,
@@ -447,9 +457,9 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       `If you have any questions regarding this invoice, please feel free to reach out to us.`,
       ` `,
       `Best regards,`,
-      `*Saaiss Software Solution*`,
+      `*SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED*`,
       `__________________________`,
-      `_Powered by Sri Andal Financial Automation_`
+      `_Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED_`
     ].join('\n');
 
     const encodedMessage = encodeURIComponent(message);
@@ -761,6 +771,42 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       />
                     </div>
                   </div>
+                  <div className="space-y-3 group">
+                    <label className="block text-sm font-medium text-blue-100">
+                      Phone Number
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={currentInvoice.customerPhone}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerPhone: e.target.value }))}
+                        placeholder="Enter phone number"
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerPhone: text.replace(/\s/g, '') }))}
+                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerPhone: "" }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3 group">
+                    <label className="block text-sm font-medium text-blue-100">
+                      GST No
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={currentInvoice.customerGSTIN}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: e.target.value.toUpperCase() }))}
+                        placeholder="22AAAAA0000A1Z5"
+                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: text.replace(/\s/g, '').toUpperCase() }))}
+                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: "" }))}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -825,7 +871,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
                   <div className="space-y-3 group">
                     <label className="block text-sm font-medium text-blue-100">
-                      Rate ($)
+                      Rate (₹)
                     </label>
                     <input
                       type="number"

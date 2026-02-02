@@ -287,7 +287,7 @@ ${dataToUse.status === 'positive' ?
 
 ────────────────────────────────────────────────────────────────────────
 Generated: ${new Date().toLocaleString('en-IN')}
-Powered by Sri Andal Financial Automation Private Limited
+Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
     `.trim();
 
     const blob = new Blob([slipContent], { type: 'text/plain;charset=utf-8' });

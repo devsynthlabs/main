@@ -238,8 +238,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white drop-shadow-2xl tracking-tight leading-tight">
-                Sri Andal<br />
-                <span className="text-sm font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Financial Automation Private Limited</span>
+                SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <Activity className="h-3 w-3 text-green-400 animate-pulse" />
@@ -399,7 +398,7 @@ const Dashboard = () => {
         className="border-t border-blue-400/20 bg-white/5 text-center py-10 mt-24 backdrop-blur-2xl relative z-10"
       >
         <p className="text-blue-200/70 text-sm font-medium mb-2">
-          © 2025 Sri Andal Financial Automation Private Limited. All rights reserved.
+          © 2025 SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED. All rights reserved.
         </p>
         <p className="text-blue-300/50 text-xs">
           Powered by AI-driven intelligent solutions • Built with ❤️ for modern businesses

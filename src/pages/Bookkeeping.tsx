@@ -1066,7 +1066,7 @@ const Bookkeeping = () => {
 
                 <div className="mt-8 text-center">
                     <p className="text-emerald-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-emerald-400/20">
-                        Powered by Sri Andal Financial Automation Private Limited ✨
+                        Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
                     </p>
                 </div>
             </main>
