@@ -829,7 +829,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                         onClick={() => loadPredefinedProduct(product.name, product.rate)}
                         className="px-4 py-2 bg-white/5 text-blue-100 rounded-xl text-sm hover:bg-blue-500/20 hover:text-white transition-all duration-300 border border-blue-400/20 hover:border-blue-400/40 backdrop-blur-xl"
                       >
-                        {product.name} (${product.rate})
+                        {product.name} (₹{product.rate})
                       </button>
                     ))}
                   </div>
@@ -936,17 +936,17 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Rate:</div>
-                        <div className="font-medium text-blue-300">${newItem.rate.toFixed(2)}</div>
+                        <div className="font-medium text-blue-300">₹{newItem.rate.toFixed(2)}</div>
                       </div>
 
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Subtotal:</div>
-                        <div className="font-medium text-indigo-300">${itemPreview.subtotal.toFixed(2)}</div>
+                        <div className="font-medium text-indigo-300">₹{itemPreview.subtotal.toFixed(2)}</div>
                       </div>
 
                       <div className="space-y-1">
                         <div className="text-blue-200/70 text-sm">Total:</div>
-                        <div className="font-bold text-blue-400 text-lg">${itemPreview.total.toFixed(2)}</div>
+                        <div className="font-bold text-blue-400 text-lg">₹{itemPreview.total.toFixed(2)}</div>
                       </div>
                     </div>
                   </div>
@@ -986,16 +986,16 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                           <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5 transition-colors duration-300">
                             <td className="py-4 px-6 text-white">{item.product}</td>
                             <td className="py-4 px-6 text-blue-200">{item.quantity}</td>
-                            <td className="py-4 px-6 text-blue-300">${item.rate.toFixed(2)}</td>
-                            <td className="py-4 px-6 text-indigo-300">${item.subtotal.toFixed(2)}</td>
+                            <td className="py-4 px-6 text-blue-300">₹{item.rate.toFixed(2)}</td>
+                            <td className="py-4 px-6 text-indigo-300">₹{item.subtotal.toFixed(2)}</td>
                             <td className="py-4 px-6">
                               <div className="text-xs space-y-1">
-                                <div className="text-blue-400">SGST: ${item.sgst.toFixed(2)}</div>
-                                <div className="text-indigo-400">CGST: ${item.cgst.toFixed(2)}</div>
-                                <div className="text-purple-400">IGST: ${item.igst.toFixed(2)}</div>
+                                <div className="text-blue-400">SGST: ₹{item.sgst.toFixed(2)}</div>
+                                <div className="text-indigo-400">CGST: ₹{item.cgst.toFixed(2)}</div>
+                                <div className="text-purple-400">IGST: ₹{item.igst.toFixed(2)}</div>
                               </div>
                             </td>
-                            <td className="py-4 px-6 font-bold text-blue-400">${item.total.toFixed(2)}</td>
+                            <td className="py-4 px-6 font-bold text-blue-400">₹{item.total.toFixed(2)}</td>
                             <td className="py-4 px-6">
                               <button
                                 onClick={() => removeItem(item.id)}
@@ -1026,14 +1026,14 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
                     <span className="text-blue-100 text-lg">Subtotal</span>
                     <span className="text-xl font-bold text-blue-300">
-                      ${currentInvoice.subtotal.toFixed(2)}
+                      ₹{currentInvoice.subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
                     <span className="text-blue-100 text-lg">Total Tax</span>
                     <span className="text-xl font-semibold text-blue-400">
-                      ${currentInvoice.totalTax.toFixed(2)}
+                      ₹{currentInvoice.totalTax.toFixed(2)}
                     </span>
                   </div>
 
@@ -1041,7 +1041,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-semibold text-white">Grand Total</span>
                       <span className="text-3xl font-bold text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                        ${currentInvoice.grandTotal.toFixed(2)}
+                        ₹{currentInvoice.grandTotal.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -1167,7 +1167,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                   <div className="flex justify-between items-center py-3 border-b border-blue-400/10">
                     <span className="text-blue-200">Avg. Item Value</span>
                     <span className="font-medium text-blue-300">
-                      ${currentInvoice.items.length > 0 ? (currentInvoice.subtotal / currentInvoice.items.length).toFixed(2) : '0.00'}
+                      ₹{currentInvoice.items.length > 0 ? (currentInvoice.subtotal / currentInvoice.items.length).toFixed(2) : '0.00'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-3">
@@ -1408,20 +1408,20 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                               <div className="flex items-center gap-2">
                                 <DollarSign className="h-4 w-4 text-blue-400" />
                                 <span className="text-sm text-blue-300 font-medium">
-                                  Subtotal: ${invoice.subtotal.toFixed(2)}
+                                  Subtotal: ₹{invoice.subtotal.toFixed(2)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Percent className="h-4 w-4 text-indigo-400" />
                                 <span className="text-sm text-indigo-300 font-medium">
-                                  Tax: ${invoice.totalTax.toFixed(2)}
+                                  Tax: ₹{invoice.totalTax.toFixed(2)}
                                 </span>
                               </div>
                             </div>
 
                             <div className="pt-4 border-t border-blue-400/20">
                               <p className="text-lg font-bold text-transparent bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text group-hover:from-blue-200 group-hover:to-indigo-200">
-                                Grand Total: ${invoice.grandTotal.toFixed(2)}
+                                Grand Total: ₹{invoice.grandTotal.toFixed(2)}
                               </p>
                             </div>
                           </div>
