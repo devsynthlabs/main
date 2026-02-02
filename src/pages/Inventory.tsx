@@ -13,6 +13,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ArrowLeft, Plus, Trash2, Package, Search, Archive, ShoppingCart, Loader2, Shield, Mic, Save } from "lucide-react";
 import { parseVoiceInventoryText } from "@/lib/voiceInventoryParser";
 import { API_BASE_URL } from "@/lib/api";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface InventoryItem {
     _id?: string;
@@ -61,6 +71,10 @@ const Inventory = () => {
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [isSavingCategory, setIsSavingCategory] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+    const [isCategoryDeleteDialogOpen, setIsCategoryDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [isItemDeleteDialogOpen, setIsItemDeleteDialogOpen] = useState(false);
 
     // Sell Dialog State
     const [isSellDialogOpen, setIsSellDialogOpen] = useState(false);
@@ -142,22 +156,30 @@ const Inventory = () => {
         }
     };
 
-    const handleDeleteCategory = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this category?")) return;
+    const handleDeleteCategory = (id: string) => {
+        setCategoryToDelete(id);
+        setIsCategoryDeleteDialogOpen(true);
+    };
+
+    const confirmDeleteCategory = async () => {
+        if (!categoryToDelete) return;
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`${API_BASE_URL}/inventory/categories/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/inventory/categories/${categoryToDelete}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
-                setCustomCategories(prev => prev.filter(cat => cat._id !== id));
+                setCustomCategories(prev => prev.filter(cat => cat._id !== categoryToDelete));
                 toast.success("Category deleted");
             } else {
                 toast.error("Failed to delete category");
             }
         } catch (error) {
             toast.error("Error deleting category");
+        } finally {
+            setIsCategoryDeleteDialogOpen(false);
+            setCategoryToDelete(null);
         }
     };
 
@@ -324,12 +346,17 @@ const Inventory = () => {
         }
     };
 
-    const deleteItem = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this item?")) return;
+    const deleteItem = (id: string) => {
+        setItemToDelete(id);
+        setIsItemDeleteDialogOpen(true);
+    };
+
+    const confirmDeleteItem = async () => {
+        if (!itemToDelete) return;
 
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`${API_BASE_URL}/inventory/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/inventory/${itemToDelete}`, {
                 method: 'DELETE',
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -337,7 +364,7 @@ const Inventory = () => {
             });
 
             if (res.ok) {
-                setItems(prev => prev.filter(item => item._id !== id));
+                setItems(prev => prev.filter(item => item._id !== itemToDelete));
                 toast.success("Item deleted");
             } else {
                 toast.error("Failed to delete item");
@@ -345,6 +372,9 @@ const Inventory = () => {
         } catch (error) {
             console.error("Error deleting item:", error);
             toast.error("Error deleting item");
+        } finally {
+            setIsItemDeleteDialogOpen(false);
+            setItemToDelete(null);
         }
     };
 
@@ -415,7 +445,7 @@ const Inventory = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-violet-950 to-purple-950 text-white overflow-hidden relative">
+        <div className="min-h-screen bg-slate-900 text-white overflow-hidden relative">
             {/* Background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
@@ -945,6 +975,55 @@ const Inventory = () => {
                         </Card>
                     </TabsContent>
                 </Tabs>
+                <AlertDialog open={isItemDeleteDialogOpen} onOpenChange={setIsItemDeleteDialogOpen}>
+                    <AlertDialogContent className="bg-slate-900/95 backdrop-blur-xl border-emerald-500/20 text-emerald-50 max-w-md rounded-3xl">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                <Trash2 className="h-6 w-6 text-red-400" />
+                                Delete Item?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-emerald-200/60 text-base">
+                                This action cannot be undone. This will permanently delete the item from your inventory.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="gap-3 mt-6">
+                            <AlertDialogCancel className="bg-white/5 border-emerald-500/20 text-emerald-100 hover:bg-white/10 hover:text-white rounded-xl h-12 px-6">
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={confirmDeleteItem}
+                                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white border-0 rounded-xl h-12 px-6 font-bold shadow-lg shadow-red-500/20"
+                            >
+                                Delete Permanently
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog open={isCategoryDeleteDialogOpen} onOpenChange={setIsCategoryDeleteDialogOpen}>
+                    <AlertDialogContent className="bg-slate-900/95 backdrop-blur-xl border-emerald-500/20 text-emerald-50 max-w-md rounded-3xl">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                <Trash2 className="h-6 w-6 text-red-400" />
+                                Delete Category?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-emerald-200/60 text-base">
+                                Are you sure you want to delete this category? This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="gap-3 mt-6">
+                            <AlertDialogCancel className="bg-white/5 border-emerald-500/20 text-emerald-100 hover:bg-white/10 hover:text-white rounded-xl h-12 px-6">
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={confirmDeleteCategory}
+                                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white border-0 rounded-xl h-12 px-6 font-bold shadow-lg shadow-red-500/20"
+                            >
+                                Delete Category
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </main>
         </div>
     );

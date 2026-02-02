@@ -148,7 +148,7 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
 router.get("/sales", verifyToken, async (req, res) => {
     try {
         const sales = await Sale.find({ userId: req.user.id }).sort({ saleDate: -1 });
-        res.json(sales);
+        res.json({ sales });
     } catch (error) {
         console.error("Error fetching sales:", error);
         res.status(500).json({ message: "Error fetching sales history" });

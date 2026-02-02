@@ -15,6 +15,16 @@ import { format, subDays, startOfMonth, endOfMonth, subMonths, isSameDay, isToda
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, DollarSign, Filter, BarChart3, FileText, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BookkeepingEntry {
     id: string;
@@ -58,6 +68,10 @@ const Bookkeeping = () => {
     const [customCategories, setCustomCategories] = useState<any[]>([]);
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
+
+    // Deletion State
+    const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const DEFAULT_CATEGORIES = [
         "General", "Transportation", "Furniture", "Utilities", "Travel",
@@ -131,6 +145,7 @@ const Bookkeeping = () => {
                 const data = await response.json();
                 setEntries(data.entries.map((entry: any) => ({
                     ...entry,
+                    id: entry._id, // Map MongoDB _id to id
                     date: new Date(entry.date),
                     createdAt: new Date(entry.createdAt),
                     type: (entry.type === 'income' || entry.type === 'Income') ? 'Income' : 'Expenses'
@@ -287,6 +302,7 @@ const Bookkeeping = () => {
                 const data = await response.json();
                 const newEntry = {
                     ...data.entry,
+                    id: data.entry._id, // Map MongoDB _id to id
                     date: new Date(data.entry.date),
                     createdAt: new Date(data.entry.createdAt),
                     // Map backend type back to frontend expected capitalization if needed or update frontend to handle lowercase
@@ -317,27 +333,35 @@ const Bookkeeping = () => {
     };
 
     // Delete entry
-    const deleteEntry = async (id: string) => {
-        if (window.confirm("Are you sure you want to delete this entry?")) {
-            try {
-                const token = localStorage.getItem("token");
-                const response = await fetch(`${API_BASE_URL}/bookkeeping/${id}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
+    const handleDeleteClick = (id: string) => {
+        setEntryToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
 
-                if (response.ok) {
-                    setEntries(prev => prev.filter(entry => entry.id !== id));
-                    toast.success("Entry deleted successfully");
-                } else {
-                    toast.error("Failed to delete entry");
+    const confirmDelete = async () => {
+        if (!entryToDelete) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_BASE_URL}/bookkeeping/${entryToDelete}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
                 }
-            } catch (error) {
-                console.error("Error deleting entry:", error);
-                toast.error("Error deleting entry");
+            });
+
+            if (response.ok) {
+                setEntries(prev => prev.filter(entry => entry.id !== entryToDelete));
+                toast.success("Entry deleted successfully");
+            } else {
+                toast.error("Failed to delete entry");
             }
+        } catch (error) {
+            console.error("Error deleting entry:", error);
+            toast.error("Error deleting entry");
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setEntryToDelete(null);
         }
     };
 
@@ -633,7 +657,7 @@ const Bookkeeping = () => {
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="sm"
-                                                                        onClick={() => deleteEntry(entry.id)}
+                                                                        onClick={() => handleDeleteClick(entry.id)}
                                                                         className="text-red-300/60 hover:text-red-200 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
@@ -1046,6 +1070,31 @@ const Bookkeeping = () => {
                     </p>
                 </div>
             </main>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="bg-slate-900/95 backdrop-blur-xl border-emerald-500/20 text-emerald-50 max-w-md rounded-3xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-bold flex items-center gap-2">
+                            <Trash2 className="h-6 w-6 text-red-400" />
+                            Delete Entry?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-emerald-200/60 text-base">
+                            This action cannot be undone. This will permanently delete the bookkeeping entry from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-3 mt-6">
+                        <AlertDialogCancel className="bg-white/5 border-emerald-500/20 text-emerald-100 hover:bg-white/10 hover:text-white rounded-xl h-12 px-6">
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white border-0 rounded-xl h-12 px-6 font-bold shadow-lg shadow-red-500/20"
+                        >
+                            Delete Permanently
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div >
     );
 };
