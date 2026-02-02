@@ -3,13 +3,14 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
+import pdfParse from "pdf-parse";
 import fs from "fs";
 import path from "path";
 
 const router = express.Router();
 
 // Configure multer for file uploads
-const upload = multer({ 
+const upload = multer({
   dest: 'uploads/',
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
@@ -17,17 +18,17 @@ const upload = multer({
 // ✅ Fraud Detection Rule Schema
 const fraudRuleSchema = new mongoose.Schema({
   ruleName: { type: String, required: true },
-  ruleType: { 
-    type: String, 
-    enum: ['amount_threshold', 'time_based', 'frequency', 'pattern', 'custom'], 
-    required: true 
+  ruleType: {
+    type: String,
+    enum: ['amount_threshold', 'time_based', 'frequency', 'pattern', 'custom'],
+    required: true
   },
   conditions: { type: Object, required: true }, // JSON conditions
   threshold: { type: Number, required: true },
-  severity: { 
-    type: String, 
-    enum: ['low', 'medium', 'high', 'critical'], 
-    required: true 
+  severity: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'critical'],
+    required: true
   },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
@@ -42,15 +43,15 @@ const fraudTransactionSchema = new mongoose.Schema({
   category: { type: String },
   merchant: { type: String },
   accountNumber: { type: String },
-  detectionMethod: { 
-    type: String, 
-    enum: ['rule_based', 'zscore', 'isolation_forest', 'ml_model', 'manual'] 
+  detectionMethod: {
+    type: String,
+    enum: ['rule_based', 'zscore', 'isolation_forest', 'ml_model', 'manual']
   },
   fraudScore: { type: Number, min: 0, max: 1 },
-  status: { 
-    type: String, 
-    enum: ['pending', 'reviewing', 'confirmed_fraud', 'confirmed_legit', 'false_positive'], 
-    default: 'pending' 
+  status: {
+    type: String,
+    enum: ['pending', 'reviewing', 'confirmed_fraud', 'confirmed_legit', 'false_positive'],
+    default: 'pending'
   },
   appliedRules: [{ type: String }],
   metadata: { type: Object },
@@ -60,10 +61,10 @@ const fraudTransactionSchema = new mongoose.Schema({
 // ✅ Detection Analysis Schema
 const detectionAnalysisSchema = new mongoose.Schema({
   analysisId: { type: String, required: true, unique: true },
-  algorithm: { 
-    type: String, 
-    enum: ['rule_based', 'zscore', 'isolation_forest', 'ensemble'], 
-    required: true 
+  algorithm: {
+    type: String,
+    enum: ['rule_based', 'zscore', 'isolation_forest', 'ensemble'],
+    required: true
   },
   parameters: { type: Object, required: true },
   totalTransactions: { type: Number, required: true },
@@ -84,7 +85,7 @@ const DetectionAnalysis = mongoose.model("DetectionAnalysis", detectionAnalysisS
 const processUploadedFile = async (filePath, fileType) => {
   try {
     let data = [];
-    
+
     if (fileType === 'csv') {
       return new Promise((resolve, reject) => {
         fs.createReadStream(filePath)
@@ -102,8 +103,51 @@ const processUploadedFile = async (filePath, fileType) => {
       data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
       fs.unlinkSync(filePath); // Clean up file
       return data;
+    } else if (fileType === 'pdf') {
+      // PDF parsing
+      const dataBuffer = fs.readFileSync(filePath);
+      const pdfData = await pdfParse(dataBuffer);
+
+      // Parse text content - assumes table format with columns separated by multiple spaces or tabs
+      const lines = pdfData.text.split('\n').filter(line => line.trim());
+
+      if (lines.length < 2) {
+        fs.unlinkSync(filePath);
+        throw new Error('PDF appears to be empty or has insufficient data');
+      }
+
+      // Extract header (first line) - split by multiple spaces or tabs
+      const header = lines[0].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
+
+      // Parse data rows
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
+
+        // Only process rows that have data
+        if (values.length > 0) {
+          const row = {};
+
+          // Map values to headers (handle cases where values might not match header count)
+          header.forEach((key, index) => {
+            row[key] = values[index] || '';
+          });
+
+          // Only add row if it has at least an amount or description
+          if (row.Amount || row.Description || row.Date) {
+            data.push(row);
+          }
+        }
+      }
+
+      fs.unlinkSync(filePath); // Clean up file
+
+      if (data.length === 0) {
+        throw new Error('No valid transaction data found in PDF. Please ensure the PDF contains a table with Date, Amount, and Description columns.');
+      }
+
+      return data;
     }
-    
+
     throw new Error('Unsupported file type');
   } catch (error) {
     throw error;
@@ -123,10 +167,10 @@ router.post("/upload", upload.single('file'), async (req, res) => {
 
     // Process the uploaded file
     const transactions = await processUploadedFile(filePath, fileType);
-    
+
     // Apply fraud detection based on algorithm
     let flaggedTransactions = [];
-    
+
     switch (algorithm) {
       case 'rule_based':
         flaggedTransactions = await applyRuleBasedDetection(transactions, parameters);
@@ -172,9 +216,9 @@ router.post("/upload", upload.single('file'), async (req, res) => {
 
   } catch (error) {
     console.error("Error processing file:", error);
-    res.status(500).json({ 
-      message: "Error processing file", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error processing file",
+      error: error.message
     });
   }
 });
@@ -265,7 +309,7 @@ const applyIsolationForestDetection = async (transactions, params) => {
 
   // Mock Isolation Forest - in production, use sklearn-isolation-forest or similar
   const flaggedCount = Math.max(1, Math.floor(transactions.length * contamination));
-  
+
   // Simple heuristic: flag transactions with highest amounts
   const transactionsWithIndex = transactions
     .map((tx, index) => ({
@@ -299,9 +343,9 @@ router.post("/rules/add", async (req, res) => {
     const ruleData = req.body;
     const newRule = new FraudRule(ruleData);
     await newRule.save();
-    res.status(201).json({ 
-      message: "Fraud rule added successfully!", 
-      rule: newRule 
+    res.status(201).json({
+      message: "Fraud rule added successfully!",
+      rule: newRule
     });
   } catch (error) {
     console.error("Error adding fraud rule:", error);
@@ -325,13 +369,13 @@ router.put("/rules/:id/toggle", async (req, res) => {
     if (!rule) {
       return res.status(404).json({ message: "Rule not found" });
     }
-    
+
     rule.isActive = !rule.isActive;
     await rule.save();
-    
-    res.json({ 
-      message: `Rule ${rule.isActive ? 'activated' : 'deactivated'}`, 
-      rule 
+
+    res.json({
+      message: `Rule ${rule.isActive ? 'activated' : 'deactivated'}`,
+      rule
     });
   } catch (error) {
     console.error("Error toggling rule:", error);
@@ -342,18 +386,18 @@ router.put("/rules/:id/toggle", async (req, res) => {
 // ✅ 6. Get Flagged Transactions
 router.get("/transactions", async (req, res) => {
   try {
-    const { 
-      status, 
-      startDate, 
-      endDate, 
-      minAmount, 
+    const {
+      status,
+      startDate,
+      endDate,
+      minAmount,
       maxAmount,
-      page = 1, 
-      limit = 50 
+      page = 1,
+      limit = 50
     } = req.query;
-    
+
     const query = {};
-    
+
     if (status) query.status = status;
     if (startDate || endDate) {
       query.date = {};
@@ -365,16 +409,16 @@ router.get("/transactions", async (req, res) => {
       if (minAmount) query.amount.$gte = parseFloat(minAmount);
       if (maxAmount) query.amount.$lte = parseFloat(maxAmount);
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const transactions = await FraudTransaction.find(query)
       .sort({ analyzedAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     const total = await FraudTransaction.countDocuments(query);
-    
+
     res.json({
       transactions,
       pagination: {
@@ -395,27 +439,27 @@ router.put("/transactions/:id/status", async (req, res) => {
   try {
     const { status, notes } = req.body;
     const validStatuses = ['pending', 'reviewing', 'confirmed_fraud', 'confirmed_legit', 'false_positive'];
-    
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
-    
+
     const transaction = await FraudTransaction.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         status,
         ...(notes && { $push: { notes } })
       },
       { new: true }
     );
-    
+
     if (!transaction) {
       return res.status(404).json({ message: "Transaction not found" });
     }
-    
-    res.json({ 
-      message: "Transaction status updated", 
-      transaction 
+
+    res.json({
+      message: "Transaction status updated",
+      transaction
     });
   } catch (error) {
     console.error("Error updating transaction:", error);
@@ -426,17 +470,17 @@ router.put("/transactions/:id/status", async (req, res) => {
 // ✅ 8. Get Detection Analysis History
 router.get("/analysis", async (req, res) => {
   try {
-    const { 
-      userId, 
-      algorithm, 
-      startDate, 
+    const {
+      userId,
+      algorithm,
+      startDate,
       endDate,
-      page = 1, 
-      limit = 20 
+      page = 1,
+      limit = 20
     } = req.query;
-    
+
     const query = {};
-    
+
     if (userId) query.userId = userId;
     if (algorithm) query.algorithm = algorithm;
     if (startDate || endDate) {
@@ -444,16 +488,16 @@ router.get("/analysis", async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const analyses = await DetectionAnalysis.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-    
+
     const total = await DetectionAnalysis.countDocuments(query);
-    
+
     res.json({
       analyses,
       pagination: {
@@ -474,28 +518,28 @@ router.get("/stats", async (req, res) => {
   try {
     const now = new Date();
     const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
+
     // Get basic counts
     const totalTransactions = await FraudTransaction.countDocuments();
     const flaggedTransactions = await FraudTransaction.countDocuments({ status: { $ne: 'confirmed_legit' } });
     const confirmedFraud = await FraudTransaction.countDocuments({ status: 'confirmed_fraud' });
     const falsePositives = await FraudTransaction.countDocuments({ status: 'false_positive' });
-    
+
     // Get recent analysis
     const recentAnalyses = await DetectionAnalysis.find({
       createdAt: { $gte: last30Days }
     }).sort({ createdAt: -1 }).limit(10);
-    
+
     // Get status distribution
     const statusDistribution = await FraudTransaction.aggregate([
       { $group: { _id: "$status", count: { $sum: 1 } } }
     ]);
-    
+
     // Get detection method distribution
     const methodDistribution = await FraudTransaction.aggregate([
       { $group: { _id: "$detectionMethod", count: { $sum: 1 } } }
     ]);
-    
+
     // Get amount statistics
     const amountStats = await FraudTransaction.aggregate([
       {
@@ -508,7 +552,7 @@ router.get("/stats", async (req, res) => {
         }
       }
     ]);
-    
+
     res.json({
       overview: {
         totalTransactions,
@@ -535,23 +579,23 @@ router.get("/stats", async (req, res) => {
 router.get("/export", async (req, res) => {
   try {
     const { format = 'csv', startDate, endDate } = req.query;
-    
+
     const query = {};
     if (startDate || endDate) {
       query.date = {};
       if (startDate) query.date.$gte = new Date(startDate);
       if (endDate) query.date.$lte = new Date(endDate);
     }
-    
+
     const transactions = await FraudTransaction.find(query).sort({ date: -1 });
-    
+
     if (format === 'csv') {
       let csvContent = "Transaction ID,Date,Amount,Description,Detection Method,Fraud Score,Status\n";
-      
+
       transactions.forEach(tx => {
         csvContent += `"${tx.transactionId}","${tx.date.toISOString()}","${tx.amount}","${tx.description}","${tx.detectionMethod}","${tx.fraudScore}","${tx.status}"\n`;
       });
-      
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=fraud_transactions_${Date.now()}.csv`);
       res.send(csvContent);

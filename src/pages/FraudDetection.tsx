@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, Search, FileText, Download, Shield, AlertTriangle, Filter, Plus, Cpu, Database, Calculator, History, Trash2, Eye } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Upload, Search, FileText, Download, Shield, AlertTriangle, Filter, Plus, Cpu, Database, Calculator, History, Trash2, Eye, Bell, Mail, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface Transaction {
@@ -80,6 +81,10 @@ const FraudDetection = () => {
   const [detectionHistory, setDetectionHistory] = useState<DetectionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyPosition, setHistoryPosition] = useState(0);
+
+  // Alert Dialog State
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [alertDetails, setAlertDetails] = useState<Transaction[]>([]);
 
   // Sample Data (kept for type safety reference if needed, but unused)
   const sampleTransactions: Transaction[] = [];
@@ -201,6 +206,37 @@ const FraudDetection = () => {
         // because backend only returned flagged ones for performance/preview.
         // We will just show flagged ones.
         setTransactions([]);
+
+        // 🚨 FRAUD ALERT LOGIC - Show alerts for flagged transactions
+        if (flagged.length > 0) {
+          // Count high-risk transactions (exceeding threshold)
+          const highRiskTransactions = flagged.filter(tx => tx.amount >= formData.amountThreshold);
+
+          // Show toast notifications for high-risk transactions
+          if (highRiskTransactions.length > 0) {
+            highRiskTransactions.forEach((tx, index) => {
+              setTimeout(() => {
+                toast.error(`⚠️ Fraud Alert: ₹${tx.amount.toLocaleString()} transaction detected!`, {
+                  description: `${tx.description} - Fraud Score: ${tx.fraudScore.toFixed(2)}`,
+                  duration: 6000,
+                  action: {
+                    label: "View Details",
+                    onClick: () => {
+                      setAlertDetails(flagged);
+                      setShowAlertDialog(true);
+                    }
+                  }
+                });
+              }, index * 300); // Stagger toasts by 300ms
+            });
+          }
+
+          // Show alert dialog with all flagged transactions
+          setAlertDetails(flagged);
+          setTimeout(() => {
+            setShowAlertDialog(true);
+          }, highRiskTransactions.length * 300 + 500); // Show after toasts
+        }
 
         // Refresh stats and history
         fetchStats();
@@ -367,7 +403,7 @@ const FraudDetection = () => {
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileUpload}
-                      accept=".csv,.xlsx,.xls"
+                      accept=".csv,.xlsx,.xls,.pdf"
                       className="hidden"
                     />
                     <Button
@@ -376,7 +412,7 @@ const FraudDetection = () => {
                     >
                       <Upload className="h-6 w-6" />
                       <span className="font-medium">
-                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Upload CSV / Excel"}
+                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Upload CSV / Excel / PDF"}
                       </span>
                     </Button>
                   </div>
@@ -912,6 +948,123 @@ const FraudDetection = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* 🚨 Fraud Alert Dialog */}
+        <AlertDialog open={showAlertDialog} onOpenChange={setShowAlertDialog}>
+          <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-red-950 to-slate-900 border-2 border-red-500/50 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-3 text-3xl font-black text-red-400">
+                <div className="p-3 bg-red-500/20 rounded-xl animate-pulse">
+                  <AlertTriangle className="h-8 w-8 text-red-400" />
+                </div>
+                🚨 Fraud Detection Alert
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-red-200/80 text-lg">
+                {alertDetails.length} suspicious transaction{alertDetails.length !== 1 ? 's' : ''} detected exceeding the configured threshold
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {/* Alert Summary Stats */}
+            <div className="grid grid-cols-3 gap-4 my-6">
+              <div className="p-4 bg-red-500/10 rounded-xl border border-red-400/30">
+                <p className="text-xs text-red-300/70">Total Flagged</p>
+                <p className="text-2xl font-bold text-red-400">{alertDetails.length}</p>
+              </div>
+              <div className="p-4 bg-orange-500/10 rounded-xl border border-orange-400/30">
+                <p className="text-xs text-orange-300/70">Highest Amount</p>
+                <p className="text-2xl font-bold text-orange-400">
+                  ₹{alertDetails.length > 0 ? Math.max(...alertDetails.map(t => t.amount)).toLocaleString() : '0'}
+                </p>
+              </div>
+              <div className="p-4 bg-yellow-500/10 rounded-xl border border-yellow-400/30">
+                <p className="text-xs text-yellow-300/70">Avg. Fraud Score</p>
+                <p className="text-2xl font-bold text-yellow-400">
+                  {alertDetails.length > 0
+                    ? (alertDetails.reduce((sum, t) => sum + t.fraudScore, 0) / alertDetails.length).toFixed(2)
+                    : '0.00'}
+                </p>
+              </div>
+            </div>
+
+            {/* Flagged Transactions Table */}
+            <div className="my-6">
+              <h3 className="text-lg font-bold text-red-300 mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Flagged Transactions
+              </h3>
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-red-400/30">
+                <Table className="bg-white/5">
+                  <TableHeader>
+                    <TableRow className="border-b border-red-400/30">
+                      <TableHead className="text-red-300">Date</TableHead>
+                      <TableHead className="text-red-300">Amount</TableHead>
+                      <TableHead className="text-red-300">Description</TableHead>
+                      <TableHead className="text-red-300">Fraud Score</TableHead>
+                      <TableHead className="text-red-300">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {alertDetails.map((transaction) => (
+                      <TableRow key={transaction.id} className="hover:bg-white/5 border-b border-red-400/10">
+                        <TableCell className="text-red-200">{transaction.date}</TableCell>
+                        <TableCell className="font-bold text-red-400">
+                          ₹{transaction.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-red-200">{transaction.description}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            transaction.fraudScore > 0.7 ? 'bg-red-500/80 text-white' :
+                              transaction.fraudScore > 0.3 ? 'bg-yellow-500/80 text-white' :
+                                'bg-green-500/80 text-white'
+                          }>
+                            {transaction.fraudScore.toFixed(2)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={
+                            transaction.status === 'Fraud' ? 'bg-red-500/80 text-white' :
+                              'bg-yellow-500/80 text-white'
+                          }>
+                            {transaction.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-3">
+              {/* Future Integration Buttons */}
+              <Button
+                disabled
+                className="flex-1 bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/30 cursor-not-allowed"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Send WhatsApp Alert (Coming Soon)
+              </Button>
+              <Button
+                disabled
+                className="flex-1 bg-blue-500/20 text-blue-400 border border-blue-400/30 hover:bg-blue-500/30 cursor-not-allowed"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Email (Coming Soon)
+              </Button>
+              <Button
+                disabled
+                className="flex-1 bg-purple-500/20 text-purple-400 border border-purple-400/30 hover:bg-purple-500/30 cursor-not-allowed"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send SMS (Coming Soon)
+              </Button>
+              <AlertDialogAction className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white">
+                Close
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </main>
     </div>
   );
