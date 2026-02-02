@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-import pdfParse from "pdf-parse";
+// import pdfParse from "pdf-parse"; // Temporarily disabled due to DOMMatrix compatibility issues
 import fs from "fs";
 
 const router = express.Router();
@@ -72,6 +72,11 @@ const processUploadedFile = async (filePath, fileType) => {
             fs.unlinkSync(filePath);
             return data;
         } else if (fileType === 'pdf') {
+            // PDF parsing temporarily disabled due to library compatibility issues
+            fs.unlinkSync(filePath);
+            throw new Error('PDF file format is temporarily not supported. Please use CSV or Excel files.');
+
+            /* Temporarily disabled - pdf-parse has DOMMatrix compatibility issues
             const dataBuffer = fs.readFileSync(filePath);
             const pdfData = await pdfParse(dataBuffer);
             const lines = pdfData.text.split('\n').filter(line => line.trim());
@@ -98,6 +103,7 @@ const processUploadedFile = async (filePath, fileType) => {
 
             fs.unlinkSync(filePath);
             return data;
+            */
         }
 
         throw new Error('Unsupported file type');

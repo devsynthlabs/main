@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-import pdfParse from "pdf-parse";
+// import { createRequire } from "module";
 import fs from "fs";
+
+// const require = createRequire(import.meta.url);
+// const pdfParse = require("pdf-parse"); // Temporarily disabled due to DOMMatrix compatibility issues
 
 const router = express.Router();
 
@@ -72,6 +75,11 @@ const processUploadedFile = async (filePath, fileType) => {
             fs.unlinkSync(filePath);
             return data;
         } else if (fileType === 'pdf') {
+            // PDF parsing temporarily disabled due to library compatibility issues
+            fs.unlinkSync(filePath);
+            throw new Error('PDF file format is temporarily not supported. Please use CSV or Excel files.');
+
+            /* Temporarily disabled - pdf-parse has DOMMatrix compatibility issues
             const dataBuffer = fs.readFileSync(filePath);
             const pdfData = await pdfParse(dataBuffer);
             const lines = pdfData.text.split('\n').filter(line => line.trim());
@@ -98,6 +106,7 @@ const processUploadedFile = async (filePath, fileType) => {
 
             fs.unlinkSync(filePath);
             return data;
+            */
         }
 
         throw new Error('Unsupported file type');
@@ -151,12 +160,25 @@ const parseTime = (timeStr) => {
 // ✅ Calculate match score (0-100)
 const calculateMatchScore = (ledgerTx, bankTx, options) => {
     let score = 0;
-    const weights = {
-        date: 30,
-        time: 10,
-        amount: 40,
-        description: 20
-    };
+
+    // Define weights based on whether time matching is enabled
+    let weights;
+    if (options.useTime) {
+        weights = {
+            date: 30,
+            time: 10,
+            amount: 40,
+            description: 20
+        };
+    } else {
+        // Redistribute time weight to date and amount when time is not used
+        weights = {
+            date: 35,      // 30 + 5
+            time: 0,
+            amount: 45,    // 40 + 5
+            description: 20
+        };
+    }
 
     // Date matching
     const ledgerDate = new Date(ledgerTx.date || ledgerTx.Date);
@@ -180,10 +202,6 @@ const calculateMatchScore = (ledgerTx, bankTx, options) => {
                 score += weights.time * (1 - timeDiff / 60);
             }
         }
-    } else {
-        // If time not used, redistribute weight to other factors
-        weights.date += weights.time / 2;
-        weights.amount += weights.time / 2;
     }
 
     // Amount matching

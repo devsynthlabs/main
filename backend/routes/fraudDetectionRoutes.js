@@ -3,9 +3,12 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-import pdfParse from "pdf-parse";
+// import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
+
+// const require = createRequire(import.meta.url);
+// const pdfParse = require("pdf-parse"); // Temporarily disabled due to DOMMatrix compatibility issues
 
 const router = express.Router();
 
