@@ -25,6 +25,7 @@ const saleSchema = new mongoose.Schema({
     gstRate: { type: Number, required: true, default: 18 }, // Total GST percentage
     gstAmount: { type: Number, required: true }, // Total GST amount
     grandTotal: { type: Number, required: true },
+    stateOfSupply: { type: String, default: "" },
     saleDate: { type: Date, default: Date.now },
 });
 

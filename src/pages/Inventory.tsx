@@ -35,6 +35,7 @@ interface InventoryItem {
     cgst?: number;
     igst?: number;
     lastUpdated?: Date;
+    stateOfSupply: string;
 }
 
 interface SaleItem {
@@ -54,7 +55,17 @@ interface SaleItem {
     gstAmount: number;
     grandTotal: number;
     saleDate: Date;
+    stateOfSupply: string;
 }
+
+const INDIAN_STATES = [
+    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
+    "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
+    "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+    "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+];
 
 const Inventory = () => {
     const navigate = useNavigate();
@@ -80,6 +91,7 @@ const Inventory = () => {
     const [isSellDialogOpen, setIsSellDialogOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [sellQuantity, setSellQuantity] = useState("1");
+    const [sellStateOfSupply, setSellStateOfSupply] = useState("");
     const [isSelling, setIsSelling] = useState(false);
 
     // Form State
@@ -91,7 +103,8 @@ const Inventory = () => {
         category: "General",
         sgst: "0",
         cgst: "0",
-        igst: "0"
+        igst: "0",
+        stateOfSupply: ""
     });
 
     // Voice State
@@ -183,6 +196,18 @@ const Inventory = () => {
         }
     };
 
+    const checkLowStock = (itemsToCheck: InventoryItem[]) => {
+        itemsToCheck.forEach(item => {
+            if (item.quantity > 0 && item.quantity < 10) {
+                toast("Low Stock Alert", {
+                    description: `${item.itemName} (SKU: ${item.sku}) has only ${item.quantity} units left.`,
+                    icon: "⚠️",
+                    duration: 5000,
+                });
+            }
+        });
+    };
+
     const fetchItems = async () => {
         setLoading(true);
         try {
@@ -195,6 +220,8 @@ const Inventory = () => {
             if (res.ok) {
                 const data = await res.json();
                 setItems(data);
+                // Check for low stock on load
+                checkLowStock(data);
             }
         } catch (error) {
             console.error("Error fetching inventory:", error);
@@ -333,7 +360,8 @@ const Inventory = () => {
                     category: "General",
                     sgst: "0",
                     cgst: "0",
-                    igst: "0"
+                    igst: "0",
+                    stateOfSupply: ""
                 });
                 fetchItems();
                 setActiveTab("items");
@@ -381,6 +409,7 @@ const Inventory = () => {
     const handleSellClick = (item: InventoryItem) => {
         setSelectedItem(item);
         setSellQuantity("1");
+        setSellStateOfSupply(item.stateOfSupply || "");
         setIsSellDialogOpen(true);
     };
 
@@ -408,15 +437,27 @@ const Inventory = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    quantitySold: qty
+                    quantitySold: qty,
+                    stateOfSupply: sellStateOfSupply
                 })
             });
 
             if (res.ok) {
+                const data = await res.json();
                 toast.success(`Sold ${qty} units of ${selectedItem.itemName}`);
                 setIsSellDialogOpen(false);
+
+                // Check if remaining stock is low
+                const remainingQty = selectedItem.quantity - qty;
+                if (remainingQty > 0 && remainingQty < 10) {
+                    toast("Low Stock Warning", {
+                        description: `${selectedItem.itemName} is now at ${remainingQty} units.`,
+                        icon: "🚨",
+                        duration: 6000
+                    });
+                }
+
                 fetchItems(); // Refresh items
-                // Optionally switch to sales tab or fetch sales
             } else {
                 const data = await res.json();
                 toast.error(data.message || "Failed to sell item");
@@ -597,6 +638,12 @@ const Inventory = () => {
                                                             <Badge className="bg-emerald-500/20 text-emerald-300 border-none">Sold</Badge>
                                                         </div>
                                                         <p className="text-violet-300/60 text-sm">SKU: {sale.sku} • {new Date(sale.saleDate).toLocaleDateString()}</p>
+                                                        {sale.stateOfSupply && (
+                                                            <div className="flex items-center gap-1 mt-1">
+                                                                <Shield className="h-3 w-3 text-violet-400/50" />
+                                                                <span className="text-[10px] uppercase tracking-wider text-violet-400/50 font-bold">Supply: {sale.stateOfSupply}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="col-span-2 text-right border-r border-violet-400/10 pr-4">
                                                         <p className="text-violet-300/60 text-xs uppercase">Quantity</p>
@@ -649,6 +696,19 @@ const Inventory = () => {
                                                     min="1"
                                                     max={selectedItem?.quantity}
                                                 />
+                                                <div className="space-y-2">
+                                                    <Label>State of Supply</Label>
+                                                    <Select value={sellStateOfSupply} onValueChange={setSellStateOfSupply}>
+                                                        <SelectTrigger className="bg-white/5 border-violet-400/30 text-white">
+                                                            <SelectValue placeholder="Select State" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-slate-900 border-violet-400/20 text-white max-h-[300px]">
+                                                            {INDIAN_STATES.map(state => (
+                                                                <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
                                                 <p className="text-xs text-violet-400">Stock: {selectedItem?.quantity}</p>
                                             </div>
 
@@ -820,6 +880,22 @@ const Inventory = () => {
                                                 onClear={() => handleInputChange("price", "")}
                                             />
                                         </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Label className="text-violet-100">State of Supply</Label>
+                                        <Select
+                                            value={formData.stateOfSupply}
+                                            onValueChange={(val) => handleInputChange("stateOfSupply", val)}
+                                        >
+                                            <SelectTrigger className="bg-white/5 border-violet-400/30 text-violet-100 h-10">
+                                                <SelectValue placeholder="Select State" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-slate-900 border-violet-400/20 text-white max-h-[300px]">
+                                                {INDIAN_STATES.map(state => (
+                                                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-3">
                                         <Label className="text-violet-100">Quantity</Label>

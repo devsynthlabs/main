@@ -18,6 +18,7 @@ const inventorySchema = new mongoose.Schema({
     sgst: { type: Number, default: 0 },
     cgst: { type: Number, default: 0 },
     igst: { type: Number, default: 0 },
+    stateOfSupply: { type: String, default: "" },
     lastUpdated: { type: Date, default: Date.now },
 });
 
@@ -46,7 +47,7 @@ const verifyToken = (req, res, next) => {
 // ✅ POST route to add inventory item
 router.post("/add", verifyToken, async (req, res) => {
     try {
-        const { itemName, sku, quantity, price, category, sgst, cgst, igst } = req.body;
+        const { itemName, sku, quantity, price, category, sgst, cgst, igst, stateOfSupply } = req.body;
         const newItem = new InventoryItem({
             userId: req.user.id,
             itemName,
@@ -56,7 +57,8 @@ router.post("/add", verifyToken, async (req, res) => {
             category,
             sgst: Number(sgst) || 0,
             cgst: Number(cgst) || 0,
-            igst: Number(igst) || 0
+            igst: Number(igst) || 0,
+            stateOfSupply
         });
         await newItem.save();
         res.status(201).json({
@@ -84,7 +86,7 @@ router.get("/all", verifyToken, async (req, res) => {
 router.post("/sell/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { quantitySold, gstRate = 18 } = req.body; // Default GST 18% if not provided
+        const { quantitySold, gstRate = 18, stateOfSupply } = req.body; // Default GST 18% if not provided
 
         const item = await InventoryItem.findOne({ _id: id, userId: req.user.id });
         if (!item) {
@@ -124,7 +126,8 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
             igstAmount,
             gstRate: totalGstRate,
             gstAmount: totalGstAmount,
-            grandTotal
+            grandTotal,
+            stateOfSupply: stateOfSupply || item.stateOfSupply // fallback to item's state if not provided
         });
 
         // Update Inventory
