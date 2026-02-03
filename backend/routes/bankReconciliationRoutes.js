@@ -3,11 +3,7 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-import { createRequire } from "module";
 import fs from "fs";
-
-const require = createRequire(import.meta.url);
-const PDFParser = require("pdf2json");
 
 const router = express.Router();
 
@@ -74,65 +70,9 @@ const processUploadedFile = async (filePath, fileType) => {
             data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
             fs.unlinkSync(filePath);
             return data;
-        } else if (fileType === 'pdf') {
-            return new Promise((resolve, reject) => {
-                const pdfParser = new PDFParser();
-
-                pdfParser.on('pdfParser_dataError', (errData) => {
-                    fs.unlinkSync(filePath);
-                    reject(new Error(`PDF parsing error: ${errData.parserError}`));
-                });
-
-                pdfParser.on('pdfParser_dataReady', (pdfData) => {
-                    try {
-                        // Extract text from PDF
-                        let text = '';
-                        pdfData.Pages.forEach(page => {
-                            page.Texts.forEach(textItem => {
-                                textItem.R.forEach(run => {
-                                    text += decodeURIComponent(run.T) + ' ';
-                                });
-                                text += '\n';
-                            });
-                        });
-
-                        const lines = text.split('\n').filter(line => line.trim());
-
-                        if (lines.length < 2) {
-                            fs.unlinkSync(filePath);
-                            reject(new Error('PDF appears to be empty'));
-                            return;
-                        }
-
-                        // Parse header and data rows
-                        const header = lines[0].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
-
-                        for (let i = 1; i < lines.length; i++) {
-                            const values = lines[i].split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
-                            if (values.length > 0) {
-                                const row = {};
-                                header.forEach((key, index) => {
-                                    row[key] = values[index] || '';
-                                });
-                                if (row.Amount || row.Description || row.Date) {
-                                    data.push(row);
-                                }
-                            }
-                        }
-
-                        fs.unlinkSync(filePath);
-                        resolve(data);
-                    } catch (error) {
-                        fs.unlinkSync(filePath);
-                        reject(error);
-                    }
-                });
-
-                pdfParser.loadPDF(filePath);
-            });
         }
 
-        throw new Error('Unsupported file type');
+        throw new Error('Unsupported file type. Only CSV and Excel files are supported.');
     } catch (error) {
         throw error;
     }
@@ -561,6 +501,138 @@ router.get("/export/:sessionId", async (req, res) => {
     } catch (error) {
         console.error("Error exporting data:", error);
         res.status(500).json({ message: "Error exporting data" });
+    }
+});
+
+// ✅ 8. Combined reconciliation endpoint (upload both files at once)
+router.post("/reconcile", upload.fields([
+    { name: 'ledgerFile', maxCount: 1 },
+    { name: 'bankFile', maxCount: 1 }
+]), async (req, res) => {
+    try {
+        // Validate files
+        if (!req.files || !req.files.ledgerFile || !req.files.bankFile) {
+            return res.status(400).json({ message: "Both ledger and bank statement files are required" });
+        }
+
+        const ledgerFile = req.files.ledgerFile[0];
+        const bankFile = req.files.bankFile[0];
+
+        // Get file types
+        const ledgerFileType = ledgerFile.originalname.split('.').pop().toLowerCase();
+        const bankFileType = bankFile.originalname.split('.').pop().toLowerCase();
+
+        // Validate file types (only CSV and Excel)
+        const allowedTypes = ['csv', 'xlsx', 'xls'];
+        if (!allowedTypes.includes(ledgerFileType) || !allowedTypes.includes(bankFileType)) {
+            // Clean up files
+            if (fs.existsSync(ledgerFile.path)) fs.unlinkSync(ledgerFile.path);
+            if (fs.existsSync(bankFile.path)) fs.unlinkSync(bankFile.path);
+            return res.status(400).json({ message: "Only CSV and Excel files are supported" });
+        }
+
+        // Get matching options from request
+        const {
+            dateToleranceDays = 3,
+            amountTolerance = 0,
+            descriptionThreshold = 0.7
+        } = req.body;
+
+        const options = {
+            dateToleranceDays: parseInt(dateToleranceDays) || 3,
+            amountTolerance: parseFloat(amountTolerance) || 0,
+            descriptionThreshold: parseFloat(descriptionThreshold) || 0.7,
+            useTime: false
+        };
+
+        // Parse both files
+        const [ledgerData, bankData] = await Promise.all([
+            processUploadedFile(ledgerFile.path, ledgerFileType),
+            processUploadedFile(bankFile.path, bankFileType)
+        ]);
+
+        console.log(`Ledger records: ${ledgerData.length}, Bank records: ${bankData.length}`);
+
+        // Run matching algorithm
+        const { matched, unmatchedLedger, unmatchedBank } = matchTransactions(ledgerData, bankData, options);
+
+        // Format response
+        const formattedMatched = matched.map((m, index) => ({
+            id: `M${index + 1}`,
+            ledger: {
+                id: `L${index + 1}`,
+                date: m.ledgerTransaction.date || m.ledgerTransaction.Date,
+                amount: parseFloat(m.ledgerTransaction.amount || m.ledgerTransaction.Amount || 0),
+                description: m.ledgerTransaction.description || m.ledgerTransaction.Description || '',
+                reference: m.ledgerTransaction.reference || m.ledgerTransaction.Reference || ''
+            },
+            bank: {
+                id: `B${index + 1}`,
+                date: m.bankTransaction.date || m.bankTransaction.Date,
+                amount: parseFloat(m.bankTransaction.amount || m.bankTransaction.Amount || 0),
+                description: m.bankTransaction.description || m.bankTransaction.Description || '',
+                reference: m.bankTransaction.reference || m.bankTransaction.Reference || ''
+            },
+            matchScore: m.matchScore,
+            matchType: m.matchType,
+            differences: m.differences
+        }));
+
+        const formattedLedgerOnly = unmatchedLedger.map((tx, index) => ({
+            id: `UL${index + 1}`,
+            date: tx.date || tx.Date,
+            amount: parseFloat(tx.amount || tx.Amount || 0),
+            description: tx.description || tx.Description || '',
+            reference: tx.reference || tx.Reference || '',
+            status: 'Not in Bank Statement',
+            possibleReason: 'Outstanding cheque, pending transfer, or timing difference'
+        }));
+
+        const formattedBankOnly = unmatchedBank.map((tx, index) => ({
+            id: `UB${index + 1}`,
+            date: tx.date || tx.Date,
+            amount: parseFloat(tx.amount || tx.Amount || 0),
+            description: tx.description || tx.Description || '',
+            reference: tx.reference || tx.Reference || '',
+            status: 'Not in Ledger',
+            possibleReason: 'Bank charges, interest, or unrecorded transaction'
+        }));
+
+        // Calculate summary
+        const summary = {
+            totalLedgerRecords: ledgerData.length,
+            totalBankRecords: bankData.length,
+            matchedCount: matched.length,
+            ledgerOnlyCount: unmatchedLedger.length,
+            bankOnlyCount: unmatchedBank.length,
+            matchRate: ((matched.length / Math.max(ledgerData.length, bankData.length)) * 100).toFixed(2) + '%'
+        };
+
+        res.status(200).json({
+            message: "Reconciliation completed successfully",
+            summary,
+            matched: formattedMatched,
+            ledgerOnly: formattedLedgerOnly,
+            bankOnly: formattedBankOnly
+        });
+
+    } catch (error) {
+        console.error("Reconciliation error:", error);
+
+        // Clean up files if they exist
+        if (req.files) {
+            if (req.files.ledgerFile && fs.existsSync(req.files.ledgerFile[0].path)) {
+                fs.unlinkSync(req.files.ledgerFile[0].path);
+            }
+            if (req.files.bankFile && fs.existsSync(req.files.bankFile[0].path)) {
+                fs.unlinkSync(req.files.bankFile[0].path);
+            }
+        }
+
+        res.status(500).json({
+            message: "Error during reconciliation",
+            error: error.message
+        });
     }
 });
 

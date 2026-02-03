@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Upload, RefreshCw, CheckCircle, XCircle, AlertCircle, Download, FileText, BanknoteIcon, TrendingUp, Plus } from "lucide-react";
+import { ArrowLeft, Upload, RefreshCw, CheckCircle, XCircle, AlertCircle, Download, FileText, BanknoteIcon, TrendingUp, Plus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 interface LedgerEntry {
     id: string;
@@ -53,23 +55,22 @@ const BankReconciliation = () => {
     const [activeTab, setActiveTab] = useState("reconcile");
     const [isReconciling, setIsReconciling] = useState(false);
 
-    // Sample Data State
-    const [ledgerData, setLedgerData] = useState<LedgerEntry[]>([
-        { id: "L1", date: "2024-01-15", description: "Office Rent Payment", amount: 25000, type: "Expense", reference: "INV-001" },
-        { id: "L2", date: "2024-01-16", description: "Client Payment - ABC Corp", amount: 50000, type: "Income", reference: "PMT-001" },
-        { id: "L3", date: "2024-01-17", description: "Utility Bills", amount: 8000, type: "Expense", reference: "INV-002" },
-        { id: "L4", date: "2024-01-18", description: "Equipment Purchase", amount: 30000, type: "Expense", reference: "INV-003" },
-        { id: "L5", date: "2024-01-19", description: "Consulting Fee", amount: 25000, type: "Income", reference: "PMT-002" },
-    ]);
+    // File upload refs
+    const ledgerFileRef = useRef<HTMLInputElement>(null);
+    const bankFileRef = useRef<HTMLInputElement>(null);
 
-    const [bankData, setBankData] = useState<BankEntry[]>([
-        { id: "B1", date: "2024-01-15", description: "OFFICE RENT", amount: 25000, type: "Debit", reference: "TRN-001" },
-        { id: "B2", date: "2024-01-16", description: "CREDIT ABC CORP", amount: 50000, type: "Credit", reference: "TRN-002" },
-        { id: "B3", date: "2024-01-17", description: "ELECTRICITY BILL", amount: 8000, type: "Debit", reference: "TRN-003" },
-        { id: "B4", date: "2024-01-18", description: "EQUIPMENT SUPPLIER", amount: 30000, type: "Debit", reference: "TRN-004" },
-        { id: "B5", date: "2024-01-25", description: "BANK CHARGES", amount: 500, type: "Debit", reference: "TRN-005" },
-        { id: "B6", date: "2024-01-26", description: "INTEREST EARNED", amount: 1200, type: "Credit", reference: "TRN-006" },
-    ]);
+    // File state
+    const [ledgerFile, setLedgerFile] = useState<File | null>(null);
+    const [bankFile, setBankFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+    // Session state
+    const [sessionId, setSessionId] = useState<string | null>(null);
+
+    // Sample Data State (will be replaced by uploaded data)
+    const [ledgerData, setLedgerData] = useState<LedgerEntry[]>([]);
+
+    const [bankData, setBankData] = useState<BankEntry[]>([]);
 
     // Reconciliation Results
     const [reconciliationResults, setReconciliationResults] = useState<ReconciliationResult[]>([]);
@@ -114,118 +115,154 @@ const BankReconciliation = () => {
         setFilteredResults(filtered);
     }, [reconciliationResults, filterStatus]);
 
-    // Calculate summary
-    useEffect(() => {
-        const totalLedgerEntries = ledgerData.length;
-        const totalBankEntries = bankData.length;
-        const matchedEntries = reconciliationResults.filter(r => r.status === "Matched").length;
-        const unmatchedLedger = reconciliationResults.filter(r => r.status === "Unmatched Ledger").length;
-        const unmatchedBank = reconciliationResults.filter(r => r.status === "Unmatched Bank").length;
+    // Summary is set directly from API response in performReconciliation()
 
-        const reconciliationRate = totalLedgerEntries > 0
-            ? ((matchedEntries / Math.max(totalLedgerEntries, totalBankEntries)) * 100).toFixed(2)
-            : "0.00";
+    // Handle ledger file selection
+    const handleLedgerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const fileType = file.name.split('.').pop()?.toLowerCase();
+            if (!['csv', 'xlsx', 'xls'].includes(fileType || '')) {
+                toast.error("Please upload CSV or Excel files only");
+                return;
+            }
+            setLedgerFile(file);
+            toast.success(`Ledger file selected: ${file.name}`);
+        }
+    };
 
-        setSummary({
-            totalLedgerEntries,
-            totalBankEntries,
-            matchedEntries,
-            unmatchedLedger,
-            unmatchedBank,
-            reconciliationRate
-        });
-    }, [ledgerData, bankData, reconciliationResults]);
+    // Handle bank file selection
+    const handleBankFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const fileType = file.name.split('.').pop()?.toLowerCase();
+            if (!['csv', 'xlsx', 'xls'].includes(fileType || '')) {
+                toast.error("Please upload CSV or Excel files only");
+                return;
+            }
+            setBankFile(file);
+            toast.success(`Bank statement selected: ${file.name}`);
+        }
+    };
 
-    // Reconciliation function
-    const performReconciliation = () => {
+    // Reconciliation function using backend API
+    const performReconciliation = async () => {
+        if (!ledgerFile || !bankFile) {
+            toast.error("Please upload both ledger and bank statement files");
+            return;
+        }
+
         setIsReconciling(true);
 
-        // Simulate reconciliation process
-        setTimeout(() => {
-            const results: ReconciliationResult[] = [];
+        try {
+            // Create FormData with both files
+            const formData = new FormData();
+            formData.append('ledgerFile', ledgerFile);
+            formData.append('bankFile', bankFile);
+            formData.append('dateToleranceDays', '3');
+            formData.append('matchingTolerance', '0');
 
-            // Try to match ledger entries with bank entries
-            ledgerData.forEach(ledgerEntry => {
-                let bestMatch: BankEntry | null = null;
-                let bestScore = 0;
+            const response = await fetch(`${API_BASE_URL}/bank-reconciliation/reconcile`, {
+                method: 'POST',
+                body: formData
+            });
 
-                bankData.forEach(bankEntry => {
-                    let score = 0;
+            const data = await response.json();
 
-                    // Amount match
-                    if (Math.abs(ledgerEntry.amount - bankEntry.amount) < 0.01) {
-                        score += 40;
-                    }
+            if (response.ok) {
+                // Map API response to frontend format
+                const results: ReconciliationResult[] = [];
 
-                    // Date proximity (within 2 days)
-                    const ledgerDate = new Date(ledgerEntry.date);
-                    const bankDate = new Date(bankEntry.date);
-                    const dateDiff = Math.abs(ledgerDate.getTime() - bankDate.getTime());
-                    const daysDiff = dateDiff / (1000 * 60 * 60 * 24);
-
-                    if (daysDiff <= 1) score += 30;
-                    else if (daysDiff <= 2) score += 20;
-                    else if (daysDiff <= 3) score += 10;
-
-                    // Description similarity
-                    const ledgerDesc = ledgerEntry.description.toLowerCase();
-                    const bankDesc = bankEntry.description.toLowerCase();
-
-                    if (ledgerDesc.includes(bankDesc.substring(0, 5)) ||
-                        bankDesc.includes(ledgerDesc.substring(0, 5))) {
-                        score += 30;
-                    }
-
-                    if (score > bestScore && score >= 70) {
-                        bestScore = score;
-                        bestMatch = bankEntry;
-                    }
+                // Matched transactions
+                data.matched?.forEach((match: any, index: number) => {
+                    results.push({
+                        id: `M${index + 1}`,
+                        ledgerEntry: {
+                            id: match.ledger.id,
+                            date: match.ledger.date,
+                            description: match.ledger.description,
+                            amount: match.ledger.amount,
+                            type: match.ledger.amount >= 0 ? 'Income' : 'Expense',
+                            reference: match.ledger.reference
+                        },
+                        bankEntry: {
+                            id: match.bank.id,
+                            date: match.bank.date,
+                            description: match.bank.description,
+                            amount: match.bank.amount,
+                            type: match.bank.amount >= 0 ? 'Credit' : 'Debit',
+                            reference: match.bank.reference
+                        },
+                        status: 'Matched',
+                        matchScore: match.matchScore,
+                        reconciledAt: new Date().toLocaleDateString()
+                    });
                 });
 
-                if (bestMatch) {
+                // Ledger only (unmatched)
+                data.ledgerOnly?.forEach((tx: any, index: number) => {
                     results.push({
-                        id: `R${results.length + 1}`,
-                        ledgerEntry,
-                        bankEntry: bestMatch,
-                        status: "Matched",
-                        matchScore: bestScore,
-                        reconciledAt: new Date().toLocaleDateString()
-                    });
-                } else {
-                    results.push({
-                        id: `R${results.length + 1}`,
-                        ledgerEntry,
+                        id: `L${index + 1}`,
+                        ledgerEntry: {
+                            id: tx.id,
+                            date: tx.date,
+                            description: tx.description,
+                            amount: tx.amount,
+                            type: tx.amount >= 0 ? 'Income' : 'Expense',
+                            reference: tx.reference
+                        },
                         bankEntry: null,
-                        status: "Unmatched Ledger",
+                        status: 'Unmatched Ledger',
                         matchScore: 0,
+                        notes: tx.possibleReason,
                         reconciledAt: new Date().toLocaleDateString()
                     });
-                }
-            });
+                });
 
-            // Check for unmatched bank entries
-            const matchedBankIds = results
-                .filter(r => r.bankEntry)
-                .map(r => r.bankEntry!.id);
-
-            bankData.forEach(bankEntry => {
-                if (!matchedBankIds.includes(bankEntry.id)) {
+                // Bank only (unmatched)
+                data.bankOnly?.forEach((tx: any, index: number) => {
                     results.push({
-                        id: `R${results.length + 1}`,
+                        id: `B${index + 1}`,
                         ledgerEntry: null,
-                        bankEntry,
-                        status: "Unmatched Bank",
+                        bankEntry: {
+                            id: tx.id,
+                            date: tx.date,
+                            description: tx.description,
+                            amount: tx.amount,
+                            type: tx.amount >= 0 ? 'Credit' : 'Debit',
+                            reference: tx.reference
+                        },
+                        status: 'Unmatched Bank',
                         matchScore: 0,
+                        notes: tx.possibleReason,
                         reconciledAt: new Date().toLocaleDateString()
                     });
+                });
+
+                // Update summary from API response
+                if (data.summary) {
+                    setSummary({
+                        totalLedgerEntries: data.summary.totalLedgerRecords || 0,
+                        totalBankEntries: data.summary.totalBankRecords || 0,
+                        matchedEntries: data.summary.matchedCount || 0,
+                        unmatchedLedger: data.summary.ledgerOnlyCount || 0,
+                        unmatchedBank: data.summary.bankOnlyCount || 0,
+                        reconciliationRate: data.summary.matchRate?.replace('%', '') || '0.00'
+                    });
                 }
-            });
 
-            setReconciliationResults(results);
+                setReconciliationResults(results);
+                toast.success(`Reconciliation completed! Found ${data.summary?.matchedCount || 0} matches.`);
+                setActiveTab('results');
+            } else {
+                toast.error(data.message || "Reconciliation failed");
+            }
+        } catch (error) {
+            console.error("Reconciliation error:", error);
+            toast.error("Failed to connect to server");
+        } finally {
             setIsReconciling(false);
-
-            alert(`Reconciliation completed! Found ${results.filter(r => r.status === "Matched").length} matches.`);
-        }, 1500);
+        }
     };
 
     // Add manual ledger entry
@@ -449,22 +486,48 @@ Match Score: ${result.matchScore}%
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-4">
-                                                <div className="border-2 border-dashed border-cyan-400/30 rounded-xl p-8 text-center hover:border-cyan-400/50 transition-colors duration-300">
-                                                    <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
-                                                    <p className="text-cyan-200 font-medium">Upload Ledger File</p>
-                                                    <p className="text-cyan-300/60 text-sm">CSV or Excel format</p>
+                                                <input
+                                                    type="file"
+                                                    ref={ledgerFileRef}
+                                                    onChange={handleLedgerFileChange}
+                                                    accept=".csv,.xlsx,.xls"
+                                                    className="hidden"
+                                                />
+                                                <div
+                                                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors duration-300 cursor-pointer ${
+                                                        ledgerFile
+                                                            ? 'border-green-400/50 bg-green-500/10'
+                                                            : 'border-cyan-400/30 hover:border-cyan-400/50'
+                                                    }`}
+                                                    onClick={() => ledgerFileRef.current?.click()}
+                                                >
+                                                    {ledgerFile ? (
+                                                        <>
+                                                            <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                                                            <p className="text-green-300 font-medium">{ledgerFile.name}</p>
+                                                            <p className="text-green-400/60 text-sm">Click to change file</p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+                                                            <p className="text-cyan-200 font-medium">Upload Ledger File</p>
+                                                            <p className="text-cyan-300/60 text-sm">CSV or Excel format</p>
+                                                        </>
+                                                    )}
                                                     <Button
                                                         className="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white"
-                                                        onClick={() => alert("File upload functionality would be implemented here")}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            ledgerFileRef.current?.click();
+                                                        }}
                                                     >
                                                         <Upload className="h-4 w-4 mr-2" />
-                                                        Choose File
+                                                        {ledgerFile ? 'Change File' : 'Choose File'}
                                                     </Button>
                                                 </div>
                                                 <div className="text-sm text-cyan-300/80">
-                                                    <p className="font-medium">Sample Format:</p>
-                                                    <p className="text-xs">Date, Description, Amount, Type, Reference</p>
-                                                    <p className="text-xs">2024-01-15, Office Rent, 25000, Expense, INV-001</p>
+                                                    <p className="font-medium">Required Columns:</p>
+                                                    <p className="text-xs">Date, Amount, Description</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -479,22 +542,48 @@ Match Score: ${result.matchScore}%
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-4">
-                                                <div className="border-2 border-dashed border-blue-400/30 rounded-xl p-8 text-center hover:border-blue-400/50 transition-colors duration-300">
-                                                    <BanknoteIcon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                                                    <p className="text-blue-200 font-medium">Upload Bank Statement</p>
-                                                    <p className="text-blue-300/60 text-sm">CSV or Excel format</p>
+                                                <input
+                                                    type="file"
+                                                    ref={bankFileRef}
+                                                    onChange={handleBankFileChange}
+                                                    accept=".csv,.xlsx,.xls"
+                                                    className="hidden"
+                                                />
+                                                <div
+                                                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors duration-300 cursor-pointer ${
+                                                        bankFile
+                                                            ? 'border-green-400/50 bg-green-500/10'
+                                                            : 'border-blue-400/30 hover:border-blue-400/50'
+                                                    }`}
+                                                    onClick={() => bankFileRef.current?.click()}
+                                                >
+                                                    {bankFile ? (
+                                                        <>
+                                                            <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                                                            <p className="text-green-300 font-medium">{bankFile.name}</p>
+                                                            <p className="text-green-400/60 text-sm">Click to change file</p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <BanknoteIcon className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                                                            <p className="text-blue-200 font-medium">Upload Bank Statement</p>
+                                                            <p className="text-blue-300/60 text-sm">CSV or Excel format</p>
+                                                        </>
+                                                    )}
                                                     <Button
                                                         className="mt-4 bg-blue-600 hover:bg-blue-500 text-white"
-                                                        onClick={() => alert("File upload functionality would be implemented here")}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            bankFileRef.current?.click();
+                                                        }}
                                                     >
                                                         <Upload className="h-4 w-4 mr-2" />
-                                                        Choose File
+                                                        {bankFile ? 'Change File' : 'Choose File'}
                                                     </Button>
                                                 </div>
                                                 <div className="text-sm text-blue-300/80">
-                                                    <p className="font-medium">Sample Format:</p>
-                                                    <p className="text-xs">Date, Description, Amount, Type, Reference</p>
-                                                    <p className="text-xs">2024-01-15, OFFICE RENT, 25000, Debit, TRN-001</p>
+                                                    <p className="font-medium">Required Columns:</p>
+                                                    <p className="text-xs">Date, Amount, Description</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -504,12 +593,12 @@ Match Score: ${result.matchScore}%
                                 <div className="text-center">
                                     <Button
                                         onClick={performReconciliation}
-                                        disabled={isReconciling}
+                                        disabled={isReconciling || !ledgerFile || !bankFile}
                                         className="h-16 px-12 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-lg rounded-2xl shadow-2xl shadow-cyan-500/50 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/70 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isReconciling ? (
                                             <>
-                                                <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                                 Reconciling...
                                             </>
                                         ) : (
@@ -520,7 +609,13 @@ Match Score: ${result.matchScore}%
                                         )}
                                     </Button>
                                     <p className="text-cyan-300/60 text-sm mt-2">
-                                        AI-powered matching based on amount, date, and description
+                                        {!ledgerFile && !bankFile
+                                            ? "Upload both files to start reconciliation"
+                                            : !ledgerFile
+                                            ? "Upload ledger file to continue"
+                                            : !bankFile
+                                            ? "Upload bank statement to continue"
+                                            : "AI-powered matching based on amount, date, and description"}
                                     </p>
                                 </div>
                             </CardContent>
