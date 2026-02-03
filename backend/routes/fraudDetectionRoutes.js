@@ -3,12 +3,15 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-// import { createRequire } from "module";
+import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
+import { execSync } from "child_process";
 
-// const require = createRequire(import.meta.url);
-// const pdfParse = require("pdf-parse"); // Temporarily disabled due to DOMMatrix compatibility issues
+const require = createRequire(import.meta.url);
+const PDFParser = require("pdf2json");
+const pdfParse = require("pdf-parse");
+const Tesseract = require("tesseract.js");
 
 const router = express.Router();
 
@@ -84,6 +87,242 @@ const FraudRule = mongoose.model("FraudRule", fraudRuleSchema);
 const FraudTransaction = mongoose.model("FraudTransaction", fraudTransactionSchema);
 const DetectionAnalysis = mongoose.model("DetectionAnalysis", detectionAnalysisSchema);
 
+// ✅ Helper function to extract amount from text
+const extractAmount = (text) => {
+  // Match currency amounts like $1,234.56 or ₹1234 or 1,234.56
+  const amountMatch = text.match(/[\$₹€£]?\s*([\d,]+\.?\d*)/);
+  if (amountMatch) {
+    const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+    return isNaN(amount) ? 0 : amount;
+  }
+  return 0;
+};
+
+// ✅ Helper function to extract date from text
+const extractDate = (text) => {
+  // Match various date formats
+  const datePatterns = [
+    /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/,  // DD/MM/YYYY or MM/DD/YYYY
+    /(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,    // YYYY-MM-DD
+    /([A-Za-z]+\s+\d{1,2},?\s*\d{4})/,          // Month DD, YYYY
+    /(\d{1,2}\s+[A-Za-z]+\s+\d{4})/             // DD Month YYYY
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+};
+
+// ✅ Helper function to parse PDF lines into transaction data
+const parsePDFLines = (lines) => {
+  const data = [];
+
+  // First, try to find lines with amounts (bank statement style)
+  console.log('📊 Analyzing PDF content for transactions...');
+
+  // Currency pattern - matches $1,234.56 or ₹1234 etc
+  const currencyPattern = /[\$₹€£]\s*[\d,]+\.?\d*/g;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.length < 5) continue;
+
+    // Find all amounts in the line
+    const amounts = line.match(currencyPattern);
+
+    if (amounts && amounts.length > 0) {
+      // Extract the largest amount (likely the transaction amount)
+      let maxAmount = 0;
+      amounts.forEach(amtStr => {
+        const amt = extractAmount(amtStr);
+        if (amt > maxAmount) maxAmount = amt;
+      });
+
+      if (maxAmount > 0) {
+        // Try to extract date
+        const dateStr = extractDate(line);
+
+        // Clean description - remove amounts and dates
+        let description = line
+          .replace(currencyPattern, '')
+          .replace(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Skip if description looks like headers or totals
+        const skipKeywords = ['total', 'balance', 'summary', 'page', 'statement'];
+        const isSkipLine = skipKeywords.some(kw => description.toLowerCase().includes(kw));
+
+        if (!isSkipLine && description.length > 2) {
+          data.push({
+            Date: dateStr || new Date().toLocaleDateString(),
+            Amount: maxAmount,
+            Description: description.substring(0, 100) || 'Transaction'
+          });
+          console.log(`   Found: ${description.substring(0, 40)}... = ${maxAmount}`);
+        }
+      }
+    }
+  }
+
+  // If no currency-style amounts found, try table parsing
+  if (data.length === 0) {
+    console.log('📋 Trying table-based parsing...');
+
+    // Try to find header row
+    let headerIndex = -1;
+    const commonHeaders = ['date', 'amount', 'description', 'transaction', 'debit', 'credit', 'balance', 'particulars', 'narration'];
+
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      const lineLower = lines[i].toLowerCase();
+      const matchCount = commonHeaders.filter(h => lineLower.includes(h)).length;
+      if (matchCount >= 2) {
+        headerIndex = i;
+        console.log(`✅ Found header at line ${i}: "${lines[i]}"`);
+        break;
+      }
+    }
+
+    if (headerIndex >= 0) {
+      const header = lines[headerIndex].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
+
+      for (let i = headerIndex + 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line.split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
+
+        if (values.length >= 2) {
+          const row = {};
+          header.forEach((key, index) => {
+            row[key] = values[index] || '';
+          });
+
+          // Check for amount in any field
+          let amount = 0;
+          for (const val of values) {
+            const extracted = extractAmount(val);
+            if (extracted > amount) amount = extracted;
+          }
+
+          if (amount > 0) {
+            row.Amount = amount;
+            data.push(row);
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`✅ Parsed ${data.length} transaction rows`);
+  return data;
+};
+
+// ✅ Helper function to check if Poppler is available
+const isPopperAvailable = () => {
+  try {
+    execSync('which pdftoppm', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// ✅ Helper function to perform OCR on scanned PDFs
+const performOCR = async (filePath) => {
+  console.log('🔍 Starting OCR process for scanned PDF...');
+
+  // Check if Poppler is available
+  if (!isPopperAvailable()) {
+    throw new Error('OCR requires Poppler to be installed. Run: brew install poppler');
+  }
+
+  // Create temp directory for images
+  const tempDir = path.join(path.dirname(filePath), `ocr_temp_${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  let worker = null;
+
+  try {
+    // Convert PDF to images using pdftoppm (use 150 DPI for faster processing)
+    console.log('📸 Converting PDF to images...');
+    const outputPrefix = path.join(tempDir, 'page');
+
+    try {
+      execSync(`pdftoppm -png -r 150 "${filePath}" "${outputPrefix}"`, {
+        stdio: 'pipe',
+        timeout: 30000 // 30 second timeout
+      });
+    } catch (convertError) {
+      console.error('❌ PDF to image conversion failed:', convertError.message);
+      throw new Error('Failed to convert PDF to images for OCR');
+    }
+
+    // Get all generated images
+    const images = fs.readdirSync(tempDir)
+      .filter(f => f.endsWith('.png'))
+      .sort()
+      .map(f => path.join(tempDir, f));
+
+    console.log(`📄 Generated ${images.length} image(s) from PDF`);
+
+    if (images.length === 0) {
+      throw new Error('Failed to convert PDF to images - no images generated');
+    }
+
+    // Perform OCR on each image
+    let fullText = '';
+
+    console.log('🔤 Initializing Tesseract OCR...');
+    worker = await Tesseract.createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          console.log(`   OCR progress: ${Math.round(m.progress * 100)}%`);
+        }
+      }
+    });
+
+    for (let i = 0; i < images.length; i++) {
+      console.log(`🔤 OCR processing page ${i + 1}/${images.length}...`);
+      try {
+        const { data: { text } } = await worker.recognize(images[i]);
+        fullText += text + '\n';
+        console.log(`   Page ${i + 1}: extracted ${text.length} characters`);
+      } catch (pageError) {
+        console.error(`❌ OCR failed for page ${i + 1}:`, pageError.message);
+      }
+    }
+
+    console.log(`📝 OCR total extracted: ${fullText.length} characters`);
+    if (fullText.length > 0) {
+      console.log('📄 First 500 chars of OCR text:', fullText.substring(0, 500));
+    }
+
+    return fullText;
+  } catch (error) {
+    console.error('❌ OCR process error:', error.message);
+    throw error;
+  } finally {
+    // Terminate worker if it exists
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (e) {
+        console.warn('⚠️ Could not terminate Tesseract worker');
+      }
+    }
+
+    // Cleanup temp directory
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch (e) {
+      console.warn('⚠️ Could not clean up temp directory:', e.message);
+    }
+  }
+};
+
 // ✅ Helper function to process uploaded file
 const processUploadedFile = async (filePath, fileType) => {
   try {
@@ -107,48 +346,122 @@ const processUploadedFile = async (filePath, fileType) => {
       fs.unlinkSync(filePath); // Clean up file
       return data;
     } else if (fileType === 'pdf') {
-      // PDF parsing
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
+      console.log('📄 Processing PDF file...');
 
-      // Parse text content - assumes table format with columns separated by multiple spaces or tabs
-      const lines = pdfData.text.split('\n').filter(line => line.trim());
+      let extractedText = '';
+      let textExtractionWorked = false;
 
-      if (lines.length < 2) {
-        fs.unlinkSync(filePath);
-        throw new Error('PDF appears to be empty or has insufficient data');
+      // Try pdf-parse first (more reliable for most PDFs)
+      try {
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+
+        console.log(`📊 PDF parsed: ${pdfData.numpages} page(s)`);
+        console.log(`📝 Text length: ${pdfData.text.length} characters`);
+
+        if (pdfData.text && pdfData.text.trim().length > 50) {
+          extractedText = pdfData.text;
+          textExtractionWorked = true;
+          console.log('✅ pdf-parse extraction successful');
+        } else {
+          console.log('⚠️ pdf-parse extraction insufficient, trying pdf2json fallback...');
+        }
+      } catch (pdfParseError) {
+        console.warn('⚠️ pdf-parse failed:', pdfParseError.message);
       }
 
-      // Extract header (first line) - split by multiple spaces or tabs
-      const header = lines[0].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
+      // Try pdf2json as fallback for text extraction
+      if (!textExtractionWorked) {
+        try {
+          const pdf2jsonText = await new Promise((resolve, reject) => {
+            const pdfParser = new PDFParser();
 
-      // Parse data rows
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
+            pdfParser.on('pdfParser_dataError', (errData) => {
+              reject(new Error(errData.parserError));
+            });
 
-        // Only process rows that have data
-        if (values.length > 0) {
-          const row = {};
+            pdfParser.on('pdfParser_dataReady', (pdfData) => {
+              let text = '';
+              if (pdfData.Pages) {
+                pdfData.Pages.forEach(page => {
+                  if (page.Texts) {
+                    page.Texts.forEach(textItem => {
+                      if (textItem.R) {
+                        textItem.R.forEach(run => {
+                          try {
+                            text += decodeURIComponent(run.T) + ' ';
+                          } catch (e) {}
+                        });
+                      }
+                      text += '\n';
+                    });
+                  }
+                });
+              }
+              resolve(text);
+            });
 
-          // Map values to headers (handle cases where values might not match header count)
-          header.forEach((key, index) => {
-            row[key] = values[index] || '';
+            pdfParser.loadPDF(filePath);
           });
 
-          // Only add row if it has at least an amount or description
-          if (row.Amount || row.Description || row.Date) {
-            data.push(row);
+          console.log(`📝 pdf2json extracted ${pdf2jsonText.length} characters`);
+
+          if (pdf2jsonText.trim().length > 50) {
+            extractedText = pdf2jsonText;
+            textExtractionWorked = true;
+            console.log('✅ pdf2json extraction successful');
           }
+        } catch (pdf2jsonError) {
+          console.warn('⚠️ pdf2json failed:', pdf2jsonError.message);
         }
       }
 
-      fs.unlinkSync(filePath); // Clean up file
-
-      if (data.length === 0) {
-        throw new Error('No valid transaction data found in PDF. Please ensure the PDF contains a table with Date, Amount, and Description columns.');
+      // If text extraction failed, try OCR
+      if (!textExtractionWorked) {
+        console.log('📷 PDF appears to be scanned/image-based. Attempting OCR...');
+        console.log('⏱️ OCR may take 1-2 minutes for scanned documents...');
+        try {
+          // Add 3 minute timeout for OCR
+          const ocrPromise = performOCR(filePath);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('OCR timed out after 3 minutes')), 180000)
+          );
+          extractedText = await Promise.race([ocrPromise, timeoutPromise]);
+          if (extractedText.trim().length > 50) {
+            textExtractionWorked = true;
+            console.log('✅ OCR extraction successful');
+          }
+        } catch (ocrError) {
+          console.error('❌ OCR failed:', ocrError.message);
+          try { fs.unlinkSync(filePath); } catch (e) {}
+          throw new Error(`Could not extract text from PDF. OCR failed: ${ocrError.message}`);
+        }
       }
 
-      return data;
+      // Clean up file if not already cleaned
+      try { fs.unlinkSync(filePath); } catch (e) {}
+
+      if (!textExtractionWorked || extractedText.trim().length < 50) {
+        throw new Error('PDF appears to be empty or could not be read. Please try uploading a CSV or Excel file instead.');
+      }
+
+      // Parse the extracted text
+      console.log('📄 First 500 chars:', extractedText.substring(0, 500));
+      const lines = extractedText.split('\n').filter(line => line.trim());
+      console.log(`📋 Found ${lines.length} non-empty lines`);
+
+      if (lines.length < 2) {
+        throw new Error('PDF has insufficient data. Please upload a PDF with transaction data in table format.');
+      }
+
+      const result = parsePDFLines(lines);
+
+      if (result.length === 0) {
+        throw new Error('Could not identify transaction data in PDF. Please ensure the PDF contains a table with Date, Amount, and Description columns.');
+      }
+
+      console.log(`✅ Successfully extracted ${result.length} transactions from PDF`);
+      return result;
     }
 
     throw new Error('Unsupported file type');
@@ -159,12 +472,22 @@ const processUploadedFile = async (filePath, fileType) => {
 
 // ✅ 1. Upload and Process Transactions File
 router.post("/upload", upload.single('file'), async (req, res) => {
+  // Set longer timeout for OCR processing (5 minutes)
+  req.setTimeout(300000);
+  res.setTimeout(300000);
+
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     const { algorithm, parameters, userId } = req.body;
+    console.log('Request Body:', req.body);
+
+    console.log('Algorithm:', algorithm);
+    console.log('Parameters:', parameters);
+    console.log('User ID:', userId);
+    console.log('File:', req.file);
     const filePath = req.file.path;
     const fileType = req.file.originalname.split('.').pop().toLowerCase();
 
@@ -219,10 +542,17 @@ router.post("/upload", upload.single('file'), async (req, res) => {
 
   } catch (error) {
     console.error("Error processing file:", error);
-    res.status(500).json({
-      message: "Error processing file",
-      error: error.message
-    });
+    // Clean up uploaded file if it still exists
+    if (req.file && req.file.path) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    // Ensure response is sent
+    if (!res.headersSent) {
+      res.status(500).json({
+        message: "Error processing file",
+        error: error.message
+      });
+    }
   }
 });
 

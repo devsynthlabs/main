@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 import multer from "multer";
 import csvParser from "csv-parser";
 import xlsx from "xlsx";
-// import pdfParse from "pdf-parse"; // Temporarily disabled due to DOMMatrix compatibility issues
+import { createRequire } from "module";
 import fs from "fs";
+
+const require = createRequire(import.meta.url);
+const PDFParser = require("pdf2json");
 
 const router = express.Router();
 
@@ -72,38 +75,61 @@ const processUploadedFile = async (filePath, fileType) => {
             fs.unlinkSync(filePath);
             return data;
         } else if (fileType === 'pdf') {
-            // PDF parsing temporarily disabled due to library compatibility issues
-            fs.unlinkSync(filePath);
-            throw new Error('PDF file format is temporarily not supported. Please use CSV or Excel files.');
+            return new Promise((resolve, reject) => {
+                const pdfParser = new PDFParser();
 
-            /* Temporarily disabled - pdf-parse has DOMMatrix compatibility issues
-            const dataBuffer = fs.readFileSync(filePath);
-            const pdfData = await pdfParse(dataBuffer);
-            const lines = pdfData.text.split('\n').filter(line => line.trim());
+                pdfParser.on('pdfParser_dataError', (errData) => {
+                    fs.unlinkSync(filePath);
+                    reject(new Error(`PDF parsing error: ${errData.parserError}`));
+                });
 
-            if (lines.length < 2) {
-                fs.unlinkSync(filePath);
-                throw new Error('PDF appears to be empty');
-            }
+                pdfParser.on('pdfParser_dataReady', (pdfData) => {
+                    try {
+                        // Extract text from PDF
+                        let text = '';
+                        pdfData.Pages.forEach(page => {
+                            page.Texts.forEach(textItem => {
+                                textItem.R.forEach(run => {
+                                    text += decodeURIComponent(run.T) + ' ';
+                                });
+                                text += '\n';
+                            });
+                        });
 
-            const header = lines[0].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
+                        const lines = text.split('\n').filter(line => line.trim());
 
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
-                if (values.length > 0) {
-                    const row = {};
-                    header.forEach((key, index) => {
-                        row[key] = values[index] || '';
-                    });
-                    if (row.Amount || row.Description || row.Date) {
-                        data.push(row);
+                        if (lines.length < 2) {
+                            fs.unlinkSync(filePath);
+                            reject(new Error('PDF appears to be empty'));
+                            return;
+                        }
+
+                        // Parse header and data rows
+                        const header = lines[0].split(/\s{2,}|\t/).map(h => h.trim()).filter(h => h);
+
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = lines[i].split(/\s{2,}|\t/).map(v => v.trim()).filter(v => v);
+                            if (values.length > 0) {
+                                const row = {};
+                                header.forEach((key, index) => {
+                                    row[key] = values[index] || '';
+                                });
+                                if (row.Amount || row.Description || row.Date) {
+                                    data.push(row);
+                                }
+                            }
+                        }
+
+                        fs.unlinkSync(filePath);
+                        resolve(data);
+                    } catch (error) {
+                        fs.unlinkSync(filePath);
+                        reject(error);
                     }
-                }
-            }
+                });
 
-            fs.unlinkSync(filePath);
-            return data;
-            */
+                pdfParser.loadPDF(filePath);
+            });
         }
 
         throw new Error('Unsupported file type');

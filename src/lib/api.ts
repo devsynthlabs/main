@@ -4,7 +4,7 @@ const isDevelopment = import.meta.env.VITE_DEV_MODE === 'true';
 // Get the appropriate API URL based on environment
 export const getApiUrl = (): string => {
   if (isDevelopment) {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    return import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   }
   return import.meta.env.VITE_PROD_API_URL || 'https://software.saaiss.in/api';
 };

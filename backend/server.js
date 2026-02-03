@@ -84,15 +84,18 @@ const connectToMongoDB = async () => {
       } catch (fallbackErr) {
         console.error("❌ Fallback MongoDB Connection Failed:", fallbackErr.message);
         console.error("💡 Please ensure MongoDB is running locally or check your internet connection");
+        throw fallbackErr; // Throw error to prevent server from starting without DB
       }
     } else {
       console.error("❌ Production MongoDB Connection Failed");
       console.error("💡 Please check your cloud database configuration");
+      throw err; // Throw error to prevent server from starting without DB
     }
   }
 };
 
-connectToMongoDB();
+// Don't call it here - we'll call it before starting the server
+// connectToMongoDB();
 
 // ✅ User Schema
 const userSchema = new mongoose.Schema({
@@ -457,11 +460,25 @@ app.use("/api/fraud-detection", fraudDetectionRoutes);
 app.use("/api/invoice", invoiceRoutes);
 app.use("/api/invoice-summary", invoiceSummaryRoutes);
 
-// ✅ Start Server
+// ✅ Start Server (after MongoDB connection)
 const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running on http://${HOST}:${PORT}`);
-  console.log(`🌐 Local access: http://localhost:${PORT}`);
-  console.log(`📡 Network access: http://192.168.29.49:${PORT}`);
-});
+
+const startServer = async () => {
+  try {
+    // Connect to MongoDB first
+    await connectToMongoDB();
+
+    // Then start the server
+    app.listen(PORT, HOST, () => {
+      console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+      console.log(`🌐 Local access: http://localhost:${PORT}`);
+      console.log(`📡 Network access: http://192.168.29.49:${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

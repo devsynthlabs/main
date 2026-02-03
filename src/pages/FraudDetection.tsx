@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Upload, Search, FileText, Download, Shield, AlertTriangle, Filter, Plus, Cpu, Database, Calculator, History, Trash2, Eye, Bell, Mail, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Transaction {
   id: string;
@@ -93,11 +94,36 @@ const FraudDetection = () => {
   useEffect(() => {
     fetchStats();
     fetchHistory();
+    fetchLatestTransactions();
   }, []);
+
+  // Fetch all flagged transactions from database
+  const fetchLatestTransactions = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/fraud-detection/transactions?limit=100`);
+      const data = await res.json();
+
+      if (res.ok && data.transactions && data.transactions.length > 0) {
+        const flagged: Transaction[] = data.transactions.map((tx: any) => ({
+          id: tx.transactionId,
+          date: new Date(tx.date).toLocaleDateString(),
+          amount: tx.amount,
+          description: tx.description,
+          fraudScore: tx.fraudScore,
+          status: tx.fraudScore > 0.8 ? 'Fraud' : 'Suspicious',
+          method: tx.detectionMethod
+        }));
+        setFlaggedTransactions(flagged);
+        setDetectionComplete(true);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/fraud-detection/stats');
+      const res = await fetch(`${API_BASE_URL}/fraud-detection/stats`);
       const data = await res.json();
       if (res.ok) {
         setDetectionStats({
@@ -114,7 +140,7 @@ const FraudDetection = () => {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/fraud-detection/analysis');
+      const res = await fetch(`${API_BASE_URL}/fraud-detection/analysis`);
       const data = await res.json();
       if (res.ok && data.analyses) {
         const mappedHistory: DetectionHistory[] = data.analyses.map((a: any) => ({
@@ -179,7 +205,7 @@ const FraudDetection = () => {
     formDataObj.append('userId', 'demo-user'); // Replace with actual user ID
 
     try {
-      const res = await fetch('http://localhost:5000/api/fraud-detection/upload', {
+      const res = await fetch(`${API_BASE_URL}/fraud-detection/upload`, {
         method: 'POST',
         body: formDataObj
       });
@@ -699,7 +725,7 @@ const FraudDetection = () => {
                               <TableCell className="text-blue-200">{transaction.date}</TableCell>
                               <TableCell className={`font-semibold ${transaction.amount >= 10000 ? 'text-red-400' : 'text-blue-300'
                                 }`}>
-                                ${transaction.amount.toLocaleString()}
+                                ₹{transaction.amount.toLocaleString()}
                               </TableCell>
                               <TableCell className="text-blue-200">{transaction.description}</TableCell>
                               <TableCell>
@@ -891,7 +917,7 @@ const FraudDetection = () => {
                                       <div className="flex items-center justify-between text-sm">
                                         <span className="text-blue-300">Amount Threshold:</span>
                                         <span className="text-cyan-300 font-semibold">
-                                          ${history.parameters.amountThreshold.toLocaleString()}
+                                          ₹{history.parameters.amountThreshold.toLocaleString()}
                                         </span>
                                       </div>
                                     )}
