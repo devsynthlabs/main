@@ -7,6 +7,7 @@ import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { uploadToSupabase, deleteFromSupabase } from "../utils/supabaseStorage.js";
 
 const require = createRequire(import.meta.url);
 const PDFParser = require("pdf2json");
@@ -78,6 +79,7 @@ const detectionAnalysisSchema = new mongoose.Schema({
   falsePositives: { type: Number, default: 0 },
   accuracy: { type: Number, min: 0, max: 1 },
   fileOriginalName: { type: String },
+  supabaseFilePath: { type: String }, // Supabase storage URL
   processingTime: { type: Number }, // in milliseconds
   userId: { type: String },
   createdAt: { type: Date, default: Date.now }
@@ -491,6 +493,17 @@ router.post("/upload", upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const fileType = req.file.originalname.split('.').pop().toLowerCase();
 
+    // Upload to Supabase for backup (auto-deletes after 12 hours)
+    let supabaseFile = null;
+    try {
+      supabaseFile = await uploadToSupabase(filePath, req.file.originalname);
+      if (supabaseFile) {
+        console.log(`☁️ File backed up to Supabase: ${supabaseFile.fileName}`);
+      }
+    } catch (supabaseError) {
+      console.warn('⚠️ Supabase upload skipped:', supabaseError.message);
+    }
+
     // Process the uploaded file
     const transactions = await processUploadedFile(filePath, fileType);
 
@@ -520,6 +533,7 @@ router.post("/upload", upload.single('file'), async (req, res) => {
       totalTransactions: transactions.length,
       flaggedTransactions: flaggedTransactions.length,
       fileOriginalName: req.file.originalname,
+      supabaseFilePath: supabaseFile?.fileName || null,
       userId,
       processingTime: 0 // Could calculate actual processing time
     });
