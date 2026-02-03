@@ -38,6 +38,7 @@ import {
 import { parseVoiceInvoiceText, parseInvoiceText } from "@/lib/voiceInvoiceParser";
 import { API_ENDPOINTS } from "@/lib/api";
 import Tesseract from "tesseract.js";
+import DocScanner from "@/components/DocScanner";
 
 interface InvoiceItem {
   id: string;
@@ -1182,160 +1183,60 @@ Payment Method: ${currentInvoice.paymentMethod}`;
           </div>
         )}
 
-        {/* OCR Tab */}
+        {/* OCR Tab - Doc Scanner */}
         {activeTab === 'ocr' && (
           <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
               <Camera className="h-6 w-6 text-blue-400" />
-              OCR Image Processing
+              Document Scanner
             </h2>
             <p className="text-blue-200/70 mb-8">
-              Upload an invoice image to automatically extract text and populate fields
+              Scan documents using camera or upload images. Apply filters, crop, and extract text with OCR.
             </p>
 
-            {/* Upload Area */}
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-blue-100 mb-4">
-                Upload Invoice Image
-              </label>
-              <div className="border-2 border-dashed border-blue-400/30 rounded-3xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl">
-                <div className="flex flex-col items-center gap-6">
-                  <div className="p-6 bg-blue-500/20 rounded-full border border-blue-400/30">
-                    <Upload className="h-12 w-12 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white mb-2">
-                      {uploadedImage ? "Image Uploaded" : "Drag & drop or click to upload"}
-                    </p>
-                    <p className="text-sm text-blue-300/80">
-                      Supports JPG, PNG, PDF (Max 10MB)
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-blue-500/20 transition-all duration-300 border border-blue-400/30 hover:border-blue-400/50 backdrop-blur-xl"
-                  >
-                    {uploadedImage ? "Change Image" : "Browse Files"}
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*,.pdf"
-                    className="hidden"
-                  />
-                </div>
-              </div>
-            </div>
+            <DocScanner
+              onTextExtracted={(text) => {
+                setOcrText(text);
+                // Try to parse and auto-fill
+                const parsed = parseInvoiceText(text);
+                if (parsed.items.length > 0 || parsed.invoiceNumber || parsed.customerName) {
+                  const newInvoiceItems = parsed.items.map(item => {
+                    const subtotal = item.quantity * item.rate;
+                    const sgst = (subtotal * 9) / 100;
+                    const cgst = (subtotal * 9) / 100;
+                    const igst = 0;
+                    return {
+                      id: Math.random().toString(36).substr(2, 9),
+                      product: item.product,
+                      quantity: item.quantity,
+                      rate: item.rate,
+                      subtotal: subtotal,
+                      sgst: sgst,
+                      cgst: cgst,
+                      igst: igst,
+                      total: subtotal + sgst + cgst + igst
+                    };
+                  });
 
-            {/* Preview & Results */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Image Preview */}
-              {uploadedImage && (
-                <div className="space-y-4">
-                  <label className="block text-sm font-medium text-blue-100">
-                    Image Preview
-                  </label>
-                  <div className="border border-blue-400/20 rounded-2xl overflow-hidden bg-black/20 backdrop-blur-xl">
-                    <img
-                      src={uploadedImage}
-                      alt="Uploaded invoice"
-                      className="w-full h-80 object-contain"
-                    />
-                  </div>
-                </div>
-              )}
+                  const newSubtotal = newInvoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
+                  const newTotalTax = newInvoiceItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
 
-              {/* OCR Results */}
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-blue-100">
-                  Extracted Text
-                </label>
-                {isProcessingOcr ? (
-                  <div className="border border-blue-400/20 rounded-2xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="h-12 w-12 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin" />
-                      <p className="text-white font-bold text-lg">Processing OCR... {ocrProgress}%</p>
-                      <div className="w-full max-w-xs bg-blue-900/40 rounded-full h-2 mt-2 border border-blue-400/20 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-blue-400 to-indigo-500 h-full transition-all duration-300"
-                          style={{ width: `${ocrProgress}%` }}
-                        />
-                      </div>
-                      <p className="text-sm text-blue-300/80">Extracting text from image</p>
-                    </div>
-                  </div>
-                ) : ocrText ? (
-                  <div className="border border-blue-400/20 rounded-2xl p-6 bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl">
-                    <textarea
-                      value={ocrText}
-                      onChange={(e) => setOcrText(e.target.value)}
-                      className="w-full min-h-[280px] bg-black/30 text-white rounded-xl p-4 font-mono text-sm border border-blue-400/20 focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300"
-                      readOnly
-                    />
-                    <div className="mt-6 flex gap-3">
-                      <button
-                        onClick={() => {
-                          const parsed = parseInvoiceText(ocrText);
-
-                          if (parsed.items.length > 0 || parsed.invoiceNumber || parsed.customerName) {
-                            const newInvoiceItems = parsed.items.map(item => {
-                              const subtotal = item.quantity * item.rate;
-                              const sgst = (subtotal * 9) / 100; // Default 9%
-                              const cgst = (subtotal * 9) / 100;
-                              const igst = 0;
-                              return {
-                                id: Math.random().toString(36).substr(2, 9),
-                                product: item.product,
-                                quantity: item.quantity,
-                                rate: item.rate,
-                                subtotal: subtotal,
-                                sgst: sgst,
-                                cgst: cgst,
-                                igst: igst,
-                                total: subtotal + sgst + cgst + igst
-                              };
-                            });
-
-                            const newSubtotal = newInvoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
-                            const newTotalTax = newInvoiceItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
-
-                            setCurrentInvoice(prev => ({
-                              ...prev,
-                              invoiceNumber: parsed.invoiceNumber || prev.invoiceNumber,
-                              customerName: parsed.customerName || prev.customerName,
-                              date: parsed.invoiceDate || prev.date,
-                              items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
-                              subtotal: newInvoiceItems.length > 0 ? newSubtotal : prev.subtotal,
-                              totalTax: newInvoiceItems.length > 0 ? newTotalTax : prev.totalTax,
-                              grandTotal: newInvoiceItems.length > 0 ? (newSubtotal + newTotalTax) : prev.grandTotal
-                            }));
-
-                            setActiveTab('create');
-                            alert(`Extracted details from OCR!`);
-                          } else {
-                            alert("Extracted text, but couldn't identify specific fields. You can manually copy the text.");
-                          }
-                        }}
-                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-indigo-500 transition-all duration-300 shadow-lg shadow-blue-500/30"
-                      >
-                        Auto-fill Fields
-                      </button>
-                      <button
-                        onClick={() => navigator.clipboard.writeText(ocrText)}
-                        className="px-6 py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-white/10 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/30"
-                      >
-                        Copy Text
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border border-dashed border-blue-400/20 rounded-2xl p-12 text-center bg-gradient-to-b from-blue-500/5 to-indigo-500/5 backdrop-blur-xl">
-                    <p className="text-blue-300/60">Upload an image to see extracted text</p>
-                  </div>
-                )}
-              </div>
-            </div>
+                  setCurrentInvoice(prev => ({
+                    ...prev,
+                    invoiceNumber: parsed.invoiceNumber || prev.invoiceNumber,
+                    customerName: parsed.customerName || prev.customerName,
+                    date: parsed.invoiceDate || prev.date,
+                    items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
+                    subtotal: newInvoiceItems.length > 0 ? newSubtotal : prev.subtotal,
+                    totalTax: newInvoiceItems.length > 0 ? newTotalTax : prev.totalTax,
+                    grandTotal: newInvoiceItems.length > 0 ? (newSubtotal + newTotalTax) : prev.grandTotal
+                  }));
+                }
+              }}
+              onImageProcessed={(imageData) => {
+                setUploadedImage(imageData);
+              }}
+            />
           </div>
         )}
 

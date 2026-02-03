@@ -524,6 +524,14 @@ router.post("/upload", upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const fileType = req.file.originalname.split('.').pop().toLowerCase();
 
+    // Only accept CSV and Excel files (PDF support temporarily disabled)
+    if (!['csv', 'xlsx', 'xls'].includes(fileType)) {
+      fs.unlinkSync(filePath); // Clean up uploaded file
+      return res.status(400).json({
+        message: "Unsupported file type. Please upload CSV or Excel files only. PDF support is temporarily disabled."
+      });
+    }
+
     // Upload to Supabase for backup (auto-deletes after 12 hours)
     let supabaseFile = null;
     try {

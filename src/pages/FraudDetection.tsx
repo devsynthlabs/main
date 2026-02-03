@@ -436,7 +436,7 @@ const FraudDetection = () => {
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileUpload}
-                      accept=".csv,.xlsx,.xls,.pdf"
+                      accept=".csv,.xlsx,.xls"
                       className="hidden"
                     />
                     <Button
@@ -445,7 +445,7 @@ const FraudDetection = () => {
                     >
                       <Upload className="h-6 w-6" />
                       <span className="font-medium">
-                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Upload CSV / Excel / PDF"}
+                        {uploadedFile ? `Uploaded: ${uploadedFile.name}` : "Upload CSV / Excel"}
                       </span>
                     </Button>
                   </div>
