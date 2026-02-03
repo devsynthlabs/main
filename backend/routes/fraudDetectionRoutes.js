@@ -91,8 +91,10 @@ const DetectionAnalysis = mongoose.model("DetectionAnalysis", detectionAnalysisS
 
 // ✅ Helper function to extract amount from text
 const extractAmount = (text) => {
-  // Match currency amounts like $1,234.56 or ₹1234 or 1,234.56
-  const amountMatch = text.match(/[\$₹€£]?\s*([\d,]+\.?\d*)/);
+  // Remove currency symbols and clean the text
+  const cleaned = text.replace(/[\$₹€£Rs\.INR]/gi, '').trim();
+  // Match numbers like 1,234.56 or 1234.56 or 1234
+  const amountMatch = cleaned.match(/([\d,]+\.?\d*)/);
   if (amountMatch) {
     const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
     return isNaN(amount) ? 0 : amount;
@@ -121,41 +123,49 @@ const extractDate = (text) => {
 const parsePDFLines = (lines) => {
   const data = [];
 
-  // First, try to find lines with amounts (bank statement style)
   console.log('📊 Analyzing PDF content for transactions...');
+  console.log(`📄 Total lines: ${lines.length}`);
+  console.log('📄 First 10 lines:', lines.slice(0, 10));
 
-  // Currency pattern - matches $1,234.56 or ₹1234 etc
-  const currencyPattern = /[\$₹€£]\s*[\d,]+\.?\d*/g;
+  // Pattern to match any number that looks like an amount (with or without currency)
+  const amountPattern = /(?:[\$₹€£]|Rs\.?|INR)?\s*([\d,]+\.?\d{0,2})\b/g;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line || line.length < 5) continue;
 
-    // Find all amounts in the line
-    const amounts = line.match(currencyPattern);
+    // Find all potential amounts in the line
+    const amounts = [];
+    let match;
+    const tempLine = line;
+    const regex = /(?:[\$₹€£]|Rs\.?|INR)?\s*([\d,]+\.?\d{0,2})\b/g;
+    while ((match = regex.exec(tempLine)) !== null) {
+      const amt = parseFloat(match[1].replace(/,/g, ''));
+      if (!isNaN(amt) && amt > 0) {
+        amounts.push(amt);
+      }
+    }
 
-    if (amounts && amounts.length > 0) {
-      // Extract the largest amount (likely the transaction amount)
-      let maxAmount = 0;
-      amounts.forEach(amtStr => {
-        const amt = extractAmount(amtStr);
-        if (amt > maxAmount) maxAmount = amt;
-      });
+    if (amounts.length > 0) {
+      // Get the largest amount (likely the transaction amount)
+      const maxAmount = Math.max(...amounts);
 
-      if (maxAmount > 0) {
+      // Only consider significant amounts (> 10 to filter out dates/page numbers)
+      if (maxAmount > 10) {
         // Try to extract date
         const dateStr = extractDate(line);
 
-        // Clean description - remove amounts and dates
+        // Clean description
         let description = line
-          .replace(currencyPattern, '')
+          .replace(/[\$₹€£]?\s*[\d,]+\.?\d*/g, '')
           .replace(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/g, '')
           .replace(/\s+/g, ' ')
           .trim();
 
-        // Skip if description looks like headers or totals
-        const skipKeywords = ['total', 'balance', 'summary', 'page', 'statement'];
-        const isSkipLine = skipKeywords.some(kw => description.toLowerCase().includes(kw));
+        // Skip headers and totals
+        const skipKeywords = ['total', 'balance', 'summary', 'page', 'statement', 'opening', 'closing', 'header', 'date', 'amount'];
+        const isSkipLine = skipKeywords.some(kw => description.toLowerCase() === kw ||
+          (description.toLowerCase().includes(kw) && description.length < 20));
 
         if (!isSkipLine && description.length > 2) {
           data.push({
@@ -163,21 +173,20 @@ const parsePDFLines = (lines) => {
             Amount: maxAmount,
             Description: description.substring(0, 100) || 'Transaction'
           });
-          console.log(`   Found: ${description.substring(0, 40)}... = ${maxAmount}`);
+          console.log(`   ✓ Found: "${description.substring(0, 30)}..." = ${maxAmount}`);
         }
       }
     }
   }
 
-  // If no currency-style amounts found, try table parsing
+  // If no amounts found, try table parsing
   if (data.length === 0) {
     console.log('📋 Trying table-based parsing...');
 
-    // Try to find header row
     let headerIndex = -1;
-    const commonHeaders = ['date', 'amount', 'description', 'transaction', 'debit', 'credit', 'balance', 'particulars', 'narration'];
+    const commonHeaders = ['date', 'amount', 'description', 'transaction', 'debit', 'credit', 'balance', 'particulars', 'narration', 'details'];
 
-    for (let i = 0; i < Math.min(15, lines.length); i++) {
+    for (let i = 0; i < Math.min(20, lines.length); i++) {
       const lineLower = lines[i].toLowerCase();
       const matchCount = commonHeaders.filter(h => lineLower.includes(h)).length;
       if (matchCount >= 2) {
@@ -202,16 +211,38 @@ const parsePDFLines = (lines) => {
             row[key] = values[index] || '';
           });
 
-          // Check for amount in any field
           let amount = 0;
           for (const val of values) {
             const extracted = extractAmount(val);
             if (extracted > amount) amount = extracted;
           }
 
-          if (amount > 0) {
+          if (amount > 10) {
             row.Amount = amount;
             data.push(row);
+          }
+        }
+      }
+    }
+  }
+
+  // Last resort: extract any line with numbers > 100 as potential transactions
+  if (data.length === 0) {
+    console.log('📋 Trying last resort parsing...');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const numbers = line.match(/\d[\d,]*\.?\d*/g);
+      if (numbers) {
+        for (const num of numbers) {
+          const amt = parseFloat(num.replace(/,/g, ''));
+          if (amt > 100 && amt < 10000000) { // Reasonable transaction range
+            data.push({
+              Date: extractDate(line) || new Date().toLocaleDateString(),
+              Amount: amt,
+              Description: line.replace(/[\d,\.]+/g, '').trim().substring(0, 100) || 'Transaction'
+            });
+            console.log(`   ✓ Last resort: ${amt}`);
+            break; // One per line
           }
         }
       }

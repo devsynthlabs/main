@@ -90,29 +90,31 @@ const FraudDetection = () => {
   // Sample Data (kept for type safety reference if needed, but unused)
   const sampleTransactions: Transaction[] = [];
 
-  // Fetch stats and history on mount
+  // Only fetch history on mount - stats come from new detection
   useEffect(() => {
-    fetchStats();
     fetchHistory();
-    fetchLatestTransactions();
+    // Don't fetch stats or transactions - only show results from new detection
   }, []);
 
   // Fetch all flagged transactions from database
   const fetchLatestTransactions = async () => {
     try {
+      console.log("Fetching transactions from:", `${API_BASE_URL}/fraud-detection/transactions?limit=100`);
       const res = await fetch(`${API_BASE_URL}/fraud-detection/transactions?limit=100`);
       const data = await res.json();
+      console.log("Transactions response:", data);
 
       if (res.ok && data.transactions && data.transactions.length > 0) {
         const flagged: Transaction[] = data.transactions.map((tx: any) => ({
-          id: tx.transactionId,
-          date: new Date(tx.date).toLocaleDateString(),
-          amount: tx.amount,
-          description: tx.description,
-          fraudScore: tx.fraudScore,
-          status: tx.fraudScore > 0.8 ? 'Fraud' : 'Suspicious',
-          method: tx.detectionMethod
+          id: tx.transactionId || tx._id,
+          date: tx.date ? new Date(tx.date).toLocaleDateString() : 'N/A',
+          amount: Number(tx.amount) || 0,
+          description: tx.description || 'Unknown',
+          fraudScore: Number(tx.fraudScore) || 0,
+          status: (Number(tx.fraudScore) >= 0.8 ? 'Fraud' : 'Suspicious') as 'Normal' | 'Suspicious' | 'Fraud',
+          method: tx.detectionMethod || 'rule_based'
         }));
+        console.log("Mapped transactions:", flagged);
         setFlaggedTransactions(flagged);
         setDetectionComplete(true);
       }
@@ -227,11 +229,17 @@ const FraudDetection = () => {
 
         setFlaggedTransactions(flagged);
         setDetectionComplete(true);
-        // Also update total stats locally or re-fetch?
-        // Note: we can't easily update 'transactions' state with *all* transactions 
-        // because backend only returned flagged ones for performance/preview.
-        // We will just show flagged ones.
         setTransactions([]);
+
+        // Update stats from current detection only
+        const fraudCount = flagged.filter(tx => tx.fraudScore >= 0.8).length;
+        const suspiciousCount = flagged.filter(tx => tx.fraudScore < 0.8).length;
+        setDetectionStats({
+          total: data.totalTransactions,
+          fraud: fraudCount,
+          suspicious: suspiciousCount,
+          normal: data.totalTransactions - flagged.length
+        });
 
         // 🚨 FRAUD ALERT LOGIC - Show alerts for flagged transactions
         if (flagged.length > 0) {
@@ -264,8 +272,7 @@ const FraudDetection = () => {
           }, highRiskTransactions.length * 300 + 500); // Show after toasts
         }
 
-        // Refresh stats and history
-        fetchStats();
+        // Refresh history only (stats already set from current detection)
         fetchHistory();
       } else {
         toast.error(data.message || "Error running detection");
