@@ -186,6 +186,7 @@ const AutomationInvoice = () => {
 
   // Switch between Sales and Purchase
   const handleInvoiceTypeChange = (type: 'sales' | 'purchase') => {
+    setLastSavedId(null);
     setInvoiceType(type);
     setCurrentInvoice(prev => ({
       ...prev,
@@ -258,6 +259,7 @@ const AutomationInvoice = () => {
     const updatedItems = [...currentInvoice.items, item];
     const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
 
+    setLastSavedId(null);
     setCurrentInvoice(prev => ({
       ...prev,
       items: updatedItems,
@@ -283,6 +285,7 @@ const AutomationInvoice = () => {
 
   // Remove item from invoice
   const removeItem = (itemId: string) => {
+    setLastSavedId(null);
     const updatedItems = currentInvoice.items.filter(i => i.id !== itemId);
     const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
 
@@ -296,6 +299,7 @@ const AutomationInvoice = () => {
 
   // Update paid amount
   const updatePaidAmount = (paid: number) => {
+    setLastSavedId(null);
     setCurrentInvoice(prev => ({
       ...prev,
       paid: paid,
@@ -319,6 +323,7 @@ const AutomationInvoice = () => {
     }
   };
 
+  // Save invoice
   // Save invoice
   const saveInvoice = async () => {
     if (currentInvoice.items.length === 0) {
@@ -404,6 +409,7 @@ const AutomationInvoice = () => {
 
   // Reset form
   const resetForm = () => {
+    setLastSavedId(null);
     setCurrentInvoice({
       type: invoiceType,
       saleType: 'cash',
@@ -506,8 +512,14 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
       return;
     }
 
+    // Enforce save before sharing if there's unsaved data
+    if (!lastSavedId && currentInvoice.items.length > 0) {
+      toast.error("Please save the invoice first to generate a secure sharing link.");
+      return;
+    }
+
     // If form is empty but we have history, use the last one
-    const data = currentInvoice.items.length > 0 ? currentInvoice : invoiceHistory[0];
+    const data = lastSavedId ? currentInvoice : (invoiceHistory[0] || currentInvoice);
     const customerName = data.partyName || 'Valued Customer';
 
     // Build professional message based on user template
@@ -521,7 +533,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
     message += `• Total Amount: ₹${data.total.toFixed(2)}\n\n`;
     message += `You can view, download, or pay your invoice online using the secure link below:\n`;
 
-    const idToUse = lastSavedId || (data as any).id || `temp-${Date.now()}`;
+    const idToUse = lastSavedId || (data as any).id;
+    if (!idToUse) {
+      toast.error("Please save the invoice first.");
+      return;
+    }
     const baseUrl = window.location.origin;
     const shareLink = `${baseUrl}/invoice/view/${idToUse}`;
 
@@ -766,7 +782,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     <Label className="text-blue-100 mb-3 block font-medium">Sale Type</Label>
                     <div className="flex gap-4">
                       <button
-                        onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'cash' }))}
+                        onClick={() => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, saleType: 'cash' }));
+                        }}
                         className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'cash'
                           ? 'bg-emerald-600 text-white'
                           : 'bg-white/5 text-emerald-300 border border-emerald-400/30'
@@ -776,7 +795,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         Cash
                       </button>
                       <button
-                        onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'credit' }))}
+                        onClick={() => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, saleType: 'credit' }));
+                        }}
                         className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'credit'
                           ? 'bg-blue-600 text-white'
                           : 'bg-white/5 text-blue-300 border border-blue-400/30'
@@ -801,13 +823,22 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <div className="flex gap-2">
                         <Input
                           value={currentInvoice.partyName}
-                          onChange={(e) => setCurrentInvoice(prev => ({ ...prev, partyName: e.target.value }))}
+                          onChange={(e) => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, partyName: e.target.value }));
+                          }}
                           placeholder="Enter name"
                           className="bg-white/5 border-blue-400/30 text-white h-9"
                         />
                         <VoiceButton
-                          onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, partyName: text }))}
-                          onClear={() => setCurrentInvoice(prev => ({ ...prev, partyName: '' }))}
+                          onTranscript={(text) => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, partyName: text }));
+                          }}
+                          onClear={() => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, partyName: '' }));
+                          }}
                         />
                       </div>
                     </div>
@@ -817,13 +848,22 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <div className="flex gap-2">
                         <Input
                           value={currentInvoice.phoneNo}
-                          onChange={(e) => setCurrentInvoice(prev => ({ ...prev, phoneNo: e.target.value }))}
+                          onChange={(e) => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, phoneNo: e.target.value }));
+                          }}
                           placeholder="Phone number"
                           className="bg-white/5 border-blue-400/30 text-white h-9"
                         />
                         <VoiceButton
-                          onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, phoneNo: text.replace(/\s/g, '') }))}
-                          onClear={() => setCurrentInvoice(prev => ({ ...prev, phoneNo: '' }))}
+                          onTranscript={(text) => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, phoneNo: text.replace(/\s/g, '') }));
+                          }}
+                          onClear={() => {
+                            setLastSavedId(null);
+                            setCurrentInvoice(prev => ({ ...prev, phoneNo: '' }));
+                          }}
                         />
                       </div>
                     </div>
@@ -832,7 +872,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Label className="text-blue-100 text-sm">E-Way Bill No.</Label>
                       <Input
                         value={currentInvoice.eWayBillNo}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, eWayBillNo: e.target.value }))}
+                        onChange={(e) => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, eWayBillNo: e.target.value }));
+                        }}
                         placeholder="E-Way bill"
                         className="bg-white/5 border-blue-400/30 text-white h-9"
                       />
@@ -842,7 +885,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Label className="text-blue-100 text-sm">{invoiceType === 'sales' ? 'Invoice' : 'Bill'} No.</Label>
                       <Input
                         value={currentInvoice.invoiceNo}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNo: e.target.value }))}
+                        onChange={(e) => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, invoiceNo: e.target.value }));
+                        }}
                         className="bg-white/5 border-blue-400/30 text-white h-9"
                       />
                     </div>
@@ -852,7 +898,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Input
                         type="date"
                         value={currentInvoice.invoiceDate}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceDate: e.target.value }))}
+                        onChange={(e) => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, invoiceDate: e.target.value }));
+                        }}
                         className="bg-white/5 border-blue-400/30 text-white h-9"
                       />
                     </div>
@@ -1432,7 +1481,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
       {/* Footer */}
       <footer className="mt-12 py-8 border-t border-blue-400/20 backdrop-blur-xl bg-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-blue-300/60 text-sm">
             Invoice & Billing System • OCR & Voice Powered
           </p>
