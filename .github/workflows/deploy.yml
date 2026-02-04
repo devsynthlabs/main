@@ -46,11 +46,11 @@ jobs:
 
             cd backend
 
-            # Retry helper for transient network errors
+            # Enhanced retry helper for transient network errors
             retry() {
               local n=1
-              local max=3
-              local delay=3
+              local max=5
+              local delay=5
               until "$@"; do
                 if [ $n -eq $max ]; then
                   echo "Command failed after $n attempts: $*"
@@ -62,20 +62,32 @@ jobs:
               done
             }
 
-            # Clear potentially corrupted npm cache and remove node_modules
+            # Aggressive cache cleanup and npm reset
+            echo "🧹 Cleaning npm cache and corrupted data..."
             npm cache clean --force || true
-            npm cache verify || true
+            rm -rf ~/.npm/_cacache || true
+            rm -rf ~/.npm/_logs || true
             rm -rf node_modules || true
+            rm -rf package-lock.json || true
+            
+            # Clear any potential npm configuration issues
+            npm config delete cache || true
+            npm config set registry https://registry.npmjs.org/ || true
+            npm config set fund false || true
+            npm config set audit false || true
 
-            # Use npm ci when lockfile exists for deterministic installs, fallback to npm install
-            if [ -f package-lock.json ]; then
-              retry npm ci --only=production
+            # Generate fresh package-lock.json and install
+            echo "📦 Installing dependencies with fresh lockfile..."
+            if [ -f package.json ]; then
+              retry npm install --production --no-audit --no-fund --prefer-offline=false
             else
-              retry npm install --production --no-audit
+              echo "Error: package.json not found"
+              exit 1
             fi
 
             # Python virtualenv tasks
             if [ -d venv ]; then
+              echo "🐍 Setting up Python environment..."
               source venv/bin/activate
               pip install -r requirements.txt
               deactivate
@@ -97,10 +109,11 @@ jobs:
             set -euo pipefail
             cd /root/financial-automation/main
 
+            # Enhanced retry helper for transient network errors
             retry() {
               local n=1
-              local max=3
-              local delay=3
+              local max=5
+              local delay=5
               until "$@"; do
                 if [ $n -eq $max ]; then
                   echo "Command failed after $n attempts: $*"
@@ -112,25 +125,37 @@ jobs:
               done
             }
 
-            # Clear potentially corrupted npm cache and remove node_modules
+            # Aggressive cache cleanup and npm reset
+            echo "🧹 Cleaning npm cache and corrupted data..."
             npm cache clean --force || true
-            npm cache verify || true
+            rm -rf ~/.npm/_cacache || true
+            rm -rf ~/.npm/_logs || true
             rm -rf node_modules || true
+            rm -rf package-lock.json || true
+            
+            # Clear any potential npm configuration issues
+            npm config delete cache || true
+            npm config set registry https://registry.npmjs.org/ || true
+            npm config set fund false || true
+            npm config set audit false || true
 
-            # Deterministic install when lockfile exists
-            if [ -f package-lock.json ]; then
-              retry npm ci
+            # Generate fresh package-lock.json and install
+            echo "📦 Installing dependencies with fresh lockfile..."
+            if [ -f package.json ]; then
+              retry npm install --no-audit --no-fund --prefer-offline=false
             else
-              retry npm install --no-audit
+              echo "Error: package.json not found"
+              exit 1
             fi
 
             # Build with increased Node.js memory
+            echo "🏗️ Building frontend..."
             export NODE_OPTIONS="--max-old-space-size=2048"
-            npm run build
+            retry npm run build
 
             chmod -R 755 dist || true
 
-            echo "Build completed successfully!"
+            echo "✅ Build completed successfully!"
           ENDSSH
 
       - name: ♻ Reload Nginx
@@ -146,4 +171,10 @@ jobs:
             # cleanup npm cache and old logs (best-effort)
             npm cache clean --force 2>/dev/null || true
             find /root/financial-automation/main/backend/logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null || true
+            
+            # Check if system restart is required
+            if [ -f /var/run/reboot-required ]; then
+              echo "⚠️ System restart required but will be deferred to avoid deployment interruption"
+              echo "Please schedule a maintenance window to restart the server"
+            fi
           ENDSSH
