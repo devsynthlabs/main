@@ -33,143 +33,130 @@ import {
   Building,
   Shield,
   Banknote,
-  Mic
+  Mic,
+  ShoppingCart,
+  Building2,
+  Smartphone,
+  X,
+  IndianRupee,
+  Wallet,
+  AlertCircle,
+  Share2,
+  Save
 } from "lucide-react";
 import { parseVoiceInvoiceText, parseInvoiceText } from "@/lib/voiceInvoiceParser";
 import { API_ENDPOINTS } from "@/lib/api";
 import Tesseract from "tesseract.js";
 import DocScanner from "@/components/DocScanner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
+// Indian States for GST
+const INDIAN_STATES = [
+  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+  "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
+  "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
+  "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+  "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+];
+
+const GST_SLABS = ["0", "5", "12", "18", "28"];
+const UNITS = ["Pcs", "Kg", "Ltr", "Mtr", "Box", "Dozen", "Pair", "Set", "Nos"];
+
+// Vyapar-style Invoice Item interface
 interface InvoiceItem {
   id: string;
-  product: string;
+  itemName: string;
+  itemCode: string;
+  hsnCode: string;
   quantity: number;
-  rate: number;
-  subtotal: number;
-  sgst: number;
-  cgst: number;
-  igst: number;
-  total: number;
+  unit: string;
+  pricePerUnit: number;
+  priceWithTax: boolean;
+  discountPercent: number;
+  discountAmount: number;
+  taxPercent: number;
+  taxAmount: number;
+  amount: number;
 }
 
-interface Invoice {
-  id: string;
-  _id?: string;
-  invoiceNumber: string;
-  date: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  customerGSTIN: string;
+// Vyapar-style Invoice Data interface
+interface InvoiceData {
+  type: 'sales' | 'purchase';
+  saleType: 'credit' | 'cash';
+  partyName: string;
+  phoneNo: string;
+  eWayBillNo: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  stateOfSupply: string;
   items: InvoiceItem[];
-  subtotal: number;
-  totalTax: number;
-  grandTotal: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
+  total: number;
+  paid: number;
+  balance: number;
   paymentMethod: string;
+  uploadedBill: string | null;
+  customerEmail?: string;
+  customerGSTIN?: string;
 }
 
 const AutomationInvoice = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const billUploadRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history' | 'voice'>('create');
+  const [invoiceType, setInvoiceType] = useState<'sales' | 'purchase'>('sales');
 
-  // State for invoice creation
-  const [currentInvoice, setCurrentInvoice] = useState<Invoice>({
-    id: `INV-${Date.now()}`,
-    invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-    date: new Date().toISOString().split('T')[0],
-    customerName: "",
-    customerEmail: "",
-    customerPhone: "",
-    customerGSTIN: "",
+  // Generate invoice number
+  const generateInvoiceNo = (type: 'sales' | 'purchase') => {
+    const prefix = type === 'sales' ? 'INV' : 'PUR';
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${prefix}-${year}${month}-${random}`;
+  };
+
+  // Invoice state (Vyapar-style)
+  const [currentInvoice, setCurrentInvoice] = useState<InvoiceData>({
+    type: 'sales',
+    saleType: 'cash',
+    partyName: '',
+    phoneNo: '',
+    eWayBillNo: '',
+    invoiceNo: generateInvoiceNo('sales'),
+    invoiceDate: new Date().toISOString().split('T')[0],
+    stateOfSupply: '',
     items: [],
-    subtotal: 0,
-    totalTax: 0,
-    grandTotal: 0,
-    status: 'draft',
-    paymentMethod: "Bank Transfer"
+    total: 0,
+    paid: 0,
+    balance: 0,
+    paymentMethod: 'cash',
+    uploadedBill: null,
+    customerEmail: '',
+    customerGSTIN: ''
   });
 
-  // State for new item form
-  const [newItem, setNewItem] = useState({
-    product: "",
+  // New item form state
+  const [newItem, setNewItem] = useState<Partial<InvoiceItem>>({
+    itemName: '',
+    itemCode: '',
+    hsnCode: '',
     quantity: 1,
-    rate: 0,
-    sgst: 9,
-    cgst: 9,
-    igst: 0
+    unit: 'Pcs',
+    pricePerUnit: 0,
+    priceWithTax: false,
+    discountPercent: 0,
+    taxPercent: 18
   });
 
   // State for invoice history
-  const [invoiceHistory, setInvoiceHistory] = useState<Invoice[]>([
-    {
-      id: "INV-001",
-      invoiceNumber: "INV-2024-001",
-      date: "2024-01-15",
-      customerName: "Tech Solutions Inc.",
-      customerEmail: "accounting@techsolutions.com",
-      customerPhone: "9876543210",
-      customerGSTIN: "33AAAAA1234A1Z5",
-      items: [
-        {
-          id: "1",
-          product: "VC Pillow",
-          quantity: 2,
-          rate: 250,
-          subtotal: 500,
-          sgst: 45,
-          cgst: 45,
-          igst: 0,
-          total: 590
-        },
-        {
-          id: "2",
-          product: "Pillow Cover VC 85",
-          quantity: 1,
-          rate: 85,
-          subtotal: 85,
-          sgst: 7.65,
-          cgst: 7.65,
-          igst: 0,
-          total: 100.3
-        }
-      ],
-      subtotal: 585,
-      totalTax: 105.3,
-      grandTotal: 690.3,
-      status: 'paid',
-      paymentMethod: "Credit Card"
-    },
-    {
-      id: "INV-002",
-      invoiceNumber: "INV-2024-002",
-      date: "2024-01-10",
-      customerName: "Global Traders Ltd.",
-      customerEmail: "finance@globaltraders.com",
-      customerPhone: "9123456789",
-      customerGSTIN: "33BBBBB5678B1Z2",
-      items: [
-        {
-          id: "3",
-          product: "Ceramic Bowl",
-          quantity: 5,
-          rate: 150,
-          subtotal: 750,
-          sgst: 67.5,
-          cgst: 67.5,
-          igst: 0,
-          total: 885
-        }
-      ],
-      subtotal: 750,
-      totalTax: 135,
-      grandTotal: 885,
-      status: 'sent',
-      paymentMethod: "Bank Transfer"
-    }
-  ]);
+  const [invoiceHistory, setInvoiceHistory] = useState<InvoiceData[]>([]);
 
   // State for OCR
   const [ocrText, setOcrText] = useState("");
@@ -188,172 +175,208 @@ const AutomationInvoice = () => {
   // Search state for history
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Predefined products
-  const predefinedProducts = [
-    { name: "VC Pillow", rate: 250 },
-    { name: "Pillow Cover VC 85", rate: 85 },
-    { name: "Lunch Towel VC25", rate: 25 },
-    { name: "Ceramic Bowl", rate: 150 },
-    { name: "Ruby Food Cover", rate: 130 },
-    { name: "MS Straw Tumbler", rate: 210 }
-  ];
+  // Load saved invoices from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('savedInvoices');
+    if (saved) {
+      setInvoiceHistory(JSON.parse(saved));
+    }
+  }, []);
 
+  // Switch between Sales and Purchase
+  const handleInvoiceTypeChange = (type: 'sales' | 'purchase') => {
+    setInvoiceType(type);
+    setCurrentInvoice(prev => ({
+      ...prev,
+      type: type,
+      invoiceNo: generateInvoiceNo(type),
+      items: [],
+      total: 0,
+      paid: 0,
+      balance: 0
+    }));
+  };
 
-  // Calculate item totals
-  const calculateItemTotal = () => {
-    const subtotal = newItem.quantity * newItem.rate;
-    const sgstAmount = (subtotal * newItem.sgst) / 100;
-    const cgstAmount = (subtotal * newItem.cgst) / 100;
-    const igstAmount = (subtotal * newItem.igst) / 100;
-    const total = subtotal + sgstAmount + cgstAmount + igstAmount;
+  // Calculate item amounts
+  const calculateItemAmounts = (item: Partial<InvoiceItem>): Partial<InvoiceItem> => {
+    const qty = item.quantity || 0;
+    const price = item.pricePerUnit || 0;
+    const discountPct = item.discountPercent || 0;
+    const taxPct = item.taxPercent || 0;
+    const priceWithTax = item.priceWithTax || false;
 
-    return { subtotal, sgstAmount, cgstAmount, igstAmount, total };
+    let baseAmount = qty * price;
+    let discountAmount = (baseAmount * discountPct) / 100;
+    let afterDiscount = baseAmount - discountAmount;
+
+    let taxAmount: number;
+    let finalAmount: number;
+
+    if (priceWithTax) {
+      const taxMultiplier = 1 + (taxPct / 100);
+      const preTaxAmount = afterDiscount / taxMultiplier;
+      taxAmount = afterDiscount - preTaxAmount;
+      finalAmount = afterDiscount;
+    } else {
+      taxAmount = (afterDiscount * taxPct) / 100;
+      finalAmount = afterDiscount + taxAmount;
+    }
+
+    return {
+      ...item,
+      discountAmount: Math.round(discountAmount * 100) / 100,
+      taxAmount: Math.round(taxAmount * 100) / 100,
+      amount: Math.round(finalAmount * 100) / 100
+    };
   };
 
   // Add item to invoice
   const addItemToInvoice = () => {
-    if (!newItem.product || newItem.rate <= 0) {
-      alert("Please enter product name and rate");
+    if (!newItem.itemName || !newItem.pricePerUnit) {
+      toast.error("Please enter item name and price");
       return;
     }
 
-    const { subtotal, sgstAmount, cgstAmount, igstAmount, total } = calculateItemTotal();
-
-    const newInvoiceItem: InvoiceItem = {
+    const calculatedItem = calculateItemAmounts(newItem);
+    const item: InvoiceItem = {
       id: `item-${Date.now()}`,
-      product: newItem.product,
-      quantity: newItem.quantity,
-      rate: newItem.rate,
-      subtotal: subtotal,
-      sgst: sgstAmount,
-      cgst: cgstAmount,
-      igst: igstAmount,
-      total: total
+      itemName: newItem.itemName || '',
+      itemCode: newItem.itemCode || '',
+      hsnCode: newItem.hsnCode || '',
+      quantity: newItem.quantity || 1,
+      unit: newItem.unit || 'Pcs',
+      pricePerUnit: newItem.pricePerUnit || 0,
+      priceWithTax: newItem.priceWithTax || false,
+      discountPercent: newItem.discountPercent || 0,
+      discountAmount: calculatedItem.discountAmount || 0,
+      taxPercent: newItem.taxPercent || 0,
+      taxAmount: calculatedItem.taxAmount || 0,
+      amount: calculatedItem.amount || 0
     };
 
-    const updatedItems = [...currentInvoice.items, newInvoiceItem];
-    const newSubtotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const newTotalTax = updatedItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
-    const newGrandTotal = newSubtotal + newTotalTax;
+    const updatedItems = [...currentInvoice.items, item];
+    const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
 
     setCurrentInvoice(prev => ({
       ...prev,
       items: updatedItems,
-      subtotal: newSubtotal,
-      totalTax: newTotalTax,
-      grandTotal: newGrandTotal
+      total: newTotal,
+      balance: newTotal - prev.paid
     }));
 
-    // Reset form
+    // Reset new item form
     setNewItem({
-      product: "",
+      itemName: '',
+      itemCode: '',
+      hsnCode: '',
       quantity: 1,
-      rate: 0,
-      sgst: 9,
-      cgst: 9,
-      igst: 0
+      unit: 'Pcs',
+      pricePerUnit: 0,
+      priceWithTax: false,
+      discountPercent: 0,
+      taxPercent: 18
     });
+
+    toast.success("Item added to invoice");
   };
 
   // Remove item from invoice
   const removeItem = (itemId: string) => {
-    const updatedItems = currentInvoice.items.filter(item => item.id !== itemId);
-    const newSubtotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const newTotalTax = updatedItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
-    const newGrandTotal = newSubtotal + newTotalTax;
+    const updatedItems = currentInvoice.items.filter(i => i.id !== itemId);
+    const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
 
     setCurrentInvoice(prev => ({
       ...prev,
       items: updatedItems,
-      subtotal: newSubtotal,
-      totalTax: newTotalTax,
-      grandTotal: newGrandTotal
+      total: newTotal,
+      balance: newTotal - prev.paid
     }));
+  };
+
+  // Update paid amount
+  const updatePaidAmount = (paid: number) => {
+    setCurrentInvoice(prev => ({
+      ...prev,
+      paid: paid,
+      balance: prev.total - paid
+    }));
+  };
+
+  // Handle file upload for purchase bill
+  const handleBillUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCurrentInvoice(prev => ({
+          ...prev,
+          uploadedBill: event.target?.result as string
+        }));
+        toast.success("Bill uploaded successfully");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Save invoice
   const saveInvoice = async () => {
     if (currentInvoice.items.length === 0) {
-      alert("Please add at least one item to the invoice.");
+      toast.error("Please add at least one item to the invoice.");
       return;
     }
 
-    if (!currentInvoice.customerName?.trim() || !currentInvoice.customerEmail?.trim()) {
-      alert("Please enter both customer name and email address.");
+    if (!currentInvoice.partyName?.trim()) {
+      toast.error(`Please enter ${currentInvoice.type === 'sales' ? 'customer' : 'party'} name.`);
       return;
     }
 
     setIsSaving(true);
 
     try {
-      const invoiceDateStr = currentInvoice.date || new Date().toISOString().split('T')[0];
-      const dateObj = new Date(invoiceDateStr);
-      const dueDateObj = new Date(dateObj.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Save to localStorage
+      const savedList = JSON.parse(localStorage.getItem('savedInvoices') || '[]');
+      const invoiceToSave = { ...currentInvoice, savedAt: new Date().toISOString(), id: `inv-${Date.now()}` };
+      savedList.unshift(invoiceToSave);
+      localStorage.setItem('savedInvoices', JSON.stringify(savedList));
+      setInvoiceHistory(savedList);
 
-      // Validate totals
-      if (isNaN(currentInvoice.grandTotal) || currentInvoice.grandTotal <= 0) {
-        throw new Error("Invoice total must be greater than zero. Please add items.");
-      }
+      toast.success(`${currentInvoice.type === 'sales' ? 'Invoice' : 'Purchase Bill'} saved successfully!`);
 
-      // Map frontend fields to backend schema
-      const backendInvoiceData = {
-        invoiceNumber: currentInvoice.invoiceNumber,
-        invoiceDate: invoiceDateStr,
-        dueDate: dueDateObj.toISOString(),
-        customerName: currentInvoice.customerName.trim(),
-        customerEmail: currentInvoice.customerEmail.trim(),
-        customerPhone: currentInvoice.customerPhone?.trim(),
-        customerGSTIN: currentInvoice.customerGSTIN?.trim(),
-        businessName: "SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED",
-        businessEmail: "info@saaiss.in",
-        items: currentInvoice.items.map(item => ({
-          productName: item.product,
-          quantity: item.quantity,
-          unitPrice: item.rate,
-          total: item.total
-        })),
-        subtotal: currentInvoice.subtotal,
-        taxAmount: currentInvoice.totalTax,
-        grandTotal: currentInvoice.grandTotal,
-        paymentMethod: currentInvoice.paymentMethod.toLowerCase().replace(" ", "_"),
-        status: 'sent',
-        balanceDue: currentInvoice.grandTotal
-      };
-
-      console.log("📤 Sending Invoice to Backend:", backendInvoiceData);
-
-      const response = await fetch(`${API_ENDPOINTS.INVOICE}/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(backendInvoiceData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const savedInvoice = {
-          ...currentInvoice,
-          id: data.invoiceId,
-          status: 'sent' as const
-        };
-
-        setInvoiceHistory(prev => [savedInvoice, ...prev]);
-        setCurrentInvoice(prev => ({ ...prev, id: data.invoiceId }));
-
-        alert("Invoice saved successfully! You can now share it as a link.");
-      } else {
-        // If there are validation errors, show them
-        const errorMsg = data.errors ? `${data.message}: ${data.errors.join(", ")}` : data.message;
-        throw new Error(errorMsg || "Failed to save invoice");
-      }
+      // Reset form
+      resetForm();
     } catch (error: any) {
       console.error("Save Error:", error);
-      alert(`Error saving invoice: ${error.message}`);
+      toast.error(`Error saving invoice: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Save and create new
+  const saveAndNew = async () => {
+    await saveInvoice();
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setCurrentInvoice({
+      type: invoiceType,
+      saleType: 'cash',
+      partyName: '',
+      phoneNo: '',
+      eWayBillNo: '',
+      invoiceNo: generateInvoiceNo(invoiceType),
+      invoiceDate: new Date().toISOString().split('T')[0],
+      stateOfSupply: '',
+      items: [],
+      total: 0,
+      paid: 0,
+      balance: 0,
+      paymentMethod: 'cash',
+      uploadedBill: null,
+      customerEmail: '',
+      customerGSTIN: ''
+    });
   };
 
   // Handle file upload for OCR
@@ -376,7 +399,7 @@ const AutomationInvoice = () => {
       setOcrText(result.data.text);
     } catch (error) {
       console.error("OCR Error:", error);
-      alert("Failed to extract text from image.");
+      toast.error("Failed to extract text from image.");
     } finally {
       setIsProcessingOcr(false);
       setOcrProgress(0);
@@ -386,19 +409,19 @@ const AutomationInvoice = () => {
   // Export invoice
   const exportInvoice = (format: 'csv' | 'pdf') => {
     if (format === 'csv') {
-      let csvContent = "Product,Quantity,Rate,Subtotal,SGST,CGST,IGST,Total\n";
+      let csvContent = "Item,Code,HSN,Quantity,Unit,Price,Discount,Tax,Amount\n";
       currentInvoice.items.forEach(item => {
-        csvContent += `"${item.product}",${item.quantity},${item.rate},${item.subtotal},${item.sgst},${item.cgst},${item.igst},${item.total}\n`;
+        csvContent += `"${item.itemName}","${item.itemCode}","${item.hsnCode}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.taxAmount},${item.amount}\n`;
       });
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoice_${currentInvoice.invoiceNumber}.csv`;
+      a.download = `invoice_${currentInvoice.invoiceNo}.csv`;
       a.click();
     } else {
-      alert("PDF export would be implemented with a PDF library");
+      toast.info("PDF export coming soon!");
     }
   };
 
@@ -409,76 +432,71 @@ const AutomationInvoice = () => {
 
   // Copy invoice details
   const copyInvoiceDetails = () => {
+    const itemsList = currentInvoice.items.map(item =>
+      `- ${item.itemName}: ${item.quantity} ${item.unit} x ₹${item.pricePerUnit} = ₹${item.amount}`
+    ).join('\n');
+
     const details = `
-Invoice: ${currentInvoice.invoiceNumber}
-Date: ${currentInvoice.date}
-Customer: ${currentInvoice.customerName}
-Email: ${currentInvoice.customerEmail}
+Invoice: ${currentInvoice.invoiceNo}
+Date: ${currentInvoice.invoiceDate}
+${currentInvoice.type === 'sales' ? 'Customer' : 'Party'}: ${currentInvoice.partyName}
+Phone: ${currentInvoice.phoneNo}
 
 Items:
-${currentInvoice.items.map(item => `- ${item.product}: ${item.quantity} x ₹${item.rate} = ₹${item.total}`).join('\n')}
+${itemsList}
 
-Subtotal: ₹${currentInvoice.subtotal.toFixed(2)}
-Tax: ₹${currentInvoice.totalTax.toFixed(2)}
-Grand Total: ₹${currentInvoice.grandTotal.toFixed(2)}
-Status: ${currentInvoice.status}
-Payment Method: ${currentInvoice.paymentMethod}`;
+Total: ₹${currentInvoice.total.toFixed(2)}
+Paid: ₹${currentInvoice.paid.toFixed(2)}
+Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
     navigator.clipboard.writeText(details)
-      .then(() => alert("Invoice details copied to clipboard!"))
+      .then(() => toast.success("Invoice details copied to clipboard!"))
       .catch(err => console.error("Failed to copy:", err));
   };
 
   // Share on WhatsApp
   const shareOnWhatsApp = () => {
-    if (!currentInvoice.id || currentInvoice.id.startsWith('INV-')) {
-      alert("Please save the invoice first to generate a shareable link!");
+    if (currentInvoice.items.length === 0) {
+      toast.error("Add items before sharing");
       return;
     }
 
-    const host = window.location.origin;
-    const shareUrl = `${host}/invoice/view/${currentInvoice.id}`;
+    const customerName = currentInvoice.partyName || 'Valued Customer';
+    const isSales = currentInvoice.type === 'sales';
 
-    const message = [
-      `*INVOICE: ${currentInvoice.invoiceNumber}*`,
-      `__________________________`,
-      ` `,
-      `Dear *${currentInvoice.customerName}*,`,
-      ` `,
-      `A new invoice has been generated for your recent transaction with *SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED*.`,
-      ` `,
-      `*Bill Summary:*`,
-      `• Invoice ID: #${currentInvoice.invoiceNumber}`,
-      `• Date: ${currentInvoice.date}`,
-      `• Total Amount: ₹${currentInvoice.grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      ` `,
-      `You can view, download, or pay your invoice online using the secure link below:`,
-      `🔗 ${shareUrl}`,
-      ` `,
-      `If you have any questions regarding this invoice, please feel free to reach out to us.`,
-      ` `,
-      `Best regards,`,
-      `*SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED*`,
-      `__________________________`,
-      `_Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED_`
-    ].join('\n');
+    // Items list
+    const itemsList = currentInvoice.items.map((item, idx) =>
+      `${idx + 1}. ${item.itemName} × ${item.quantity} = ₹${item.amount.toFixed(2)}`
+    ).join('\n');
+
+    // Build professional message
+    let message = `Dear *${customerName}*,
+
+Thank you for your ${isSales ? 'purchase' : 'business'}! Please find your ${isSales ? 'invoice' : 'bill'} details below:
+
+📄 *${isSales ? 'Invoice' : 'Bill'} No:* ${currentInvoice.invoiceNo}
+📅 *Date:* ${currentInvoice.invoiceDate}
+${currentInvoice.stateOfSupply ? `📍 *State:* ${currentInvoice.stateOfSupply}\n` : ''}
+*Items:*
+${itemsList}
+
+💰 *Total Amount: ₹${currentInvoice.total.toFixed(2)}*`;
+
+    if (currentInvoice.paid > 0) {
+      message += `\n✅ *Paid:* ₹${currentInvoice.paid.toFixed(2)}`;
+    }
+    if (currentInvoice.balance > 0) {
+      message += `\n⚠️ *Balance Due:* ₹${currentInvoice.balance.toFixed(2)}`;
+    }
+
+    message += `
+
+For any queries, please contact us.
+
+Thank you for choosing us! 🙏`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-  };
-
-  // Load predefined product
-  const loadPredefinedProduct = (productName: string, rate: number) => {
-    setNewItem(prev => ({
-      ...prev,
-      product: productName,
-      rate: rate
-    }));
-  };
-
-  // Handle back to dashboard
-  const handleBackToDashboard = () => {
-    navigate("/dashboard");
   };
 
   // Apply parsed voice data
@@ -487,19 +505,18 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
     setIsProcessingVoice(true);
 
-    // Process the transcript
     const parsedData = parseVoiceInvoiceText(voiceTranscript);
 
     setTimeout(() => {
       let fieldsUpdated = 0;
 
       if (parsedData.invoiceNumber) {
-        setCurrentInvoice(prev => ({ ...prev, invoiceNumber: parsedData.invoiceNumber || prev.invoiceNumber }));
+        setCurrentInvoice(prev => ({ ...prev, invoiceNo: parsedData.invoiceNumber || prev.invoiceNo }));
         fieldsUpdated++;
       }
 
       if (parsedData.customerName) {
-        setCurrentInvoice(prev => ({ ...prev, customerName: parsedData.customerName || prev.customerName }));
+        setCurrentInvoice(prev => ({ ...prev, partyName: parsedData.customerName || prev.partyName }));
         fieldsUpdated++;
       }
 
@@ -508,31 +525,33 @@ Payment Method: ${currentInvoice.paymentMethod}`;
 
         parsedData.items.forEach(item => {
           const subtotal = item.quantity * item.rate;
-          const sgstAmount = (subtotal * 9) / 100; // Default 9%
-          const cgstAmount = (subtotal * 9) / 100; // Default 9%
+          const taxPct = 18;
+          const taxAmount = (subtotal * taxPct) / 100;
 
           newItems.push({
             id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            product: item.product,
+            itemName: item.product,
+            itemCode: '',
+            hsnCode: '',
             quantity: item.quantity,
-            rate: item.rate,
-            subtotal,
-            sgst: sgstAmount,
-            cgst: cgstAmount,
-            igst: 0,
-            total: subtotal + sgstAmount + cgstAmount
+            unit: 'Pcs',
+            pricePerUnit: item.rate,
+            priceWithTax: false,
+            discountPercent: 0,
+            discountAmount: 0,
+            taxPercent: taxPct,
+            taxAmount: taxAmount,
+            amount: subtotal + taxAmount
           });
         });
 
-        const newSubtotal = newItems.reduce((sum, item) => sum + item.subtotal, 0);
-        const newTotalTax = newItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
+        const newTotal = newItems.reduce((sum, item) => sum + item.amount, 0);
 
         setCurrentInvoice(prev => ({
           ...prev,
           items: newItems,
-          subtotal: newSubtotal,
-          totalTax: newTotalTax,
-          grandTotal: newSubtotal + newTotalTax
+          total: newTotal,
+          balance: newTotal - prev.paid
         }));
 
         fieldsUpdated += parsedData.items.length;
@@ -541,36 +560,36 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       setIsProcessingVoice(false);
 
       if (fieldsUpdated > 0) {
-        alert(`Voice data applied! Updated ${fieldsUpdated} fields/items.`);
+        toast.success(`Voice data applied! Updated ${fieldsUpdated} fields/items.`);
         setActiveTab('create');
       } else {
-        alert("Could not extract any invoice details from the transcript. Try being more specific (e.g., 'invoice number...', 'customer...', 'item...')");
+        toast.error("Could not extract any invoice details from the transcript.");
       }
     }, 1000);
   };
 
   // Calculate item preview
-  const itemPreview = calculateItemTotal();
+  const itemPreview = calculateItemAmounts(newItem);
 
   // Filter invoice history
   const filteredHistory = invoiceHistory.filter(invoice =>
-    invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.partyName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Handle back to dashboard
+  const handleBackToDashboard = () => {
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-
-        {/* Floating particles */}
         <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
         <div className="absolute top-40 right-40 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
         <div className="absolute bottom-40 left-60 w-2 h-2 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-60 right-20 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
       </div>
 
       {/* Header */}
@@ -584,16 +603,14 @@ Payment Method: ${currentInvoice.paymentMethod}`;
             Back to Dashboard
           </button>
           <div className="flex items-center gap-4">
-            <div
-              className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 hover:rotate-12 transition-transform duration-300"
-            >
+            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30">
               <Receipt className="h-8 w-8 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                Invoice Automation System
+              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                Invoice & Billing
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">OCR + Voice Input Powered Invoice Generation</p>
+              <p className="text-blue-200/80 font-medium mt-1">Vyapar-style Invoice with OCR & Voice Input</p>
             </div>
           </div>
         </div>
@@ -602,588 +619,574 @@ Payment Method: ${currentInvoice.paymentMethod}`;
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Tabs Navigation */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'create'
+            className={`flex items-center justify-between p-4 md:p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'create'
               ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
               : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
               }`}
           >
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${activeTab === 'create'
-                ? 'bg-blue-500/20 border border-blue-400/30'
-                : 'bg-white/5 border border-blue-400/20'
-                }`}>
-                <Plus className="h-6 w-6 text-blue-400" />
+            <div className="flex items-center gap-3">
+              <div className={`p-2 md:p-3 rounded-xl ${activeTab === 'create' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5 border border-blue-400/20'}`}>
+                <Plus className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold text-white">Create Invoice</h3>
-                <p className="text-blue-200/70 text-sm">Manual invoice creation</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">Create</h3>
+                <p className="text-blue-200/70 text-xs hidden md:block">Sales & Purchase</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'create' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-              }`} />
           </button>
 
           <button
             onClick={() => setActiveTab('ocr')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'ocr'
+            className={`flex items-center justify-between p-4 md:p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'ocr'
               ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
               : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
               }`}
           >
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${activeTab === 'ocr'
-                ? 'bg-blue-500/20 border border-blue-400/30'
-                : 'bg-white/5 border border-blue-400/20'
-                }`}>
-                <Camera className="h-6 w-6 text-blue-400" />
+            <div className="flex items-center gap-3">
+              <div className={`p-2 md:p-3 rounded-xl ${activeTab === 'ocr' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5 border border-blue-400/20'}`}>
+                <Camera className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold text-white">OCR Scan</h3>
-                <p className="text-blue-200/70 text-sm">Camera & file upload</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">OCR Scan</h3>
+                <p className="text-blue-200/70 text-xs hidden md:block">Camera & upload</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'ocr' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-              }`} />
-          </button>
-
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'history'
-              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
-              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
-              }`}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${activeTab === 'history'
-                ? 'bg-blue-500/20 border border-blue-400/30'
-                : 'bg-white/5 border border-blue-400/20'
-                }`}>
-                <Eye className="h-6 w-6 text-blue-400" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-xl font-bold text-white">Invoice History</h3>
-                <p className="text-blue-200/70 text-sm">View all past invoices</p>
-              </div>
-            </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'history' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-              }`} />
           </button>
 
           <button
             onClick={() => setActiveTab('voice')}
-            className={`flex items-center justify-between p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'voice'
+            className={`flex items-center justify-between p-4 md:p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'voice'
               ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
               : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
               }`}
           >
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${activeTab === 'voice'
-                ? 'bg-blue-500/20 border border-blue-400/30'
-                : 'bg-white/5 border border-blue-400/20'
-                }`}>
-                <Mic className="h-6 w-6 text-blue-400" />
+            <div className="flex items-center gap-3">
+              <div className={`p-2 md:p-3 rounded-xl ${activeTab === 'voice' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5 border border-blue-400/20'}`}>
+                <Mic className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold text-white">Voice Input</h3>
-                <p className="text-blue-200/70 text-sm">Dictate invoice details</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">Voice</h3>
+                <p className="text-blue-200/70 text-xs hidden md:block">Dictate invoice</p>
               </div>
             </div>
-            <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'voice' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
-              }`} />
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center justify-between p-4 md:p-6 rounded-2xl backdrop-blur-2xl border transition-all duration-300 ${activeTab === 'history'
+              ? 'bg-gradient-to-r from-blue-600/30 to-indigo-600/30 border-blue-400/50 shadow-2xl shadow-blue-500/30'
+              : 'bg-white/10 border-blue-400/20 hover:bg-white/15 hover:border-blue-400/30'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 md:p-3 rounded-xl ${activeTab === 'history' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-white/5 border border-blue-400/20'}`}>
+                <Eye className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm md:text-xl font-bold text-white">History</h3>
+                <p className="text-blue-200/70 text-xs hidden md:block">Past invoices</p>
+              </div>
+            </div>
           </button>
         </div>
 
-        {/* Create Invoice Tab */}
+        {/* Create Invoice Tab - Vyapar Style */}
         {activeTab === 'create' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Form */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Customer Details */}
-              <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <User className="h-6 w-6 text-blue-400" />
-                  Customer Details
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Invoice Number
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={currentInvoice.invoiceNumber}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: text }))}
-                        onClear={() => setCurrentInvoice(prev => ({ ...prev, invoiceNumber: "" }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={currentInvoice.date}
-                      onChange={(e) => setCurrentInvoice(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
-                  </div>
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Customer Name
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={currentInvoice.customerName}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerName: e.target.value }))}
-                        placeholder="Enter customer name"
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerName: text }))}
-                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerName: "" }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Customer Email
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="email"
-                        value={currentInvoice.customerEmail}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerEmail: e.target.value }))}
-                        placeholder="customer@example.com"
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerEmail: text.replace(/\s/g, '').toLowerCase() }))}
-                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerEmail: "" }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Phone Number
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={currentInvoice.customerPhone}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerPhone: e.target.value }))}
-                        placeholder="Enter phone number"
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerPhone: text.replace(/\s/g, '') }))}
-                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerPhone: "" }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      GST No
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={currentInvoice.customerGSTIN}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: e.target.value.toUpperCase() }))}
-                        placeholder="22AAAAA0000A1Z5"
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: text.replace(/\s/g, '').toUpperCase() }))}
-                        onClear={() => setCurrentInvoice(prev => ({ ...prev, customerGSTIN: "" }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <>
+            {/* Sales/Purchase Toggle */}
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={() => handleInvoiceTypeChange('sales')}
+                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
+                  invoiceType === 'sales'
+                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-2xl shadow-emerald-500/30'
+                    : 'bg-white/10 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/10'
+                }`}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                Sales Invoice
+              </button>
+              <button
+                onClick={() => handleInvoiceTypeChange('purchase')}
+                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
+                  invoiceType === 'purchase'
+                    ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-2xl shadow-orange-500/30'
+                    : 'bg-white/10 text-orange-300 border border-orange-400/30 hover:bg-orange-500/10'
+                }`}
+              >
+                <Package className="h-5 w-5" />
+                Purchase Bill
+              </button>
+            </div>
 
-              {/* Add Items */}
-              <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Package className="h-6 w-6 text-blue-400" />
-                  Add Invoice Items
-                </h2>
-
-                {/* Quick Product Selection */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-blue-100 mb-3">
-                    Quick Product Selection
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {predefinedProducts.map((product, index) => (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Form */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Sale Type (Only for Sales) */}
+                {invoiceType === 'sales' && (
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-blue-400/20">
+                    <Label className="text-blue-100 mb-3 block font-medium">Sale Type</Label>
+                    <div className="flex gap-4">
                       <button
-                        key={index}
-                        onClick={() => loadPredefinedProduct(product.name, product.rate)}
-                        className="px-4 py-2 bg-white/5 text-blue-100 rounded-xl text-sm hover:bg-blue-500/20 hover:text-white transition-all duration-300 border border-blue-400/20 hover:border-blue-400/40 backdrop-blur-xl"
+                        onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'cash' }))}
+                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                          currentInvoice.saleType === 'cash'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white/5 text-emerald-300 border border-emerald-400/30'
+                        }`}
                       >
-                        {product.name} (₹{product.rate})
+                        <Banknote className="h-4 w-4" />
+                        Cash
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Item Form */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Product Name
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={newItem.product}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, product: e.target.value }))}
-                        placeholder="Enter product name"
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => setNewItem(prev => ({ ...prev, product: text }))}
-                        onClear={() => setNewItem(prev => ({ ...prev, product: "" }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      value={newItem.quantity}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
-                      min="1"
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
-                  </div>
-
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Rate (₹)
-                    </label>
-                    <input
-                      type="number"
-                      value={newItem.rate}
-                      onChange={(e) => setNewItem(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 }))}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                    />
-                  </div>
-
-                  <div className="space-y-3 group">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Tax (%)
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="relative group/voice">
-                        <input
-                          value={newItem.sgst}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, sgst: parseFloat(e.target.value) || 0 }))}
-                          placeholder="SGST"
-                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                        />
-                      </div>
-                      <div className="relative group/voice">
-                        <input
-                          value={newItem.cgst}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, cgst: parseFloat(e.target.value) || 0 }))}
-                          placeholder="CGST"
-                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                        />
-                      </div>
-                      <div className="relative group/voice">
-                        <input
-                          value={newItem.igst}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, igst: parseFloat(e.target.value) || 0 }))}
-                          placeholder="IGST"
-                          className="w-full pl-3 pr-3 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl text-sm focus:ring-1 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Item Preview */}
-                {newItem.product && (
-                  <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 p-6 rounded-2xl mb-6 border border-blue-400/20 backdrop-blur-xl">
-                    <h3 className="font-bold text-blue-300 mb-4 text-lg flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      Item Preview
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      <div className="space-y-1">
-                        <div className="text-blue-200/70 text-sm">Product:</div>
-                        <div className="font-medium text-white">{newItem.product}</div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-blue-200/70 text-sm">Quantity:</div>
-                        <div className="font-medium text-white">{newItem.quantity}</div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-blue-200/70 text-sm">Rate:</div>
-                        <div className="font-medium text-blue-300">₹{newItem.rate.toFixed(2)}</div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-blue-200/70 text-sm">Subtotal:</div>
-                        <div className="font-medium text-indigo-300">₹{itemPreview.subtotal.toFixed(2)}</div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-blue-200/70 text-sm">Total:</div>
-                        <div className="font-bold text-blue-400 text-lg">₹{itemPreview.total.toFixed(2)}</div>
-                      </div>
+                      <button
+                        onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'credit' }))}
+                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                          currentInvoice.saleType === 'credit'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white/5 text-blue-300 border border-blue-400/30'
+                        }`}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Credit
+                      </button>
                     </div>
                   </div>
                 )}
 
-                <button
-                  onClick={addItemToInvoice}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl transition-all duration-300 hover:scale-[1.02] shadow-2xl shadow-blue-500/30 flex items-center justify-center gap-3"
-                >
-                  <Plus className="h-5 w-5" />
-                  Add Item to Invoice
-                </button>
-              </div>
-
-              {/* Current Items Table */}
-              {currentInvoice.items.length > 0 && (
-                <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-                  <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                    <Calculator className="h-6 w-6 text-blue-400" />
-                    Current Invoice Items
+                {/* Customer/Party Details */}
+                <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-blue-400/20">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-400" />
+                    {invoiceType === 'sales' ? 'Customer Details' : 'Party Details'}
                   </h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-white/5 backdrop-blur-xl">
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Product</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Qty</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Rate</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Subtotal</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Tax</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Total</th>
-                          <th className="text-left py-4 px-6 font-bold text-blue-100">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentInvoice.items.map((item) => (
-                          <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5 transition-colors duration-300">
-                            <td className="py-4 px-6 text-white">{item.product}</td>
-                            <td className="py-4 px-6 text-blue-200">{item.quantity}</td>
-                            <td className="py-4 px-6 text-blue-300">₹{item.rate.toFixed(2)}</td>
-                            <td className="py-4 px-6 text-indigo-300">₹{item.subtotal.toFixed(2)}</td>
-                            <td className="py-4 px-6">
-                              <div className="text-xs space-y-1">
-                                <div className="text-blue-400">SGST: ₹{item.sgst.toFixed(2)}</div>
-                                <div className="text-indigo-400">CGST: ₹{item.cgst.toFixed(2)}</div>
-                                <div className="text-purple-400">IGST: ₹{item.igst.toFixed(2)}</div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6 font-bold text-blue-400">₹{item.total.toFixed(2)}</td>
-                            <td className="py-4 px-6">
-                              <button
-                                onClick={() => removeItem(item.id)}
-                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all duration-300"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column - Summary */}
-            <div className="space-y-6">
-              {/* Invoice Summary */}
-              <div className="backdrop-blur-2xl bg-gradient-to-b from-blue-900/90 via-indigo-900/80 to-purple-900/90 rounded-3xl p-8 shadow-2xl shadow-blue-500/30 border-2 border-blue-400/60 sticky top-6">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Calculator className="h-6 w-6 text-blue-400" />
-                  Invoice Summary
-                </h2>
-
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
-                    <span className="text-blue-100 text-lg">Subtotal</span>
-                    <span className="text-xl font-bold text-blue-300">
-                      ₹{currentInvoice.subtotal.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-4 border-b border-blue-400/20">
-                    <span className="text-blue-100 text-lg">Total Tax</span>
-                    <span className="text-xl font-semibold text-blue-400">
-                      ₹{currentInvoice.totalTax.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="py-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xl font-semibold text-white">Grand Total</span>
-                      <span className="text-3xl font-bold text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-                        ₹{currentInvoice.grandTotal.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status & Payment */}
-                <div className="mt-8 space-y-6">
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Payment Method
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={currentInvoice.paymentMethod}
-                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10 appearance-none"
-                      >
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="PayPal">PayPal</option>
-                        <option value="Stripe">Stripe</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ChevronRight className="h-4 w-4 text-blue-400 rotate-90" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">{invoiceType === 'sales' ? 'Customer' : 'Party'} Name *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={currentInvoice.partyName}
+                          onChange={(e) => setCurrentInvoice(prev => ({ ...prev, partyName: e.target.value }))}
+                          placeholder="Enter name"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                        <VoiceButton
+                          onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, partyName: text }))}
+                          onClear={() => setCurrentInvoice(prev => ({ ...prev, partyName: '' }))}
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-blue-100">
-                      Status
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['draft', 'sent', 'paid', 'overdue'] as const).map((status) => (
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">Phone No.</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={currentInvoice.phoneNo}
+                          onChange={(e) => setCurrentInvoice(prev => ({ ...prev, phoneNo: e.target.value }))}
+                          placeholder="Phone number"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                        <VoiceButton
+                          onTranscript={(text) => setCurrentInvoice(prev => ({ ...prev, phoneNo: text.replace(/\s/g, '') }))}
+                          onClear={() => setCurrentInvoice(prev => ({ ...prev, phoneNo: '' }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">E-Way Bill No.</Label>
+                      <Input
+                        value={currentInvoice.eWayBillNo}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, eWayBillNo: e.target.value }))}
+                        placeholder="E-Way bill"
+                        className="bg-white/5 border-blue-400/30 text-white h-9"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">{invoiceType === 'sales' ? 'Invoice' : 'Bill'} No.</Label>
+                      <Input
+                        value={currentInvoice.invoiceNo}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceNo: e.target.value }))}
+                        className="bg-white/5 border-blue-400/30 text-white h-9"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">{invoiceType === 'sales' ? 'Invoice' : 'Bill'} Date</Label>
+                      <Input
+                        type="date"
+                        value={currentInvoice.invoiceDate}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, invoiceDate: e.target.value }))}
+                        className="bg-white/5 border-blue-400/30 text-white h-9"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">State of Supply</Label>
+                      <Select
+                        value={currentInvoice.stateOfSupply}
+                        onValueChange={(val) => setCurrentInvoice(prev => ({ ...prev, stateOfSupply: val }))}
+                      >
+                        <SelectTrigger className="bg-white/5 border-blue-400/30 text-white h-9">
+                          <SelectValue placeholder="Select State" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-blue-400/20 text-white max-h-[250px]">
+                          {INDIAN_STATES.map(state => (
+                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add Items Section */}
+                <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-blue-400/20">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-400" />
+                    Add Items
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="col-span-2 space-y-2">
+                        <Label className="text-blue-100 text-sm">Item Name *</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newItem.itemName}
+                            onChange={(e) => setNewItem(prev => ({ ...prev, itemName: e.target.value }))}
+                            placeholder="Enter item name"
+                            className="bg-white/5 border-blue-400/30 text-white h-9"
+                          />
+                          <VoiceButton
+                            onTranscript={(text) => setNewItem(prev => ({ ...prev, itemName: text }))}
+                            onClear={() => setNewItem(prev => ({ ...prev, itemName: '' }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Item Code</Label>
+                        <Input
+                          value={newItem.itemCode}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, itemCode: e.target.value }))}
+                          placeholder="SKU"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">HSN Code</Label>
+                        <Input
+                          value={newItem.hsnCode}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
+                          placeholder="HSN"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Qty</Label>
+                        <Input
+                          type="number"
+                          value={newItem.quantity}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                          min="1"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Unit</Label>
+                        <Select value={newItem.unit} onValueChange={(val) => setNewItem(prev => ({ ...prev, unit: val }))}>
+                          <SelectTrigger className="bg-white/5 border-blue-400/30 text-white h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-blue-400/20 text-white">
+                            {UNITS.map(unit => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Price *</Label>
+                        <Input
+                          type="number"
+                          value={newItem.pricePerUnit}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, pricePerUnit: parseFloat(e.target.value) || 0 }))}
+                          min="0"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Disc %</Label>
+                        <Input
+                          type="number"
+                          value={newItem.discountPercent}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, discountPercent: parseFloat(e.target.value) || 0 }))}
+                          min="0"
+                          max="100"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Tax %</Label>
+                        <Select value={newItem.taxPercent?.toString()} onValueChange={(val) => setNewItem(prev => ({ ...prev, taxPercent: parseFloat(val) }))}>
+                          <SelectTrigger className="bg-white/5 border-blue-400/30 text-white h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-blue-400/20 text-white">
+                            {GST_SLABS.map(rate => (
+                              <SelectItem key={rate} value={rate}>{rate}%</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">Price Type</Label>
                         <button
-                          key={status}
-                          onClick={() => setCurrentInvoice(prev => ({ ...prev, status }))}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${currentInvoice.status === status
-                            ? 'bg-blue-500/30 text-white border border-blue-400/50 shadow-lg shadow-blue-500/30'
-                            : 'bg-white/5 text-blue-200 border border-blue-400/20 hover:bg-white/10 hover:border-blue-400/30'
-                            }`}
+                          onClick={() => setNewItem(prev => ({ ...prev, priceWithTax: !prev.priceWithTax }))}
+                          className={`w-full h-9 px-2 rounded-lg text-xs font-medium transition-all ${
+                            newItem.priceWithTax
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/5 text-blue-300 border border-blue-400/30'
+                          }`}
                         >
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                          {newItem.priceWithTax ? 'With Tax' : 'Without Tax'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item Preview */}
+                    {newItem.itemName && newItem.pricePerUnit ? (
+                      <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-400/20 flex justify-between items-center">
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-blue-300/70">Disc: <span className="text-blue-100">₹{(itemPreview.discountAmount || 0).toFixed(2)}</span></span>
+                          <span className="text-blue-300/70">Tax: <span className="text-blue-100">₹{(itemPreview.taxAmount || 0).toFixed(2)}</span></span>
+                        </div>
+                        <span className="text-lg font-bold text-emerald-400">₹{(itemPreview.amount || 0).toFixed(2)}</span>
+                      </div>
+                    ) : null}
+
+                    <Button
+                      onClick={addItemToInvoice}
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl"
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add Item
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                {currentInvoice.items.length > 0 && (
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-blue-400/20 overflow-hidden">
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Calculator className="h-5 w-5 text-blue-400" />
+                      Items ({currentInvoice.items.length})
+                    </h2>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-white/5">
+                            <th className="text-left py-2 px-3 text-blue-200">Item</th>
+                            <th className="text-left py-2 px-3 text-blue-200">HSN</th>
+                            <th className="text-center py-2 px-3 text-blue-200">Qty</th>
+                            <th className="text-right py-2 px-3 text-blue-200">Price</th>
+                            <th className="text-right py-2 px-3 text-blue-200">Disc.</th>
+                            <th className="text-right py-2 px-3 text-blue-200">Tax</th>
+                            <th className="text-right py-2 px-3 text-blue-200">Amount</th>
+                            <th className="text-center py-2 px-3 text-blue-200"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentInvoice.items.map((item) => (
+                            <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5">
+                              <td className="py-2 px-3 text-white">{item.itemName}</td>
+                              <td className="py-2 px-3 text-blue-300">{item.hsnCode || '-'}</td>
+                              <td className="py-2 px-3 text-center text-blue-200">{item.quantity}</td>
+                              <td className="py-2 px-3 text-right text-blue-200">₹{item.pricePerUnit}</td>
+                              <td className="py-2 px-3 text-right text-orange-300">₹{item.discountAmount}</td>
+                              <td className="py-2 px-3 text-right text-indigo-300">₹{item.taxAmount}</td>
+                              <td className="py-2 px-3 text-right font-bold text-emerald-400">₹{item.amount}</td>
+                              <td className="py-2 px-3 text-center">
+                                <button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:bg-red-500/10 rounded">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Type (Only for Purchase) */}
+                {invoiceType === 'purchase' && (
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-orange-400/20">
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-orange-400" />
+                      Payment Type
+                    </h2>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                      {[
+                        { value: 'cash', label: 'Cash', icon: Banknote },
+                        { value: 'cheque', label: 'Cheque', icon: FileText },
+                        { value: 'razorpay', label: 'Razorpay', icon: CreditCard },
+                        { value: 'gpay', label: 'GPay', icon: Smartphone },
+                        { value: 'bank', label: 'Bank', icon: Building2 }
+                      ].map(({ value, label, icon: Icon }) => (
+                        <button
+                          key={value}
+                          onClick={() => setCurrentInvoice(prev => ({ ...prev, paymentMethod: value }))}
+                          className={`py-2 px-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1 ${
+                            currentInvoice.paymentMethod === value
+                              ? 'bg-orange-600 text-white'
+                              : 'bg-white/5 text-orange-300 border border-orange-400/30'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {label}
                         </button>
                       ))}
                     </div>
+
+                    {/* Upload Bill */}
+                    <div className="mt-4">
+                      <div
+                        onClick={() => billUploadRef.current?.click()}
+                        className="border-2 border-dashed border-orange-400/30 rounded-xl p-4 text-center cursor-pointer hover:bg-orange-500/5 transition-all"
+                      >
+                        {currentInvoice.uploadedBill ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-emerald-400" />
+                            <span className="text-emerald-300 text-sm">Bill uploaded</span>
+                            <button onClick={(e) => { e.stopPropagation(); setCurrentInvoice(prev => ({ ...prev, uploadedBill: null })); }} className="p-1 text-red-400">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 text-orange-400 mx-auto mb-1" />
+                            <p className="text-orange-300/70 text-sm">Upload Bill</p>
+                          </>
+                        )}
+                      </div>
+                      <input ref={billUploadRef} type="file" accept="image/*" onChange={handleBillUpload} className="hidden" />
+                    </div>
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-8 space-y-4">
-                  <button
-                    onClick={saveInvoice}
-                    disabled={currentInvoice.items.length === 0 || isSaving}
-                    className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${currentInvoice.items.length === 0 || isSaving
-                      ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white hover:scale-[1.02] shadow-2xl shadow-blue-500/30'
-                      }`}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-5 w-5" />
-                        Save Invoice
-                      </>
-                    )}
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => exportInvoice('csv')}
-                      className="py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-blue-500/20 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/40 flex items-center justify-center gap-2 backdrop-blur-xl"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export CSV
-                    </button>
-
-                    <button
-                      onClick={printInvoice}
-                      className="py-3 bg-white/5 text-indigo-300 rounded-xl font-medium hover:bg-indigo-500/20 transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/40 flex items-center justify-center gap-2 backdrop-blur-xl"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Print
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={copyInvoiceDetails}
-                    className="w-full py-3 bg-white/5 text-blue-200 rounded-xl font-medium hover:bg-white/10 transition-all duration-300 border border-blue-400/20 hover:border-blue-400/30 flex items-center justify-center gap-2 backdrop-blur-xl"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy Details
-                  </button>
-
-                  <button
-                    onClick={shareOnWhatsApp}
-                    className="w-full py-3 bg-[#25D366]/10 text-[#25D366] rounded-xl font-bold hover:bg-[#25D366]/20 transition-all duration-300 border border-[#25D366]/30 hover:border-[#25D366]/50 flex items-center justify-center gap-2 backdrop-blur-xl shadow-lg shadow-[#25D366]/10"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    Share on WhatsApp
-                  </button>
-                </div>
+                )}
               </div>
 
-              {/* Quick Stats */}
-              <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                  <BarChart className="h-5 w-5 text-blue-400" />
-                  Quick Stats
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b border-blue-400/10">
-                    <span className="text-blue-200">Total Items</span>
-                    <span className="font-bold bg-blue-500/20 text-blue-300 px-3 py-1 rounded-lg border border-blue-400/30">
-                      {currentInvoice.items.length}
-                    </span>
+              {/* Right Column - Summary */}
+              <div className="space-y-6">
+                <div className={`backdrop-blur-2xl rounded-2xl p-5 border-2 sticky top-6 ${
+                  invoiceType === 'sales'
+                    ? 'bg-gradient-to-b from-emerald-900/50 to-green-900/50 border-emerald-400/40'
+                    : 'bg-gradient-to-b from-orange-900/50 to-amber-900/50 border-orange-400/40'
+                }`}>
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <IndianRupee className={`h-5 w-5 ${invoiceType === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`} />
+                    Summary
+                  </h2>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-white/10">
+                      <span className="text-white/80">Total</span>
+                      <span className={`text-2xl font-bold ${invoiceType === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`}>
+                        ₹{currentInvoice.total.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-white/80 text-sm">Paid Amount</Label>
+                      <Input
+                        type="number"
+                        value={currentInvoice.paid}
+                        onChange={(e) => updatePaidAmount(parseFloat(e.target.value) || 0)}
+                        min="0"
+                        className="bg-white/10 border-white/20 text-white font-bold h-10"
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center py-2 border-t border-white/10">
+                      <span className="text-white/80">Balance</span>
+                      <span className={`text-xl font-bold ${currentInvoice.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        ₹{currentInvoice.balance.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {currentInvoice.balance > 0 && (
+                      <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 p-2 rounded-lg">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Due: ₹{currentInvoice.balance.toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center py-3 border-b border-blue-400/10">
-                    <span className="text-blue-200">Avg. Item Value</span>
-                    <span className="font-medium text-blue-300">
-                      ₹{currentInvoice.items.length > 0 ? (currentInvoice.subtotal / currentInvoice.items.length).toFixed(2) : '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-3">
-                    <span className="text-blue-200">Tax Rate</span>
-                    <span className="font-medium text-indigo-300">
-                      {((currentInvoice.totalTax / currentInvoice.subtotal) * 100 || 0).toFixed(1)}%
-                    </span>
+
+                  {/* Action Buttons */}
+                  <div className="mt-6 space-y-2">
+                    <Button
+                      onClick={saveInvoice}
+                      disabled={isSaving || currentInvoice.items.length === 0}
+                      className={`w-full py-3 font-bold rounded-xl ${
+                        invoiceType === 'sales'
+                          ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500'
+                          : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500'
+                      }`}
+                    >
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={printInvoice} variant="outline" className="py-2 bg-white/5 border-white/20 text-white hover:bg-white/10 text-sm">
+                        <Printer className="h-4 w-4 mr-1" />
+                        Print
+                      </Button>
+                      <Button onClick={copyInvoiceDetails} variant="outline" className="py-2 bg-white/5 border-white/20 text-white hover:bg-white/10 text-sm">
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+
+                    {/* WhatsApp Share Button */}
+                    <button
+                      onClick={shareOnWhatsApp}
+                      className="w-full py-3 bg-[#25D366]/10 text-[#25D366] rounded-xl font-bold hover:bg-[#25D366]/20 transition-all duration-300 border border-[#25D366]/30 hover:border-[#25D366]/50 flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/10"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                      Share on WhatsApp
+                    </button>
+
+                    <Button onClick={saveAndNew} disabled={isSaving || currentInvoice.items.length === 0} variant="outline" className="w-full py-2 bg-white/5 border-white/20 text-white hover:bg-white/10 text-sm">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Save & New
+                    </Button>
+
+                    <Button onClick={() => exportInvoice('csv')} variant="outline" className="w-full py-2 bg-white/5 border-white/20 text-white hover:bg-white/10 text-sm">
+                      <Download className="h-4 w-4 mr-1" />
+                      Export CSV
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
-        {/* OCR Tab - Doc Scanner */}
+        {/* OCR Tab */}
         {activeTab === 'ocr' && (
           <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -1197,40 +1200,42 @@ Payment Method: ${currentInvoice.paymentMethod}`;
             <DocScanner
               onTextExtracted={(text) => {
                 setOcrText(text);
-                // Try to parse and auto-fill
                 const parsed = parseInvoiceText(text);
                 if (parsed.items.length > 0 || parsed.invoiceNumber || parsed.customerName) {
                   const newInvoiceItems = parsed.items.map(item => {
                     const subtotal = item.quantity * item.rate;
-                    const sgst = (subtotal * 9) / 100;
-                    const cgst = (subtotal * 9) / 100;
-                    const igst = 0;
+                    const taxPct = 18;
+                    const taxAmount = (subtotal * taxPct) / 100;
                     return {
                       id: Math.random().toString(36).substr(2, 9),
-                      product: item.product,
+                      itemName: item.product,
+                      itemCode: '',
+                      hsnCode: '',
                       quantity: item.quantity,
-                      rate: item.rate,
-                      subtotal: subtotal,
-                      sgst: sgst,
-                      cgst: cgst,
-                      igst: igst,
-                      total: subtotal + sgst + cgst + igst
+                      unit: 'Pcs',
+                      pricePerUnit: item.rate,
+                      priceWithTax: false,
+                      discountPercent: 0,
+                      discountAmount: 0,
+                      taxPercent: taxPct,
+                      taxAmount: taxAmount,
+                      amount: subtotal + taxAmount
                     };
                   });
 
-                  const newSubtotal = newInvoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
-                  const newTotalTax = newInvoiceItems.reduce((sum, item) => sum + item.sgst + item.cgst + item.igst, 0);
+                  const newTotal = newInvoiceItems.reduce((sum, item) => sum + item.amount, 0);
 
                   setCurrentInvoice(prev => ({
                     ...prev,
-                    invoiceNumber: parsed.invoiceNumber || prev.invoiceNumber,
-                    customerName: parsed.customerName || prev.customerName,
-                    date: parsed.invoiceDate || prev.date,
+                    invoiceNo: parsed.invoiceNumber || prev.invoiceNo,
+                    partyName: parsed.customerName || prev.partyName,
+                    invoiceDate: parsed.invoiceDate || prev.invoiceDate,
                     items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
-                    subtotal: newInvoiceItems.length > 0 ? newSubtotal : prev.subtotal,
-                    totalTax: newInvoiceItems.length > 0 ? newTotalTax : prev.totalTax,
-                    grandTotal: newInvoiceItems.length > 0 ? (newSubtotal + newTotalTax) : prev.grandTotal
+                    total: newInvoiceItems.length > 0 ? newTotal : prev.total,
+                    balance: newInvoiceItems.length > 0 ? newTotal - prev.paid : prev.balance
                   }));
+
+                  toast.success("Data extracted! Go to Create tab to review.");
                 }
               }}
               onImageProcessed={(imageData) => {
@@ -1240,142 +1245,6 @@ Payment Method: ${currentInvoice.paymentMethod}`;
           </div>
         )}
 
-        {/* History Tab */}
-        {activeTab === 'history' && (
-          <div className="space-y-8">
-            {/* Search Section */}
-            <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Eye className="h-6 w-6 text-blue-400" />
-                    Invoice History
-                  </h2>
-                  <p className="text-blue-300/70 mt-2">
-                    {invoiceHistory.length} invoice{invoiceHistory.length !== 1 ? 's' : ''} in history
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400/60" />
-                    <input
-                      type="text"
-                      placeholder="Search invoices..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-12 pr-4 py-3 bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-300 hover:bg-white/10 w-64"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {filteredHistory.length > 0 ? (
-                <div className="grid gap-6">
-                  {filteredHistory.map((invoice, index) => (
-                    <div
-                      key={invoice.id}
-                      className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-2xl p-6 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 group"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-4 flex-wrap">
-                            <h3 className="font-bold text-xl text-white group-hover:text-blue-300 transition-colors duration-300">
-                              {invoice.invoiceNumber}
-                            </h3>
-                            <span className={`px-3 py-1 rounded-lg text-sm font-medium ${invoice.status === 'paid' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
-                              invoice.status === 'sent' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30' :
-                                invoice.status === 'overdue' ? 'bg-red-500/20 text-red-300 border border-red-400/30' :
-                                  'bg-gray-500/20 text-gray-300 border border-gray-400/30'
-                              }`}>
-                              {invoice.status.toUpperCase()}
-                            </span>
-                          </div>
-
-                          <div className="space-y-3">
-                            <p className="text-blue-300/80">
-                              Date: {invoice.date} | Customer: {invoice.customerName}
-                            </p>
-                            <p className="text-blue-300/80">
-                              Email: {invoice.customerEmail}
-                            </p>
-
-                            <div className="flex items-center gap-6">
-                              <div className="flex items-center gap-2">
-                                <Package className="h-4 w-4 text-blue-400" />
-                                <span className="text-sm text-blue-300">
-                                  {invoice.items.length} item{invoice.items.length !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 text-blue-400" />
-                                <span className="text-sm text-blue-300 font-medium">
-                                  Subtotal: ₹{invoice.subtotal.toFixed(2)}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Percent className="h-4 w-4 text-indigo-400" />
-                                <span className="text-sm text-indigo-300 font-medium">
-                                  Tax: ₹{invoice.totalTax.toFixed(2)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-blue-400/20">
-                              <p className="text-lg font-bold text-transparent bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text group-hover:from-blue-200 group-hover:to-indigo-200">
-                                Grand Total: ₹{invoice.grandTotal.toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => {
-                              setCurrentInvoice(invoice);
-                              setActiveTab('create');
-                            }}
-                            className="px-6 py-3 bg-blue-500/20 text-blue-300 rounded-xl font-medium hover:bg-blue-500/30 transition-all duration-300 border border-blue-400/30 hover:border-blue-400/50"
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => {
-                              let csvContent = "Product,Quantity,Rate,Subtotal,SGST,CGST,IGST,Total\n";
-                              invoice.items.forEach(item => {
-                                csvContent += `"${item.product}",${item.quantity},${item.rate},${item.subtotal},${item.sgst},${item.cgst},${item.igst},${item.total}\n`;
-                              });
-
-                              const blob = new Blob([csvContent], { type: 'text/csv' });
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${invoice.invoiceNumber}.csv`;
-                              a.click();
-                            }}
-                            className="px-6 py-3 bg-indigo-500/20 text-indigo-300 rounded-xl font-medium hover:bg-indigo-500/30 transition-all duration-300 border border-indigo-400/30 hover:border-indigo-400/50 flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Export
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="p-8 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-xl border border-blue-400/30 shadow-lg shadow-blue-500/30">
-                      <FileText className="h-16 w-16 text-blue-400" />
-                    </div>
-                    <p className="text-blue-300/80 text-lg font-medium">No invoices found</p>
-                    <p className="text-blue-400/60 text-sm">Try adjusting your search terms or create a new invoice</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         {/* Voice Tab */}
         {activeTab === 'voice' && (
           <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
@@ -1388,9 +1257,8 @@ Payment Method: ${currentInvoice.paymentMethod}`;
             </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Dictation Area */}
               <div className="space-y-6">
-                <div className="border-2 border-dashed border-blue-400/30 rounded-3xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl relative group">
+                <div className="border-2 border-dashed border-blue-400/30 rounded-3xl p-12 text-center bg-gradient-to-b from-blue-500/10 to-indigo-500/10">
                   <div className="flex flex-col items-center gap-6">
                     <VoiceButton
                       onTranscript={(text) => setVoiceTranscript(prev => prev + " " + text)}
@@ -1399,9 +1267,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                       className="scale-150 mb-4"
                     />
                     <div>
-                      <p className="text-xl font-bold text-white mb-2">
-                        Hold the mic to speak
-                      </p>
+                      <p className="text-xl font-bold text-white mb-2">Hold the mic to speak</p>
                       <p className="text-sm text-blue-300/80">
                         Try: "Invoice number INV-101, customer John Doe, add item Table quantity 2 rate 5000"
                       </p>
@@ -1415,76 +1281,132 @@ Payment Method: ${currentInvoice.paymentMethod}`;
                     disabled={!voiceTranscript || isProcessingVoice}
                     className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${!voiceTranscript || isProcessingVoice
                       ? 'bg-gray-700/30 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white hover:scale-[1.02] shadow-2xl shadow-blue-500/30'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white'
                       }`}
                   >
-                    {isProcessingVoice ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-5 w-5" />
-                        Apply Voice Data
-                      </>
-                    )}
+                    {isProcessingVoice ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                    Apply Voice Data
                   </button>
                   <button
                     onClick={() => setVoiceTranscript("")}
-                    className="px-6 py-4 bg-white/5 text-blue-300 rounded-2xl font-medium hover:bg-red-500/20 hover:text-red-300 transition-all duration-300 border border-blue-400/20 hover:border-red-400/30"
+                    className="px-6 py-4 bg-white/5 text-blue-300 rounded-2xl font-medium hover:bg-red-500/20 hover:text-red-300 border border-blue-400/20"
                   >
                     Clear
                   </button>
                 </div>
               </div>
 
-              {/* Live Transcript Display */}
               <div className="space-y-4">
-                <label className="block text-sm font-medium text-blue-100">
-                  Live Transcript Preview
-                </label>
-                <div className="border border-blue-400/20 rounded-2xl p-6 bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl min-h-[300px] relative">
+                <label className="block text-sm font-medium text-blue-100">Live Transcript Preview</label>
+                <div className="border border-blue-400/20 rounded-2xl p-6 bg-gradient-to-b from-blue-500/10 to-indigo-500/10 min-h-[300px]">
                   <textarea
                     value={voiceTranscript}
                     onChange={(e) => setVoiceTranscript(e.target.value)}
-                    placeholder="Transcript will appear here as you speak, or you can type/edit manually..."
-                    className="w-full h-full min-h-[250px] bg-transparent text-white font-medium leading-relaxed resize-none focus:outline-none placeholder:text-blue-300/20"
+                    placeholder="Transcript will appear here..."
+                    className="w-full h-full min-h-[250px] bg-transparent text-white font-medium resize-none focus:outline-none placeholder:text-blue-300/20"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Guidelines */}
-            <div className="mt-12 p-6 rounded-2xl bg-blue-500/5 border border-blue-400/10">
-              <h3 className="text-lg font-bold text-blue-300 mb-4 flex items-center gap-2">
+            <div className="mt-8 p-4 rounded-2xl bg-blue-500/5 border border-blue-400/10">
+              <h3 className="text-lg font-bold text-blue-300 mb-3 flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Voice Command Tips
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <p className="text-sm font-bold text-white">Invoice No:</p>
-                  <p className="text-xs text-blue-200/60 font-mono">"invoice number ABC-123"</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="font-bold text-white">Invoice No:</p>
+                  <p className="text-blue-200/60 font-mono">"invoice number ABC-123"</p>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-bold text-white">Customer:</p>
-                  <p className="text-xs text-blue-200/60 font-mono">"customer name Jane Smith"</p>
+                <div>
+                  <p className="font-bold text-white">Customer:</p>
+                  <p className="text-blue-200/60 font-mono">"customer name Jane Smith"</p>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-bold text-white">Adding Items:</p>
-                  <p className="text-xs text-blue-200/60 font-mono">"item Laptop quantity 1 price 45000"</p>
+                <div>
+                  <p className="font-bold text-white">Adding Items:</p>
+                  <p className="text-blue-200/60 font-mono">"item Laptop quantity 1 price 45000"</p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <div className="space-y-8">
+            <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <Eye className="h-6 w-6 text-blue-400" />
+                    Invoice History
+                  </h2>
+                  <p className="text-blue-300/70 mt-2">{invoiceHistory.length} invoice{invoiceHistory.length !== 1 ? 's' : ''} saved</p>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400/60" />
+                  <input
+                    type="text"
+                    placeholder="Search invoices..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-4 py-3 bg-white/5 text-white border border-blue-400/30 rounded-xl focus:ring-2 focus:ring-blue-400/50 w-64"
+                  />
+                </div>
+              </div>
+
+              {filteredHistory.length > 0 ? (
+                <div className="grid gap-4">
+                  {filteredHistory.map((invoice, index) => (
+                    <div
+                      key={invoice.invoiceNo + index}
+                      className="backdrop-blur-2xl bg-white/5 border border-blue-400/20 rounded-2xl p-5 hover:bg-white/10 transition-all"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-lg text-white">{invoice.invoiceNo}</h3>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              invoice.type === 'sales' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-orange-500/20 text-orange-300'
+                            }`}>
+                              {invoice.type === 'sales' ? 'SALES' : 'PURCHASE'}
+                            </span>
+                          </div>
+                          <p className="text-blue-300/80 text-sm">
+                            {invoice.partyName} | {invoice.invoiceDate}
+                          </p>
+                          <p className="text-blue-400/60 text-xs mt-1">{invoice.items.length} items</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xl font-bold ${invoice.type === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`}>
+                            ₹{invoice.total.toFixed(2)}
+                          </p>
+                          {invoice.balance > 0 && (
+                            <p className="text-red-400 text-sm">Due: ₹{invoice.balance.toFixed(2)}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <FileText className="h-16 w-16 text-blue-400/40 mx-auto mb-4" />
+                  <p className="text-blue-300/80 text-lg">No invoices found</p>
+                  <p className="text-blue-400/60 text-sm">Create your first invoice to see it here</p>
+                </div>
+              )}
             </div>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 py-8 border-t border-blue-400/20 relative backdrop-blur-xl bg-white/5">
+      <footer className="mt-12 py-8 border-t border-blue-400/20 backdrop-blur-xl bg-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-blue-300/60 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-blue-400/20">
-            Invoice Automation System • Powered by OCR & Voice Recognition ✨
+          <p className="text-blue-300/60 text-sm">
+            Invoice & Billing System • OCR & Voice Powered
           </p>
         </div>
       </footer>

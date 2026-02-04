@@ -28,7 +28,12 @@ import {
   CreditCard,
   BookOpen,
   QrCode,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Files
 } from "lucide-react";
 import Tesseract from "tesseract.js";
 
@@ -40,10 +45,28 @@ interface DocScannerProps {
 type ScanMode = 'document' | 'idcard' | 'book' | 'qrcode';
 type FilterType = 'original' | 'grayscale' | 'highContrast' | 'blackWhite' | 'brighten' | 'darken' | 'sepia' | 'invert' | 'sharpen';
 
+interface PageData {
+  id: string;
+  originalImage: string;
+  processedImage: string;
+  filter: FilterType;
+  rotation: number;
+  flipH: boolean;
+  flipV: boolean;
+  brightness: number;
+  contrast: number;
+}
+
 const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcessed }) => {
   // States
   const [activeStep, setActiveStep] = useState<'capture' | 'edit' | 'export'>('capture');
   const [scanMode, setScanMode] = useState<ScanMode>('document');
+
+  // Multi-page support
+  const [pages, setPages] = useState<PageData[]>([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+
+  // Legacy single image states (for current editing)
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isUsingCamera, setIsUsingCamera] = useState(false);
@@ -58,6 +81,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const [ocrProgress, setOcrProgress] = useState(0);
   const [extractedText, setExtractedText] = useState("");
   const [showOcrResult, setShowOcrResult] = useState(false);
+  const [isAddingPage, setIsAddingPage] = useState(false);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -89,31 +113,53 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   // Start camera
   const startCamera = async () => {
     try {
-      const constraints = {
-        video: {
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      };
+      // Try back camera first (mobile), fallback to any camera (desktop)
+      let stream: MediaStream | null = null;
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          setIsCameraReady(true);
-        };
+      try {
+        // First try back camera for mobile devices
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        });
+      } catch {
+        // Fallback to any available camera (front camera on desktop)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
       }
 
+      streamRef.current = stream;
+
+      // Set isUsingCamera FIRST so the video element renders
       setIsUsingCamera(true);
+
     } catch (error) {
       console.error("Camera error:", error);
       alert("Could not access camera. Please check permissions or use file upload.");
     }
   };
+
+  // Effect to attach stream to video element once it's rendered
+  useEffect(() => {
+    if (isUsingCamera && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.muted = true;
+
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play()
+          .then(() => setIsCameraReady(true))
+          .catch(err => console.error("Video play error:", err));
+      };
+    }
+  }, [isUsingCamera]);
 
   // Stop camera
   const stopCamera = useCallback(() => {
@@ -144,12 +190,120 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
     // Get image data
     const imageData = canvas.toDataURL('image/jpeg', 0.95);
+
+    if (isAddingPage) {
+      // Adding a new page to existing document
+      const newPage: PageData = {
+        id: `page-${Date.now()}`,
+        originalImage: imageData,
+        processedImage: imageData,
+        filter: 'original',
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        brightness: 100,
+        contrast: 100
+      };
+      setPages(prev => [...prev, newPage]);
+      setCurrentPageIndex(pages.length);
+      setIsAddingPage(false);
+    } else {
+      // First page capture
+      const newPage: PageData = {
+        id: `page-${Date.now()}`,
+        originalImage: imageData,
+        processedImage: imageData,
+        filter: 'original',
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+        brightness: 100,
+        contrast: 100
+      };
+      setPages([newPage]);
+      setCurrentPageIndex(0);
+    }
+
     setCapturedImage(imageData);
     setProcessedImage(imageData);
+    setCurrentFilter('original');
+    setRotation(0);
+    setFlipH(false);
+    setFlipV(false);
+    setBrightness(100);
+    setContrast(100);
 
     // Stop camera after capture
     stopCamera();
     setActiveStep('edit');
+  };
+
+  // Add another page
+  const addAnotherPage = () => {
+    // Save current page edits first
+    saveCurrentPageEdits();
+    setIsAddingPage(true);
+    setActiveStep('capture');
+  };
+
+  // Save current page edits
+  const saveCurrentPageEdits = () => {
+    if (pages.length > 0 && processedImage) {
+      setPages(prev => prev.map((page, index) =>
+        index === currentPageIndex
+          ? {
+              ...page,
+              processedImage: processedImage,
+              filter: currentFilter,
+              rotation: rotation,
+              flipH: flipH,
+              flipV: flipV,
+              brightness: brightness,
+              contrast: contrast
+            }
+          : page
+      ));
+    }
+  };
+
+  // Switch to a different page
+  const switchToPage = (index: number) => {
+    saveCurrentPageEdits();
+    setCurrentPageIndex(index);
+    const page = pages[index];
+    if (page) {
+      setCapturedImage(page.originalImage);
+      setProcessedImage(page.processedImage);
+      setCurrentFilter(page.filter);
+      setRotation(page.rotation);
+      setFlipH(page.flipH);
+      setFlipV(page.flipV);
+      setBrightness(page.brightness);
+      setContrast(page.contrast);
+    }
+  };
+
+  // Delete a page
+  const deletePage = (index: number) => {
+    if (pages.length <= 1) {
+      resetScanner();
+      return;
+    }
+    const newPages = pages.filter((_, i) => i !== index);
+    setPages(newPages);
+    const newIndex = index >= newPages.length ? newPages.length - 1 : index;
+    setCurrentPageIndex(newIndex);
+    const page = newPages[newIndex];
+    if (page) {
+      setCapturedImage(page.originalImage);
+      setProcessedImage(page.processedImage);
+      setCurrentFilter(page.filter);
+      setRotation(page.rotation);
+      setFlipH(page.flipH);
+      setFlipV(page.flipV);
+      setBrightness(page.brightness);
+      setContrast(page.contrast);
+    }
   };
 
   // Handle file upload
@@ -160,11 +314,56 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     const reader = new FileReader();
     reader.onload = (e) => {
       const imageData = e.target?.result as string;
+
+      if (isAddingPage) {
+        // Adding a new page
+        const newPage: PageData = {
+          id: `page-${Date.now()}`,
+          originalImage: imageData,
+          processedImage: imageData,
+          filter: 'original',
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+          brightness: 100,
+          contrast: 100
+        };
+        setPages(prev => [...prev, newPage]);
+        setCurrentPageIndex(pages.length);
+        setIsAddingPage(false);
+      } else {
+        // First page
+        const newPage: PageData = {
+          id: `page-${Date.now()}`,
+          originalImage: imageData,
+          processedImage: imageData,
+          filter: 'original',
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+          brightness: 100,
+          contrast: 100
+        };
+        setPages([newPage]);
+        setCurrentPageIndex(0);
+      }
+
       setCapturedImage(imageData);
       setProcessedImage(imageData);
+      setCurrentFilter('original');
+      setRotation(0);
+      setFlipH(false);
+      setFlipV(false);
+      setBrightness(100);
+      setContrast(100);
       setActiveStep('edit');
     };
     reader.readAsDataURL(file);
+
+    // Reset file input
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   // Apply filter to image
@@ -278,25 +477,44 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     setRotation(prev => direction === 'cw' ? prev + 90 : prev - 90);
   };
 
-  // Run OCR
+  // Run OCR on all pages
   const runOcr = async () => {
-    if (!processedImage) return;
+    // Save current page first
+    saveCurrentPageEdits();
+
+    if (pages.length === 0 && !processedImage) return;
 
     setIsProcessingOcr(true);
     setOcrProgress(0);
 
     try {
-      const result = await Tesseract.recognize(processedImage, 'eng', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-        }
-      });
+      let allText = '';
+      const pagesToProcess = pages.length > 0 ? pages : [{ processedImage: processedImage }];
+      const totalPages = pagesToProcess.length;
 
-      setExtractedText(result.data.text);
+      for (let i = 0; i < totalPages; i++) {
+        const pageImage = pagesToProcess[i].processedImage;
+        if (!pageImage) continue;
+
+        const result = await Tesseract.recognize(pageImage, 'eng', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              const pageProgress = (i / totalPages) * 100 + (m.progress * 100 / totalPages);
+              setOcrProgress(Math.round(pageProgress));
+            }
+          }
+        });
+
+        if (totalPages > 1) {
+          allText += `--- Page ${i + 1} ---\n${result.data.text}\n\n`;
+        } else {
+          allText = result.data.text;
+        }
+      }
+
+      setExtractedText(allText.trim());
       setShowOcrResult(true);
-      onTextExtracted?.(result.data.text);
+      onTextExtracted?.(allText.trim());
     } catch (error) {
       console.error("OCR Error:", error);
       alert("Failed to extract text. Please try again.");
@@ -357,6 +575,9 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     setExtractedText("");
     setShowOcrResult(false);
     setActiveStep('capture');
+    setPages([]);
+    setCurrentPageIndex(0);
+    setIsAddingPage(false);
     stopCamera();
   };
 
@@ -442,7 +663,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  className="w-full h-[400px] object-cover"
+                  muted
+                  className="w-full h-[400px] object-cover bg-black"
                 />
                 {/* Camera overlay guide */}
                 <div className="absolute inset-0 pointer-events-none">
@@ -527,6 +749,34 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Image Preview */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Page indicator and navigation */}
+            {pages.length > 0 && (
+              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-2 border border-blue-400/20">
+                <div className="flex items-center gap-2">
+                  <Files className="h-4 w-4 text-blue-400" />
+                  <span className="text-blue-300 text-sm font-medium">
+                    Page {currentPageIndex + 1} of {pages.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => switchToPage(Math.max(0, currentPageIndex - 1))}
+                    disabled={currentPageIndex === 0}
+                    className="p-1.5 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => switchToPage(Math.min(pages.length - 1, currentPageIndex + 1))}
+                    disabled={currentPageIndex === pages.length - 1}
+                    className="p-1.5 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="border border-blue-400/20 rounded-2xl overflow-hidden bg-black/20 backdrop-blur-xl">
               <img
                 src={processedImage}
@@ -534,6 +784,51 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 className="w-full h-[500px] object-contain"
               />
             </div>
+
+            {/* Page Thumbnails */}
+            {pages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {pages.map((page, index) => (
+                  <div
+                    key={page.id}
+                    className={`relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      index === currentPageIndex
+                        ? 'border-blue-400 ring-2 ring-blue-400/30'
+                        : 'border-blue-400/20 hover:border-blue-400/50'
+                    }`}
+                    onClick={() => switchToPage(index)}
+                  >
+                    <img
+                      src={page.processedImage}
+                      alt={`Page ${index + 1}`}
+                      className="w-16 h-20 object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center py-0.5">
+                      <span className="text-white text-xs">{index + 1}</span>
+                    </div>
+                    {pages.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePage(index);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 bg-red-500/80 rounded text-white hover:bg-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {/* Add Page Button in thumbnails */}
+                <button
+                  onClick={addAnotherPage}
+                  className="flex-shrink-0 w-16 h-20 border-2 border-dashed border-blue-400/30 rounded-lg flex flex-col items-center justify-center text-blue-400 hover:bg-blue-500/10 hover:border-blue-400/50 transition-all"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span className="text-xs mt-1">Add</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3 justify-center">
@@ -658,8 +953,20 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
             {/* Actions */}
             <div className="space-y-3">
+              {/* Add Another Page Button */}
               <button
-                onClick={() => setActiveStep('export')}
+                onClick={addAnotherPage}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-2xl font-bold hover:from-emerald-500 hover:to-green-500 transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Add Page {pages.length > 0 ? `(${pages.length} captured)` : ''}
+              </button>
+
+              <button
+                onClick={() => {
+                  saveCurrentPageEdits();
+                  setActiveStep('export');
+                }}
                 className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2"
               >
                 <Check className="h-5 w-5" />
@@ -669,7 +976,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 onClick={resetScanner}
                 className="w-full py-3 bg-white/10 text-blue-300 rounded-xl font-medium hover:bg-white/20 transition-all border border-blue-400/20"
               >
-                Retake Photo
+                Start Over
               </button>
             </div>
           </div>
