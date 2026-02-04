@@ -13,137 +13,137 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-  - name: 🚀 Checkout Code
-    uses: actions/checkout@v4
+      - name: 🚀 Checkout Code
+        uses: actions/checkout@v4
 
-  - name: 🔑 Setup SSH
-    uses: webfactory/ssh-agent@v0.9.0
-    with:
-      ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: 🔑 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-  - name: 📦 Add Server to Known Hosts
-    run: |
-      mkdir -p ~/.ssh
-      ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+      - name: 📦 Add Server to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-  - name: 🛑 Create Backup Before Deploy
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        /root/backup-app.sh || echo "Backup script not found, skipping..."
-      ENDSSH
+      - name: 🛑 Create Backup Before Deploy
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            /root/backup-app.sh || echo "Backup script not found, skipping..."
+          ENDSSH
 
-  - name: 📤 Deploy Backend Code
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        set -euo pipefail
-        cd /root/financial-automation/main
+      - name: 📤 Deploy Backend Code
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            set -euo pipefail
+            cd /root/financial-automation/main
 
-        git config --global credential.helper store
-        echo "https://${{ secrets.DEPLOY_PAT }}:@github.com" > ~/.git-credentials
+            git config --global credential.helper store
+            echo "https://${{ secrets.DEPLOY_PAT }}:@github.com" > ~/.git-credentials
 
-        git fetch origin
-        git reset --hard origin/main || git reset --hard origin/master
+            git fetch origin
+            git reset --hard origin/main || git reset --hard origin/master
 
-        cd backend
+            cd backend
 
-        # Retry helper for transient network errors
-        retry() {
-          local n=1
-          local max=3
-          local delay=3
-          until "$@"; do
-            if [ $n -eq $max ]; then
-              echo "Command failed after $n attempts: $*"
-              return 1
+            # Retry helper for transient network errors
+            retry() {
+              local n=1
+              local max=3
+              local delay=3
+              until "$@"; do
+                if [ $n -eq $max ]; then
+                  echo "Command failed after $n attempts: $*"
+                  return 1
+                fi
+                echo "Command failed - retry $n/$max: $*"
+                n=$((n+1))
+                sleep $delay
+              done
+            }
+
+            # Clear potentially corrupted npm cache and remove node_modules
+            npm cache clean --force || true
+            npm cache verify || true
+            rm -rf node_modules || true
+
+            # Use npm ci when lockfile exists for deterministic installs, fallback to npm install
+            if [ -f package-lock.json ]; then
+              retry npm ci --only=production
+            else
+              retry npm install --production --no-audit
             fi
-            echo "Command failed - retry $n/$max: $*"
-            n=$((n+1))
-            sleep $delay
-          done
-        }
 
-        # Clear potentially corrupted npm cache and remove node_modules
-        npm cache clean --force || true
-        npm cache verify || true
-        rm -rf node_modules || true
-
-        # Use npm ci when lockfile exists for deterministic installs, fallback to npm install
-        if [ -f package-lock.json ]; then
-          retry npm ci --only=production
-        else
-          retry npm install --production --no-audit
-        fi
-
-        # Python virtualenv tasks
-        if [ -d venv ]; then
-          source venv/bin/activate
-          pip install -r requirements.txt
-          deactivate
-        else
-          echo "Warning: venv not found, skipping pip install"
-        fi
-      ENDSSH
-
-  - name: 🔄 Restart Backend
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        pm2 restart financial-backend || pm2 start /root/financial-automation/main/backend/ecosystem.config.js --env production || true
-        pm2 save || true
-      ENDSSH
-
-  - name: 🎨 Deploy Frontend Code
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        set -euo pipefail
-        cd /root/financial-automation/main
-
-        retry() {
-          local n=1
-          local max=3
-          local delay=3
-          until "$@"; do
-            if [ $n -eq $max ]; then
-              echo "Command failed after $n attempts: $*"
-              return 1
+            # Python virtualenv tasks
+            if [ -d venv ]; then
+              source venv/bin/activate
+              pip install -r requirements.txt
+              deactivate
+            else
+              echo "Warning: venv not found, skipping pip install"
             fi
-            echo "Command failed - retry $n/$max: $*"
-            n=$((n+1))
-            sleep $delay
-          done
-        }
+          ENDSSH
 
-        # Clear potentially corrupted npm cache and remove node_modules
-        npm cache clean --force || true
-        npm cache verify || true
-        rm -rf node_modules || true
+      - name: 🔄 Restart Backend
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            pm2 restart financial-backend || pm2 start /root/financial-automation/main/backend/ecosystem.config.js --env production || true
+            pm2 save || true
+          ENDSSH
 
-        # Deterministic install when lockfile exists
-        if [ -f package-lock.json ]; then
-          retry npm ci
-        else
-          retry npm install --no-audit
-        fi
+      - name: 🎨 Deploy Frontend Code
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            set -euo pipefail
+            cd /root/financial-automation/main
 
-        # Build with increased Node.js memory
-        export NODE_OPTIONS="--max-old-space-size=2048"
-        npm run build
+            retry() {
+              local n=1
+              local max=3
+              local delay=3
+              until "$@"; do
+                if [ $n -eq $max ]; then
+                  echo "Command failed after $n attempts: $*"
+                  return 1
+                fi
+                echo "Command failed - retry $n/$max: $*"
+                n=$((n+1))
+                sleep $delay
+              done
+            }
 
-        chmod -R 755 dist || true
+            # Clear potentially corrupted npm cache and remove node_modules
+            npm cache clean --force || true
+            npm cache verify || true
+            rm -rf node_modules || true
 
-        echo "Build completed successfully!"
-      ENDSSH
+            # Deterministic install when lockfile exists
+            if [ -f package-lock.json ]; then
+              retry npm ci
+            else
+              retry npm install --no-audit
+            fi
 
-  - name: ♻ Reload Nginx
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        systemctl reload nginx || systemctl restart nginx || true
-      ENDSSH
+            # Build with increased Node.js memory
+            export NODE_OPTIONS="--max-old-space-size=2048"
+            npm run build
 
-  - name: 🧹 Cleanup
-    if: always()
-    run: |
-      ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-        # cleanup npm cache and old logs (best-effort)
-        npm cache clean --force 2>/dev/null || true
-        find /root/financial-automation/main/backend/logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null || true
-      ENDSSH
+            chmod -R 755 dist || true
+
+            echo "Build completed successfully!"
+          ENDSSH
+
+      - name: ♻ Reload Nginx
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            systemctl reload nginx || systemctl restart nginx || true
+          ENDSSH
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            # cleanup npm cache and old logs (best-effort)
+            npm cache clean --force 2>/dev/null || true
+            find /root/financial-automation/main/backend/logs -name "*.log" -type f -mtime +7 -delete 2>/dev/null || true
+          ENDSSH
