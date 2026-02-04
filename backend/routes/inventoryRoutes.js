@@ -15,6 +15,7 @@ const inventorySchema = new mongoose.Schema({
     quantity: { type: Number, required: true, default: 0 },
     price: { type: Number, required: true },
     category: { type: String, default: 'General' },
+    gstRate: { type: Number, default: 0 }, // GST slab: 0, 5, 18, 28
     sgst: { type: Number, default: 0 },
     cgst: { type: Number, default: 0 },
     igst: { type: Number, default: 0 },
@@ -47,7 +48,11 @@ const verifyToken = (req, res, next) => {
 // ✅ POST route to add inventory item
 router.post("/add", verifyToken, async (req, res) => {
     try {
-        const { itemName, sku, quantity, price, category, sgst, cgst, igst, stateOfSupply } = req.body;
+        const { itemName, sku, quantity, price, category, gstRate, sgst, cgst, igst, stateOfSupply } = req.body;
+
+        // Use new gstRate field, fallback to old sgst+cgst+igst for backward compatibility
+        const effectiveGstRate = Number(gstRate) || (Number(sgst) || 0) + (Number(cgst) || 0) + (Number(igst) || 0);
+
         const newItem = new InventoryItem({
             userId: req.user.id,
             itemName,
@@ -55,9 +60,11 @@ router.post("/add", verifyToken, async (req, res) => {
             quantity,
             price,
             category,
-            sgst: Number(sgst) || 0,
-            cgst: Number(cgst) || 0,
-            igst: Number(igst) || 0,
+            gstRate: effectiveGstRate,
+            // Store split values for backward compatibility (50-50 split by default)
+            sgst: effectiveGstRate / 2,
+            cgst: effectiveGstRate / 2,
+            igst: 0,
             stateOfSupply
         });
         await newItem.save();
@@ -86,7 +93,7 @@ router.get("/all", verifyToken, async (req, res) => {
 router.post("/sell/:id", verifyToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { quantitySold, gstRate = 18, stateOfSupply } = req.body; // Default GST 18% if not provided
+        const { quantitySold, stateOfSupply } = req.body;
 
         const item = await InventoryItem.findOne({ _id: id, userId: req.user.id });
         if (!item) {
@@ -97,16 +104,40 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
             return res.status(400).json({ message: "Insufficient stock" });
         }
 
-        // Financial Calculations using Item's stored taxes
+        // Financial Calculations with GST logic based on state comparison
         const subtotal = item.price * quantitySold;
+        const itemState = item.stateOfSupply || "";
+        const sellState = stateOfSupply || itemState;
 
-        const sgstAmount = (subtotal * (item.sgst || 0)) / 100;
-        const cgstAmount = (subtotal * (item.cgst || 0)) / 100;
-        const igstAmount = (subtotal * (item.igst || 0)) / 100;
+        // Determine if inter-state or intra-state
+        const isInterState = itemState && sellState && itemState !== sellState;
+
+        // Get the item's GST rate (fallback to old sgst+cgst+igst for backward compatibility)
+        const itemGstRate = item.gstRate || ((item.sgst || 0) + (item.cgst || 0) + (item.igst || 0));
+
+        let sgstRate, cgstRate, igstRate;
+        let sgstAmount, cgstAmount, igstAmount;
+
+        if (isInterState) {
+            // Inter-state sale: Apply IGST at 18%
+            sgstRate = 0;
+            cgstRate = 0;
+            igstRate = 18;
+            sgstAmount = 0;
+            cgstAmount = 0;
+            igstAmount = (subtotal * 18) / 100;
+        } else {
+            // Intra-state sale: Split GST 50-50 into SGST + CGST
+            sgstRate = itemGstRate / 2;
+            cgstRate = itemGstRate / 2;
+            igstRate = 0;
+            sgstAmount = (subtotal * sgstRate) / 100;
+            cgstAmount = (subtotal * cgstRate) / 100;
+            igstAmount = 0;
+        }
 
         const totalGstAmount = sgstAmount + cgstAmount + igstAmount;
-        const totalGstRate = (item.sgst || 0) + (item.cgst || 0) + (item.igst || 0);
-
+        const totalGstRate = sgstRate + cgstRate + igstRate;
         const grandTotal = subtotal + totalGstAmount;
 
         // Create Sale Record with breakdown
@@ -118,16 +149,16 @@ router.post("/sell/:id", verifyToken, async (req, res) => {
             quantitySold,
             unitPrice: item.price,
             subtotal,
-            sgstRate: item.sgst || 0,
-            cgstRate: item.cgst || 0,
-            igstRate: item.igst || 0,
+            sgstRate,
+            cgstRate,
+            igstRate,
             sgstAmount,
             cgstAmount,
             igstAmount,
             gstRate: totalGstRate,
             gstAmount: totalGstAmount,
             grandTotal,
-            stateOfSupply: stateOfSupply || item.stateOfSupply // fallback to item's state if not provided
+            stateOfSupply: sellState
         });
 
         // Update Inventory

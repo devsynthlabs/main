@@ -31,6 +31,7 @@ interface InventoryItem {
     quantity: number;
     price: number;
     category: string;
+    gstRate?: number;
     sgst?: number;
     cgst?: number;
     igst?: number;
@@ -94,6 +95,9 @@ const Inventory = () => {
     const [sellStateOfSupply, setSellStateOfSupply] = useState("");
     const [isSelling, setIsSelling] = useState(false);
 
+    // GST Rate Options
+    const GST_SLABS = ["0", "5", "18", "28"];
+
     // Form State
     const [formData, setFormData] = useState({
         itemName: "",
@@ -101,9 +105,7 @@ const Inventory = () => {
         quantity: "",
         price: "",
         category: "General",
-        sgst: "0",
-        cgst: "0",
-        igst: "0",
+        gstRate: "0",
         stateOfSupply: ""
     });
 
@@ -358,9 +360,7 @@ const Inventory = () => {
                     quantity: "",
                     price: "",
                     category: "General",
-                    sgst: "0",
-                    cgst: "0",
-                    igst: "0",
+                    gstRate: "0",
                     stateOfSupply: ""
                 });
                 fetchItems();
@@ -713,44 +713,84 @@ const Inventory = () => {
                                             </div>
 
                                             {/* Preview Calculation */}
-                                            <div className="bg-white/5 p-4 rounded-lg space-y-2 text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-violet-300">Subtotal ({sellQuantity} x ₹{selectedItem?.price})</span>
-                                                    <span>₹{((parseInt(sellQuantity) || 0) * (selectedItem?.price || 0)).toFixed(2)}</span>
-                                                </div>
+                                            {(() => {
+                                                const qty = parseInt(sellQuantity) || 0;
+                                                const price = selectedItem?.price || 0;
+                                                const subtotal = qty * price;
+                                                const itemState = selectedItem?.stateOfSupply || "";
+                                                const sellState = sellStateOfSupply;
+                                                const isInterState = itemState && sellState && itemState !== sellState;
 
-                                                {/* SGST */}
-                                                {(selectedItem?.sgst || 0) > 0 && (
-                                                    <div className="flex justify-between text-violet-400/80">
-                                                        <span>SGST ({selectedItem?.sgst}%)</span>
-                                                        <span>₹{(((parseInt(sellQuantity) || 0) * (selectedItem?.price || 0) * (selectedItem?.sgst || 0)) / 100).toFixed(2)}</span>
+                                                // Get the GST rate from item (fallback to combined old rates)
+                                                const itemGstRate = (selectedItem?.sgst || 0) + (selectedItem?.cgst || 0) + (selectedItem?.igst || 0);
+
+                                                // Inter-state: IGST 18%, Intra-state: Split GST 50-50
+                                                const igstRate = isInterState ? 18 : 0;
+                                                const sgstRate = isInterState ? 0 : itemGstRate / 2;
+                                                const cgstRate = isInterState ? 0 : itemGstRate / 2;
+
+                                                const igstAmount = (subtotal * igstRate) / 100;
+                                                const sgstAmount = (subtotal * sgstRate) / 100;
+                                                const cgstAmount = (subtotal * cgstRate) / 100;
+                                                const totalTax = igstAmount + sgstAmount + cgstAmount;
+                                                const grandTotal = subtotal + totalTax;
+
+                                                return (
+                                                    <div className="bg-white/5 p-4 rounded-lg space-y-2 text-sm">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-violet-300">Subtotal ({sellQuantity} x ₹{price})</span>
+                                                            <span>₹{subtotal.toFixed(2)}</span>
+                                                        </div>
+
+                                                        {/* State comparison indicator */}
+                                                        {itemState && sellState && (
+                                                            <div className={`text-xs py-1 px-2 rounded ${isInterState ? 'bg-orange-500/20 text-orange-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                                                                {isInterState
+                                                                    ? `Inter-State Sale: ${itemState} → ${sellState} (IGST applies)`
+                                                                    : `Intra-State Sale: ${itemState} (SGST + CGST applies)`
+                                                                }
+                                                            </div>
+                                                        )}
+
+                                                        {/* SGST - Intra-state only */}
+                                                        {sgstRate > 0 && (
+                                                            <div className="flex justify-between text-violet-400/80">
+                                                                <span>SGST ({sgstRate.toFixed(1)}%)</span>
+                                                                <span>₹{sgstAmount.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {/* CGST - Intra-state only */}
+                                                        {cgstRate > 0 && (
+                                                            <div className="flex justify-between text-violet-400/80">
+                                                                <span>CGST ({cgstRate.toFixed(1)}%)</span>
+                                                                <span>₹{cgstAmount.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {/* IGST - Inter-state only */}
+                                                        {igstRate > 0 && (
+                                                            <div className="flex justify-between text-orange-400/80">
+                                                                <span>IGST ({igstRate}%)</span>
+                                                                <span>₹{igstAmount.toFixed(2)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {/* No tax case */}
+                                                        {itemGstRate === 0 && !isInterState && (
+                                                            <div className="flex justify-between text-violet-400/40 italic">
+                                                                <span>No Tax (0% GST)</span>
+                                                                <span>₹0.00</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="border-t border-violet-400/20 pt-2 flex justify-between font-bold text-emerald-400">
+                                                            <span>Grand Total</span>
+                                                            <span>₹{grandTotal.toFixed(2)}</span>
+                                                        </div>
                                                     </div>
-                                                )}
-
-                                                {/* CGST */}
-                                                {(selectedItem?.cgst || 0) > 0 && (
-                                                    <div className="flex justify-between text-violet-400/80">
-                                                        <span>CGST ({selectedItem?.cgst}%)</span>
-                                                        <span>₹{(((parseInt(sellQuantity) || 0) * (selectedItem?.price || 0) * (selectedItem?.cgst || 0)) / 100).toFixed(2)}</span>
-                                                    </div>
-                                                )}
-
-                                                {/* IGST */}
-                                                {(selectedItem?.igst || 0) > 0 && (
-                                                    <div className="flex justify-between text-violet-400/80">
-                                                        <span>IGST ({selectedItem?.igst}%)</span>
-                                                        <span>₹{(((parseInt(sellQuantity) || 0) * (selectedItem?.price || 0) * (selectedItem?.igst || 0)) / 100).toFixed(2)}</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="border-t border-violet-400/20 pt-2 flex justify-between font-bold text-emerald-400">
-                                                    <span>Grand Total</span>
-                                                    <span>₹{(
-                                                        ((parseInt(sellQuantity) || 0) * (selectedItem?.price || 0)) *
-                                                        (1 + ((selectedItem?.sgst || 0) + (selectedItem?.cgst || 0) + (selectedItem?.igst || 0)) / 100)
-                                                    ).toFixed(2)}</span>
-                                                </div>
-                                            </div>
+                                                );
+                                            })()}
                                         </div>
                                         <DialogFooter>
                                             <Button variant="outline" onClick={() => setIsSellDialogOpen(false)} className="border-violet-400/30 text-violet-300 hover:bg-white/5">Cancel</Button>
@@ -918,55 +958,34 @@ const Inventory = () => {
                                 {/* Tax Information Section */}
                                 <div className="space-y-4 pt-4 border-t border-violet-400/10">
                                     <h3 className="text-lg font-bold text-violet-200 flex items-center gap-2">
-                                        <Shield className="h-4 w-4" /> Tax Information (%)
+                                        <Shield className="h-4 w-4" /> GST Rate
                                     </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
-                                            <Label className="text-violet-100">SGST (%)</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    type="number"
-                                                    value={formData.sgst}
-                                                    onChange={(e) => handleInputChange("sgst", e.target.value)}
-                                                    className="bg-white/5 border-violet-400/30 text-violet-100 placeholder:text-violet-300/40"
-                                                    placeholder="0"
-                                                />
-                                                <VoiceButton
-                                                    onTranscript={(text) => handleInputChange("sgst", text)}
-                                                    onClear={() => handleInputChange("sgst", "0")}
-                                                />
-                                            </div>
+                                            <Label className="text-violet-100">GST Slab (%)</Label>
+                                            <Select
+                                                value={formData.gstRate}
+                                                onValueChange={(val) => handleInputChange("gstRate", val)}
+                                            >
+                                                <SelectTrigger className="bg-white/5 border-violet-400/30 text-violet-100 h-10">
+                                                    <SelectValue placeholder="Select GST Rate" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-900 border-violet-400/20 text-white">
+                                                    {GST_SLABS.map(rate => (
+                                                        <SelectItem key={rate} value={rate}>{rate}%</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-3">
-                                            <Label className="text-violet-100">CGST (%)</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    type="number"
-                                                    value={formData.cgst}
-                                                    onChange={(e) => handleInputChange("cgst", e.target.value)}
-                                                    className="bg-white/5 border-violet-400/30 text-violet-100 placeholder:text-violet-300/40"
-                                                    placeholder="0"
-                                                />
-                                                <VoiceButton
-                                                    onTranscript={(text) => handleInputChange("cgst", text)}
-                                                    onClear={() => handleInputChange("cgst", "0")}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <Label className="text-violet-100">IGST (%)</Label>
-                                            <div className="flex items-center gap-2">
-                                                <Input
-                                                    type="number"
-                                                    value={formData.igst}
-                                                    onChange={(e) => handleInputChange("igst", e.target.value)}
-                                                    className="bg-white/5 border-violet-400/30 text-violet-100 placeholder:text-violet-300/40"
-                                                    placeholder="0"
-                                                />
-                                                <VoiceButton
-                                                    onTranscript={(text) => handleInputChange("igst", text)}
-                                                    onClear={() => handleInputChange("igst", "0")}
-                                                />
+                                            <Label className="text-violet-100 opacity-60">Tax Split Preview</Label>
+                                            <div className="bg-white/5 border border-violet-400/20 rounded-lg p-3 text-sm">
+                                                <p className="text-violet-300/80">
+                                                    <span className="font-semibold text-violet-200">Intra-State:</span> SGST {(parseFloat(formData.gstRate) / 2).toFixed(1)}% + CGST {(parseFloat(formData.gstRate) / 2).toFixed(1)}%
+                                                </p>
+                                                <p className="text-violet-300/80 mt-1">
+                                                    <span className="font-semibold text-violet-200">Inter-State:</span> IGST 18%
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

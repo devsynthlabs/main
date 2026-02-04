@@ -642,7 +642,7 @@ Payment Method: ${currentInvoice.paymentMethod}`;
               </div>
               <div className="text-left">
                 <h3 className="text-xl font-bold text-white">OCR Scan</h3>
-                <p className="text-blue-200/70 text-sm">Upload invoice images</p>
+                <p className="text-blue-200/70 text-sm">Camera & file upload</p>
               </div>
             </div>
             <ChevronRight className={`h-5 w-5 transition-transform ${activeTab === 'ocr' ? 'text-blue-400 rotate-90' : 'text-blue-400/60'
