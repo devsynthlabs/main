@@ -198,8 +198,8 @@ const PublicInvoiceView = () => {
                                                 {item.description && <p className="text-slate-400 text-sm mt-1">{item.description}</p>}
                                             </td>
                                             <td className="py-6 text-center text-slate-300 font-medium">{item.quantity}</td>
-                                            <td className="py-6 text-right text-slate-300 font-medium">${item.unitPrice.toFixed(2)}</td>
-                                            <td className="py-6 text-right text-white font-bold">${item.total.toFixed(2)}</td>
+                                            <td className="py-6 text-right text-slate-300 font-medium">₹{item.unitPrice.toFixed(2)}</td>
+                                            <td className="py-6 text-right text-white font-bold">₹{item.total.toFixed(2)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -219,16 +219,16 @@ const PublicInvoiceView = () => {
                             <div className="w-full md:w-80 space-y-4">
                                 <div className="flex justify-between items-center text-slate-400">
                                     <span>Subtotal</span>
-                                    <span className="text-white font-medium">${invoice.subtotal.toFixed(2)}</span>
+                                    <span className="text-white font-medium">₹{invoice.subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-400 pb-4 border-b border-white/5">
                                     <span>Tax Amount</span>
-                                    <span className="text-white font-medium">${invoice.taxAmount.toFixed(2)}</span>
+                                    <span className="text-white font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
                                     <span className="text-lg font-bold text-white">Grand Total</span>
                                     <span className="text-3xl font-black text-blue-400 bg-blue-400/10 px-4 py-1 rounded-2xl">
-                                        ${invoice.grandTotal.toFixed(2)}
+                                        ₹{invoice.grandTotal.toFixed(2)}
                                     </span>
                                 </div>
                             </div>

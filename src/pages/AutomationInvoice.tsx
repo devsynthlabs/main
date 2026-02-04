@@ -171,6 +171,7 @@ const AutomationInvoice = () => {
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
 
   // Search state for history
   const [searchTerm, setSearchTerm] = useState("");
@@ -333,9 +334,53 @@ const AutomationInvoice = () => {
     setIsSaving(true);
 
     try {
-      // Save to localStorage
+      // 1. Save to Backend to get a real ID for sharing
+      const backendData = {
+        invoiceNumber: currentInvoice.invoiceNo,
+        invoiceDate: currentInvoice.invoiceDate,
+        dueDate: new Date(new Date(currentInvoice.invoiceDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        customerName: currentInvoice.partyName,
+        customerEmail: currentInvoice.customerEmail || `${currentInvoice.partyName.toLowerCase().replace(/\s/g, '')}@example.com`,
+        customerPhone: currentInvoice.phoneNo,
+        customerGSTIN: currentInvoice.customerGSTIN,
+        businessName: "Saaiss Software Solution",
+        businessEmail: "support@saaiss.in",
+        items: currentInvoice.items.map(item => ({
+          productName: item.itemName,
+          quantity: item.quantity,
+          unitPrice: item.pricePerUnit,
+          taxRate: item.taxPercent,
+          discount: item.discountAmount,
+          total: item.amount
+        })),
+        subtotal: currentInvoice.total - currentInvoice.items.reduce((sum, item) => sum + item.taxAmount, 0),
+        taxAmount: currentInvoice.items.reduce((sum, item) => sum + item.taxAmount, 0),
+        grandTotal: currentInvoice.total,
+        amountPaid: currentInvoice.paid,
+        balanceDue: currentInvoice.balance,
+        paymentMethod: currentInvoice.paymentMethod || 'cash',
+        status: currentInvoice.balance <= 0 ? 'paid' : 'sent'
+      };
+
+      let backendId = `inv-${Date.now()}`;
+      try {
+        const response = await fetch(`${API_ENDPOINTS.INVOICE}/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(backendData)
+        });
+        const result = await response.json();
+        if (response.ok) {
+          backendId = result.invoiceId || result.invoice?._id || backendId;
+          setLastSavedId(backendId);
+        }
+      } catch (err) {
+        console.warn("Backend save failed, using local ID fallback:", err);
+      }
+
+      // 2. Save to localStorage
       const savedList = JSON.parse(localStorage.getItem('savedInvoices') || '[]');
-      const invoiceToSave = { ...currentInvoice, savedAt: new Date().toISOString(), id: `inv-${Date.now()}` };
+      const invoiceToSave = { ...currentInvoice, savedAt: new Date().toISOString(), id: backendId };
       savedList.unshift(invoiceToSave);
       localStorage.setItem('savedInvoices', JSON.stringify(savedList));
       setInvoiceHistory(savedList);
@@ -456,44 +501,36 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
   // Share on WhatsApp
   const shareOnWhatsApp = () => {
-    if (currentInvoice.items.length === 0) {
-      toast.error("Add items before sharing");
+    if (currentInvoice.items.length === 0 && invoiceHistory.length === 0) {
+      toast.error("Generate an invoice before sharing");
       return;
     }
 
-    const customerName = currentInvoice.partyName || 'Valued Customer';
-    const isSales = currentInvoice.type === 'sales';
+    // If form is empty but we have history, use the last one
+    const data = currentInvoice.items.length > 0 ? currentInvoice : invoiceHistory[0];
+    const customerName = data.partyName || 'Valued Customer';
 
-    // Items list
-    const itemsList = currentInvoice.items.map((item, idx) =>
-      `${idx + 1}. ${item.itemName} × ${item.quantity} = ₹${item.amount.toFixed(2)}`
-    ).join('\n');
+    // Build professional message based on user template
+    let message = `*INVOICE: ${data.invoiceNo}*\n`;
+    message += `__________________________\n\n`;
+    message += `Dear *${customerName}*,\n\n`;
+    message += `A new invoice has been generated for your recent transaction with *Saaiss Software Solution*.\n\n`;
+    message += `*Bill Summary:*\n`;
+    message += `• Invoice ID: #${data.invoiceNo}\n`;
+    message += `• Date: ${data.invoiceDate}\n`;
+    message += `• Total Amount: ₹${data.total.toFixed(2)}\n\n`;
+    message += `You can view, download, or pay your invoice online using the secure link below:\n`;
 
-    // Build professional message
-    let message = `Dear *${customerName}*,
+    const idToUse = lastSavedId || (data as any).id || `temp-${Date.now()}`;
+    const baseUrl = window.location.origin;
+    const shareLink = `${baseUrl}/invoice/view/${idToUse}`;
 
-Thank you for your ${isSales ? 'purchase' : 'business'}! Please find your ${isSales ? 'invoice' : 'bill'} details below:
-
-📄 *${isSales ? 'Invoice' : 'Bill'} No:* ${currentInvoice.invoiceNo}
-📅 *Date:* ${currentInvoice.invoiceDate}
-${currentInvoice.stateOfSupply ? `📍 *State:* ${currentInvoice.stateOfSupply}\n` : ''}
-*Items:*
-${itemsList}
-
-💰 *Total Amount: ₹${currentInvoice.total.toFixed(2)}*`;
-
-    if (currentInvoice.paid > 0) {
-      message += `\n✅ *Paid:* ₹${currentInvoice.paid.toFixed(2)}`;
-    }
-    if (currentInvoice.balance > 0) {
-      message += `\n⚠️ *Balance Due:* ₹${currentInvoice.balance.toFixed(2)}`;
-    }
-
-    message += `
-
-For any queries, please contact us.
-
-Thank you for choosing us! 🙏`;
+    message += `🔗 ${shareLink}\n\n`;
+    message += `If you have any questions regarding this invoice, please feel free to reach out to us.\n\n`;
+    message += `Best regards,\n`;
+    message += `*Saaiss Software Solution*\n`;
+    message += `__________________________\n`;
+    message += `_Powered by Sri Andal Financial Automation_`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
@@ -700,22 +737,20 @@ Thank you for choosing us! 🙏`;
             <div className="flex gap-4 mb-6">
               <button
                 onClick={() => handleInvoiceTypeChange('sales')}
-                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
-                  invoiceType === 'sales'
-                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-2xl shadow-emerald-500/30'
-                    : 'bg-white/10 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/10'
-                }`}
+                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${invoiceType === 'sales'
+                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-2xl shadow-emerald-500/30'
+                  : 'bg-white/10 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/10'
+                  }`}
               >
                 <ShoppingCart className="h-5 w-5" />
                 Sales Invoice
               </button>
               <button
                 onClick={() => handleInvoiceTypeChange('purchase')}
-                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
-                  invoiceType === 'purchase'
-                    ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-2xl shadow-orange-500/30'
-                    : 'bg-white/10 text-orange-300 border border-orange-400/30 hover:bg-orange-500/10'
-                }`}
+                className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${invoiceType === 'purchase'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-2xl shadow-orange-500/30'
+                  : 'bg-white/10 text-orange-300 border border-orange-400/30 hover:bg-orange-500/10'
+                  }`}
               >
                 <Package className="h-5 w-5" />
                 Purchase Bill
@@ -732,22 +767,20 @@ Thank you for choosing us! 🙏`;
                     <div className="flex gap-4">
                       <button
                         onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'cash' }))}
-                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-                          currentInvoice.saleType === 'cash'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-white/5 text-emerald-300 border border-emerald-400/30'
-                        }`}
+                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'cash'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-white/5 text-emerald-300 border border-emerald-400/30'
+                          }`}
                       >
                         <Banknote className="h-4 w-4" />
                         Cash
                       </button>
                       <button
                         onClick={() => setCurrentInvoice(prev => ({ ...prev, saleType: 'credit' }))}
-                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-                          currentInvoice.saleType === 'credit'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-blue-300 border border-blue-400/30'
-                        }`}
+                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'credit'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white/5 text-blue-300 border border-blue-400/30'
+                          }`}
                       >
                         <CreditCard className="h-4 w-4" />
                         Credit
@@ -956,11 +989,10 @@ Thank you for choosing us! 🙏`;
                         <Label className="text-blue-100 text-sm">Price Type</Label>
                         <button
                           onClick={() => setNewItem(prev => ({ ...prev, priceWithTax: !prev.priceWithTax }))}
-                          className={`w-full h-9 px-2 rounded-lg text-xs font-medium transition-all ${
-                            newItem.priceWithTax
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white/5 text-blue-300 border border-blue-400/30'
-                          }`}
+                          className={`w-full h-9 px-2 rounded-lg text-xs font-medium transition-all ${newItem.priceWithTax
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white/5 text-blue-300 border border-blue-400/30'
+                            }`}
                         >
                           {newItem.priceWithTax ? 'With Tax' : 'Without Tax'}
                         </button>
@@ -1050,11 +1082,10 @@ Thank you for choosing us! 🙏`;
                         <button
                           key={value}
                           onClick={() => setCurrentInvoice(prev => ({ ...prev, paymentMethod: value }))}
-                          className={`py-2 px-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1 ${
-                            currentInvoice.paymentMethod === value
-                              ? 'bg-orange-600 text-white'
-                              : 'bg-white/5 text-orange-300 border border-orange-400/30'
-                          }`}
+                          className={`py-2 px-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1 ${currentInvoice.paymentMethod === value
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-white/5 text-orange-300 border border-orange-400/30'
+                            }`}
                         >
                           <Icon className="h-4 w-4" />
                           {label}
@@ -1091,12 +1122,11 @@ Thank you for choosing us! 🙏`;
 
               {/* Right Column - Summary */}
               <div className="space-y-6">
-                <div className={`backdrop-blur-2xl rounded-2xl p-5 border-2 sticky top-6 ${
-                  invoiceType === 'sales'
-                    ? 'bg-gradient-to-b from-emerald-900/50 to-green-900/50 border-emerald-400/40'
-                    : 'bg-gradient-to-b from-orange-900/50 to-amber-900/50 border-orange-400/40'
-                }`}>
-                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <div className={`backdrop-blur-2xl rounded-2xl p-5 border-2 sticky top-6 ${invoiceType === 'sales'
+                  ? 'bg-gradient-to-b from-emerald-900/50 to-green-900/50 border-emerald-400/40'
+                  : 'bg-gradient-to-b from-orange-900/50 to-amber-900/50 border-orange-400/40'
+                  }`}>
+                  <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
                     <IndianRupee className={`h-5 w-5 ${invoiceType === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`} />
                     Summary
                   </h2>
@@ -1123,14 +1153,14 @@ Thank you for choosing us! 🙏`;
                     <div className="flex justify-between items-center py-2 border-t border-white/10">
                       <span className="text-white/80">Balance</span>
                       <span className={`text-xl font-bold ${currentInvoice.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        ₹{currentInvoice.balance.toFixed(2)}
+                        ${currentInvoice.balance.toFixed(2)}
                       </span>
                     </div>
 
                     {currentInvoice.balance > 0 && (
                       <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 p-2 rounded-lg">
                         <AlertCircle className="h-4 w-4" />
-                        <span>Due: ₹{currentInvoice.balance.toFixed(2)}</span>
+                        <span>Due: ${currentInvoice.balance.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -1140,11 +1170,10 @@ Thank you for choosing us! 🙏`;
                     <Button
                       onClick={saveInvoice}
                       disabled={isSaving || currentInvoice.items.length === 0}
-                      className={`w-full py-3 font-bold rounded-xl ${
-                        invoiceType === 'sales'
-                          ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500'
-                          : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500'
-                      }`}
+                      className={`w-full py-3 font-bold rounded-xl ${invoiceType === 'sales'
+                        ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500'
+                        : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500'
+                        }`}
                     >
                       {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                       Save
@@ -1367,9 +1396,8 @@ Thank you for choosing us! 🙏`;
                         <div>
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-bold text-lg text-white">{invoice.invoiceNo}</h3>
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                              invoice.type === 'sales' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-orange-500/20 text-orange-300'
-                            }`}>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${invoice.type === 'sales' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-orange-500/20 text-orange-300'
+                              }`}>
                               {invoice.type === 'sales' ? 'SALES' : 'PURCHASE'}
                             </span>
                           </div>
@@ -1380,10 +1408,10 @@ Thank you for choosing us! 🙏`;
                         </div>
                         <div className="text-right">
                           <p className={`text-xl font-bold ${invoice.type === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`}>
-                            ₹{invoice.total.toFixed(2)}
+                            ${invoice.total.toFixed(2)}
                           </p>
                           {invoice.balance > 0 && (
-                            <p className="text-red-400 text-sm">Due: ₹{invoice.balance.toFixed(2)}</p>
+                            <p className="text-red-400 text-sm">Due: ${invoice.balance.toFixed(2)}</p>
                           )}
                         </div>
                       </div>
