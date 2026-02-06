@@ -111,7 +111,7 @@ router.post("/invoice-ocr", async (req, res) => {
       });
     }
 
-    // Get the Gemini model - using gemini-1.5-flash for faster processing
+    // Get the Gemini model - using gemini-1.5-flash-latest for faster processing
     const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Remove data URL prefix if present (handles both images and PDFs)
@@ -140,8 +140,8 @@ router.post("/invoice-ocr", async (req, res) => {
     try {
       // Try to extract JSON from the response (it might have markdown code blocks)
       const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
-                        text.match(/```\s*([\s\S]*?)\s*```/) ||
-                        [null, text];
+        text.match(/```\s*([\s\S]*?)\s*```/) ||
+        [null, text];
 
       const jsonStr = jsonMatch[1] || text;
       extractedData = JSON.parse(jsonStr.trim());
