@@ -609,14 +609,14 @@ const Inventory = () => {
                                                             <p className="text-violet-300/60 text-sm">Qty: {item.quantity}</p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <Button
+                                                            {/* <Button
                                                                 variant="secondary"
                                                                 size="sm"
                                                                 onClick={() => handleSellClick(item)}
                                                                 className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30"
                                                             >
                                                                 <ShoppingCart className="h-4 w-4 mr-2" /> Sell
-                                                            </Button>
+                                                            </Button> */}
                                                             <Button variant="ghost" size="sm" onClick={() => deleteItem(item._id!)} className="text-red-300 hover:text-red-100 hover:bg-red-500/20">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
