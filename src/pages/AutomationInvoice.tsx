@@ -1026,7 +1026,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
               </div>
               <div className="text-left">
                 <h3 className="text-sm md:text-xl font-bold text-white">Create</h3>
-                <p className="text-blue-200/70 text-xs hidden md:block">Sales & Purchase</p>
+                <p className="text-blue-200/70 text-xs hidden md:block">Sales Invoice</p>
               </div>
             </div>
           </button>
@@ -1089,8 +1089,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
         {/* Create Invoice Tab - Vyapar Style */}
         {activeTab === 'create' && (
           <>
-            {/* Sales/Purchase Toggle */}
-            <div className="flex gap-4 mb-6">
+            {/* Sales/Purchase Toggle - Purchase Bill commented out for now */}
+            {/* <div className="flex gap-4 mb-6">
               <button
                 onClick={() => handleInvoiceTypeChange('sales')}
                 className={`flex-1 py-3 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${invoiceType === 'sales'
@@ -1111,7 +1111,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 <Package className="h-5 w-5" />
                 Purchase Bill
               </button>
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Form */}
@@ -1609,8 +1609,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   </div>
                 )}
 
-                {/* Payment Type (Only for Purchase) */}
-                {invoiceType === 'purchase' && (
+                {/* Payment Type (Only for Purchase) - Commented out for now */}
+                {/* {invoiceType === 'purchase' && (
                   <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-orange-400/20">
                     <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-orange-400" />
@@ -1638,7 +1638,6 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       ))}
                     </div>
 
-                    {/* Upload Bill */}
                     <div className="mt-4">
                       <div
                         onClick={() => billUploadRef.current?.click()}
@@ -1662,7 +1661,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <input ref={billUploadRef} type="file" accept="image/*" onChange={handleBillUpload} className="hidden" />
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
 
               {/* Right Column - Summary */}
@@ -1860,6 +1859,89 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
               }}
               onImageProcessed={(imageData) => {
                 setUploadedImage(imageData);
+              }}
+              onAIDataExtracted={(aiData) => {
+                // Auto-populate invoice from AI-extracted data
+                console.log("AI Extracted Data:", aiData);
+
+                // Map AI items to invoice items
+                const newInvoiceItems: InvoiceItem[] = (aiData.items || []).map((item, index) => {
+                  const qty = item.quantity || 1;
+                  const rate = item.rate || 0;
+                  const subtotal = qty * rate;
+                  const taxPct = item.taxPercent || 18;
+
+                  // Determine GST breakdown based on current state comparison
+                  const isInter = isInterStateTransaction();
+                  let sgstRate = 0, cgstRate = 0, igstRate = 0;
+                  let sgstAmount = 0, cgstAmount = 0, igstAmount = 0;
+
+                  if (isInter) {
+                    igstRate = taxPct;
+                    igstAmount = (subtotal * taxPct) / 100;
+                  } else {
+                    sgstRate = taxPct / 2;
+                    cgstRate = taxPct / 2;
+                    sgstAmount = (subtotal * sgstRate) / 100;
+                    cgstAmount = (subtotal * cgstRate) / 100;
+                  }
+
+                  const totalTaxAmount = sgstAmount + cgstAmount + igstAmount;
+
+                  return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    inventoryItemId: undefined,
+                    itemName: item.name || `Item ${index + 1}`,
+                    itemCode: '',
+                    hsnCode: item.hsnCode || '',
+                    quantity: qty,
+                    unit: item.unit || 'Pcs',
+                    pricePerUnit: rate,
+                    priceWithTax: false,
+                    discountPercent: 0,
+                    discountAmount: item.discount || 0,
+                    taxPercent: taxPct,
+                    taxAmount: totalTaxAmount,
+                    sgstRate,
+                    sgstAmount,
+                    cgstRate,
+                    cgstAmount,
+                    igstRate,
+                    igstAmount,
+                    isInterState: isInter,
+                    amount: subtotal + totalTaxAmount - (item.discount || 0),
+                    stockReserved: false
+                  };
+                });
+
+                const newTotal = newInvoiceItems.reduce((sum, item) => sum + item.amount, 0);
+                const paid = aiData.totals?.amountPaid || 0;
+
+                setCurrentInvoice(prev => ({
+                  ...prev,
+                  // Invoice details
+                  invoiceNo: aiData.invoice?.number || prev.invoiceNo,
+                  invoiceDate: aiData.invoice?.date || prev.invoiceDate,
+                  // Customer/Party details
+                  partyName: aiData.vendor?.name || aiData.customer?.name || prev.partyName,
+                  phoneNo: aiData.vendor?.phone || aiData.customer?.phone || prev.phoneNo,
+                  customerEmail: aiData.vendor?.email || prev.customerEmail,
+                  customerGSTIN: aiData.vendor?.gstin || aiData.customer?.gstin || prev.customerGSTIN,
+                  // Items
+                  items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
+                  // Totals
+                  total: newInvoiceItems.length > 0 ? newTotal : prev.total,
+                  paid: paid,
+                  balance: newInvoiceItems.length > 0 ? newTotal - paid : prev.balance,
+                  // Payment method
+                  saleType: aiData.paymentInfo?.method === 'upi' ? 'gpay' :
+                            aiData.paymentInfo?.method === 'cash' ? 'cash' :
+                            aiData.paymentInfo?.method === 'bank_transfer' ? 'netbanking' : prev.saleType
+                }));
+
+                // Switch to the Create tab
+                setActiveTab('create');
+                toast.success(`✅ AI extracted ${newInvoiceItems.length} items! Review the invoice details.`);
               }}
             />
           </div>

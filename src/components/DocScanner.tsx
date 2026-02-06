@@ -36,10 +36,63 @@ import {
   Files
 } from "lucide-react";
 import Tesseract from "tesseract.js";
+import { API_ENDPOINTS } from "@/lib/api";
+
+// AI-extracted invoice data structure (exported for use in other components)
+export interface AIInvoiceData {
+  vendor?: {
+    name?: string;
+    address?: string;
+    gstin?: string;
+    phone?: string;
+    email?: string;
+  };
+  invoice?: {
+    number?: string;
+    date?: string;
+    dueDate?: string;
+  };
+  customer?: {
+    name?: string;
+    address?: string;
+    gstin?: string;
+    phone?: string;
+  };
+  items?: Array<{
+    name?: string;
+    description?: string;
+    hsnCode?: string;
+    quantity?: number;
+    unit?: string;
+    rate?: number;
+    discount?: number;
+    taxPercent?: number;
+    taxAmount?: number;
+    amount?: number;
+  }>;
+  totals?: {
+    subtotal?: number;
+    discountTotal?: number;
+    sgst?: number;
+    cgst?: number;
+    igst?: number;
+    taxTotal?: number;
+    grandTotal?: number;
+    amountPaid?: number;
+    balanceDue?: number;
+  };
+  paymentInfo?: {
+    method?: string;
+    bankDetails?: string;
+    upiId?: string;
+  };
+  notes?: string;
+}
 
 interface DocScannerProps {
   onTextExtracted?: (text: string) => void;
   onImageProcessed?: (imageData: string) => void;
+  onAIDataExtracted?: (data: AIInvoiceData) => void;
 }
 
 type ScanMode = 'document' | 'idcard' | 'book' | 'qrcode';
@@ -57,7 +110,7 @@ interface PageData {
   contrast: number;
 }
 
-const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcessed }) => {
+const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcessed, onAIDataExtracted }) => {
   // States
   const [activeStep, setActiveStep] = useState<'capture' | 'edit' | 'export'>('capture');
   const [scanMode, setScanMode] = useState<ScanMode>('document');
@@ -82,6 +135,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const [extractedText, setExtractedText] = useState("");
   const [showOcrResult, setShowOcrResult] = useState(false);
   const [isAddingPage, setIsAddingPage] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [aiError, setAIError] = useState<string | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -521,6 +576,56 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     } finally {
       setIsProcessingOcr(false);
       setOcrProgress(0);
+    }
+  };
+
+  // Analyze with Gemini AI
+  const analyzeWithAI = async () => {
+    saveCurrentPageEdits();
+
+    if (pages.length === 0 && !processedImage) return;
+
+    setIsProcessingAI(true);
+    setAIError(null);
+
+    try {
+      // Use the first page or current processed image
+      const imageToAnalyze = pages.length > 0 ? pages[0].processedImage : processedImage;
+
+      if (!imageToAnalyze) {
+        throw new Error("No image available for analysis");
+      }
+
+      const response = await fetch(API_ENDPOINTS.AI_INVOICE_OCR, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: imageToAnalyze,
+          mimeType: 'image/jpeg'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to analyze invoice');
+      }
+
+      if (result.success && result.data) {
+        // Call the callback with extracted data
+        onAIDataExtracted?.(result.data);
+        alert("✅ Invoice data extracted successfully! Check the form for auto-filled values.");
+      } else {
+        throw new Error(result.message || 'No data extracted from invoice');
+      }
+    } catch (error: any) {
+      console.error("AI Analysis Error:", error);
+      setAIError(error.message || "Failed to analyze invoice with AI");
+      alert(`❌ AI Analysis Failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsProcessingAI(false);
     }
   };
 
@@ -1030,6 +1135,39 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 </button>
               </div>
             </div>
+
+            {/* AI Analysis - For Invoice Auto-Fill */}
+            {onAIDataExtracted && (
+              <div className="backdrop-blur-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl p-6 border border-purple-400/30">
+                <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-400" />
+                  AI Invoice Analysis
+                </h3>
+                <p className="text-blue-200/80 text-sm mb-4">
+                  Use Gemini AI to automatically extract vendor, items, taxes, and totals from this invoice.
+                </p>
+                <button
+                  onClick={analyzeWithAI}
+                  disabled={isProcessingAI}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-bold hover:from-purple-500 hover:to-blue-500 transition-all shadow-xl shadow-purple-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessingAI ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Analyzing with AI...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5" />
+                      Auto-Fill Invoice with AI
+                    </>
+                  )}
+                </button>
+                {aiError && (
+                  <p className="text-red-400 text-sm mt-2">{aiError}</p>
+                )}
+              </div>
+            )}
 
             {/* Share Options */}
             <div className="backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-blue-400/20">

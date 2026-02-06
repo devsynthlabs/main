@@ -19,6 +19,7 @@ import bankReconciliationRoutes from "./routes/bankReconciliationRoutes.js";
 import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
 import invoiceSummaryRoutes from "./routes/invoiceSummaryRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -34,7 +35,9 @@ const razorpay = new Razorpay({
 });
 
 // ✅ Middleware
-app.use(express.json());
+// Increase payload limit for image/PDF uploads (50MB)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // CORS configuration for production
 const corsOptions = {
@@ -459,6 +462,7 @@ app.use("/api/bank-reconciliation", bankReconciliationRoutes);
 app.use("/api/fraud-detection", fraudDetectionRoutes);
 app.use("/api/invoice", invoiceRoutes);
 app.use("/api/invoice-summary", invoiceSummaryRoutes);
+app.use("/api/ai", aiRoutes);
 
 // ✅ Start Server (after MongoDB connection)
 const PORT = process.env.PORT || 5000;

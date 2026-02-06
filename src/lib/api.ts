@@ -35,6 +35,11 @@ export const API_ENDPOINTS = {
   // Invoice endpoint
   INVOICE: `${API_BASE_URL}/invoice`,
   INVOICE_SUMMARY: `${API_BASE_URL}/invoice-summary`,
+
+  // AI endpoints
+  AI: `${API_BASE_URL}/ai`,
+  AI_INVOICE_OCR: `${API_BASE_URL}/ai/invoice-ocr`,
+  AI_EXTRACT_TEXT: `${API_BASE_URL}/ai/extract-text`,
 } as const;
 
 // Helper function for making API requests
