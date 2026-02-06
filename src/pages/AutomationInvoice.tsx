@@ -72,7 +72,7 @@ interface InvoiceItem {
   inventoryItemId?: string; // Track which inventory item this came from
   itemName: string;
   itemCode: string;
-  hsnCode: string;
+
   quantity: number;
   unit: string;
   pricePerUnit: number;
@@ -184,7 +184,6 @@ const AutomationInvoice = () => {
     inventoryItemId: undefined,
     itemName: '',
     itemCode: '',
-    hsnCode: '',
     quantity: 1,
     unit: 'Pcs',
     pricePerUnit: 0,
@@ -454,7 +453,7 @@ const AutomationInvoice = () => {
       inventoryItemId: newItem.inventoryItemId,
       itemName: newItem.itemName || '',
       itemCode: newItem.itemCode || '',
-      hsnCode: newItem.hsnCode || '',
+
       quantity: quantity,
       unit: newItem.unit || 'Pcs',
       pricePerUnit: newItem.pricePerUnit || 0,
@@ -490,7 +489,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
-      hsnCode: '',
+
       quantity: 1,
       unit: 'Pcs',
       pricePerUnit: 0,
@@ -509,7 +508,7 @@ const AutomationInvoice = () => {
       inventoryItemId: inventoryItem._id,
       itemName: inventoryItem.itemName,
       itemCode: inventoryItem.sku,
-      hsnCode: '',
+
       quantity: 1,
       unit: 'Pcs',
       pricePerUnit: inventoryItem.price,
@@ -659,6 +658,7 @@ const AutomationInvoice = () => {
         }
       } catch (err) {
         console.warn("Backend save failed, using local ID fallback:", err);
+        setLastSavedId(backendId);
       }
 
       // 2. Save to localStorage
@@ -725,7 +725,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
-      hsnCode: '',
+
       quantity: 1,
       unit: 'Pcs',
       pricePerUnit: 0,
@@ -784,11 +784,11 @@ const AutomationInvoice = () => {
 
       // Items Header
       csvContent += "ITEMS\n";
-      csvContent += "Item Name,Item Code,HSN Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
+      csvContent += "Item Name,Item Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
 
       // Items Data
       currentInvoice.items.forEach(item => {
-        csvContent += `"${item.itemName}","${item.itemCode || '-'}","${item.hsnCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
+        csvContent += `"${item.itemName}","${item.itemCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
       });
 
       // Summary
@@ -925,7 +925,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             itemName: item.product,
             itemCode: '',
-            hsnCode: '',
+      
             quantity: item.quantity,
             unit: 'Pcs',
             pricePerUnit: item.rate,
@@ -1399,15 +1399,6 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-blue-100 text-sm">HSN Code</Label>
-                        <Input
-                          value={newItem.hsnCode}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
-                          placeholder="HSN"
-                          className="bg-white/5 border-blue-400/30 text-white h-9"
-                        />
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -1575,7 +1566,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                                     <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded">STOCK</span>
                                   )}
                                 </div>
-                                <div className="text-blue-400/60 text-xs">{item.hsnCode || item.itemCode || '-'}</div>
+                                <div className="text-blue-400/60 text-xs">{item.itemCode || '-'}</div>
                               </td>
                               <td className="py-2 px-2 text-center text-blue-200">{item.quantity}</td>
                               <td className="py-2 px-2 text-right text-blue-200">₹{item.pricePerUnit}</td>
@@ -1852,7 +1843,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       id: Math.random().toString(36).substr(2, 9),
                       itemName: item.product,
                       itemCode: '',
-                      hsnCode: '',
+                
                       quantity: item.quantity,
                       unit: 'Pcs',
                       pricePerUnit: item.rate,
@@ -1916,7 +1907,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     inventoryItemId: undefined,
                     itemName: item.name || `Item ${index + 1}`,
                     itemCode: '',
-                    hsnCode: item.hsnCode || '',
+
                     quantity: qty,
                     unit: item.unit || 'Pcs',
                     pricePerUnit: rate,

@@ -61,7 +61,7 @@ export interface AIInvoiceData {
   items?: Array<{
     name?: string;
     description?: string;
-    hsnCode?: string;
+
     quantity?: number;
     unit?: string;
     rate?: number;

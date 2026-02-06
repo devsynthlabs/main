@@ -128,7 +128,7 @@ Return ONLY valid JSON in this exact structure:
     {
       "name": "Item/Product name",
       "description": "Description if available",
-      "hsnCode": "HSN/SAC code if available",
+
       "quantity": 1,
       "unit": "Pcs/Kg/Nos etc",
       "rate": 100.00,
