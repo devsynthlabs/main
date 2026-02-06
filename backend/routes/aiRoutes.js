@@ -14,6 +14,62 @@ const getGenAI = () => {
   return genAI;
 };
 
+// OpenRouter fallback - uses OpenAI-compatible API
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "google/gemini-flash-1.5"; // Vision-capable model on OpenRouter
+
+const callOpenRouter = async (prompt, base64Data, mimeType) => {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error("OpenRouter API key not configured");
+  }
+
+  console.log("🔄 Falling back to OpenRouter...");
+
+  const response = await fetch(OPENROUTER_BASE_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "http://localhost:5001",
+      "X-Title": "Invoice OCR"
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Data}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 4096
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenRouter API error ${response.status}: ${errorBody}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+
+  if (!text) {
+    throw new Error("No content in OpenRouter response");
+  }
+
+  console.log("✅ OpenRouter response received");
+  return text;
+};
+
 // Invoice OCR extraction prompt
 const INVOICE_EXTRACTION_PROMPT = `You are an expert invoice data extractor. Analyze this invoice image and extract ALL information in a structured JSON format.
 
@@ -80,6 +136,46 @@ Return ONLY valid JSON in this exact structure:
 
 Analyze the invoice document (image or PDF) carefully and extract all data.`;
 
+// Helper: parse AI response text into structured JSON
+const parseAIResponse = (text) => {
+  // Try to extract JSON from the response (it might have markdown code blocks)
+  const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
+    text.match(/```\s*([\s\S]*?)\s*```/) ||
+    [null, text];
+
+  const jsonStr = jsonMatch[1] || text;
+  try {
+    return JSON.parse(jsonStr.trim());
+  } catch (parseError) {
+    // Try to salvage partial data
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}') + 1;
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      return JSON.parse(text.substring(jsonStart, jsonEnd));
+    }
+    throw new Error("Could not find valid JSON in response");
+  }
+};
+
+// Helper: process invoice with Gemini (primary)
+const processWithGemini = async (base64Data, mimeType) => {
+  const ai = getGenAI();
+  if (!ai) throw new Error("Gemini AI not initialized");
+
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const imagePart = {
+    inlineData: {
+      data: base64Data,
+      mimeType: mimeType,
+    },
+  };
+
+  const result = await model.generateContent([INVOICE_EXTRACTION_PROMPT, imagePart]);
+  const response = await result.response;
+  return response.text();
+};
+
 // POST /api/ai/invoice-ocr
 router.post("/invoice-ocr", async (req, res) => {
   try {
@@ -92,27 +188,18 @@ router.post("/invoice-ocr", async (req, res) => {
       });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const hasGemini = !!process.env.GEMINI_API_KEY;
+    const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+
+    if (!hasGemini && !hasOpenRouter) {
       return res.status(500).json({
         success: false,
-        message: "Gemini API key not configured. Please add GEMINI_API_KEY to your .env file."
+        message: "No AI provider configured. Add GEMINI_API_KEY or OPENROUTER_API_KEY to .env"
       });
     }
 
-    console.log("🤖 Processing invoice with Gemini AI...");
+    console.log("🤖 Processing invoice...");
     console.log("📄 File type:", mimeType);
-
-    // Get Gemini AI instance
-    const ai = getGenAI();
-    if (!ai) {
-      return res.status(500).json({
-        success: false,
-        message: "Gemini AI not initialized. Please check GEMINI_API_KEY in .env"
-      });
-    }
-
-    // Get the Gemini model - using gemini-1.5-flash-latest for faster processing
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Remove data URL prefix if present (handles both images and PDFs)
     let base64Data = image;
@@ -120,53 +207,63 @@ router.post("/invoice-ocr", async (req, res) => {
       base64Data = image.split('base64,')[1];
     }
 
-    // Create the file part for Gemini (works for both images and PDFs)
-    const imagePart = {
-      inlineData: {
-        data: base64Data,
-        mimeType: mimeType,
-      },
-    };
+    let text = null;
+    let provider = null;
 
-    // Generate content with the image
-    const result = await model.generateContent([INVOICE_EXTRACTION_PROMPT, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    // Try Gemini first (primary)
+    if (hasGemini) {
+      try {
+        console.log("🔷 Trying Gemini AI...");
+        text = await processWithGemini(base64Data, mimeType);
+        provider = "gemini";
+        console.log("✅ Gemini response received");
+      } catch (geminiError) {
+        console.warn("⚠️ Gemini failed:", geminiError.message);
 
-    console.log("📄 Raw Gemini Response:", text.substring(0, 500) + "...");
+        // If OpenRouter is available, fall back to it
+        if (hasOpenRouter) {
+          console.log("🔄 Gemini failed, trying OpenRouter fallback...");
+        } else {
+          throw geminiError; // No fallback available
+        }
+      }
+    }
+
+    // Fallback to OpenRouter if Gemini failed or unavailable
+    if (!text && hasOpenRouter) {
+      try {
+        console.log("🟠 Trying OpenRouter...");
+        text = await callOpenRouter(INVOICE_EXTRACTION_PROMPT, base64Data, mimeType);
+        provider = "openrouter";
+        console.log("✅ OpenRouter response received");
+      } catch (openRouterError) {
+        console.error("❌ OpenRouter also failed:", openRouterError.message);
+        throw openRouterError;
+      }
+    }
+
+    if (!text) {
+      return res.status(500).json({
+        success: false,
+        message: "All AI providers failed to process the invoice"
+      });
+    }
+
+    console.log(`📄 Raw ${provider} Response:`, text.substring(0, 500) + "...");
 
     // Parse the JSON response
     let extractedData;
     try {
-      // Try to extract JSON from the response (it might have markdown code blocks)
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
-        text.match(/```\s*([\s\S]*?)\s*```/) ||
-        [null, text];
-
-      const jsonStr = jsonMatch[1] || text;
-      extractedData = JSON.parse(jsonStr.trim());
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      // Try to salvage partial data
-      try {
-        // Remove any non-JSON text before/after
-        const jsonStart = text.indexOf('{');
-        const jsonEnd = text.lastIndexOf('}') + 1;
-        if (jsonStart !== -1 && jsonEnd > jsonStart) {
-          extractedData = JSON.parse(text.substring(jsonStart, jsonEnd));
-        } else {
-          throw new Error("Could not find valid JSON in response");
-        }
-      } catch (e) {
-        return res.status(422).json({
-          success: false,
-          message: "Failed to parse AI response. The invoice may be unclear or in an unsupported format.",
-          rawResponse: text.substring(0, 1000)
-        });
-      }
+      extractedData = parseAIResponse(text);
+    } catch (e) {
+      return res.status(422).json({
+        success: false,
+        message: "Failed to parse AI response. The invoice may be unclear or in an unsupported format.",
+        rawResponse: text.substring(0, 1000)
+      });
     }
 
-    console.log("✅ Successfully extracted invoice data");
+    console.log(`✅ Successfully extracted invoice data via ${provider}`);
 
     // Store the uploaded file in Supabase (auto-deletes after 5 hours)
     let storageInfo = null;
@@ -177,24 +274,23 @@ router.post("/invoice-ocr", async (req, res) => {
       }
     } catch (storageError) {
       console.warn("⚠️ Failed to store file in Supabase:", storageError.message);
-      // Continue without storage - not critical
     }
 
     res.json({
       success: true,
       data: extractedData,
-      message: "Invoice data extracted successfully",
+      message: `Invoice data extracted successfully via ${provider}`,
+      provider: provider,
       storage: storageInfo
     });
 
   } catch (error) {
-    console.error("❌ Gemini AI Error:", error);
+    console.error("❌ AI Processing Error:", error);
 
-    // Handle specific Gemini errors
     if (error.message?.includes("API_KEY")) {
       return res.status(401).json({
         success: false,
-        message: "Invalid Gemini API key. Please check your configuration."
+        message: "Invalid API key. Please check your configuration."
       });
     }
 
@@ -225,32 +321,54 @@ router.post("/extract-text", async (req, res) => {
       });
     }
 
-    const ai = getGenAI();
-    if (!ai) {
+    const hasGemini = !!process.env.GEMINI_API_KEY;
+    const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+
+    if (!hasGemini && !hasOpenRouter) {
       return res.status(500).json({
         success: false,
-        message: "Gemini API key not configured"
+        message: "No AI provider configured"
       });
     }
 
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const base64Image = image.includes('base64,') ? image.split('base64,')[1] : image;
+    const extractPrompt = "Extract all text from this image. Return only the text content, preserving the layout as much as possible.";
 
-    const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
+    let text = null;
 
-    const imagePart = {
-      inlineData: {
-        data: base64Image,
-        mimeType: mimeType,
-      },
-    };
+    // Try Gemini first
+    if (hasGemini) {
+      try {
+        const ai = getGenAI();
+        if (ai) {
+          const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const result = await model.generateContent([
+            extractPrompt,
+            { inlineData: { data: base64Image, mimeType } }
+          ]);
+          text = (await result.response).text();
+        }
+      } catch (geminiError) {
+        console.warn("⚠️ Gemini text extraction failed:", geminiError.message);
+      }
+    }
 
-    const result = await model.generateContent([
-      "Extract all text from this image. Return only the text content, preserving the layout as much as possible.",
-      imagePart
-    ]);
+    // Fallback to OpenRouter
+    if (!text && hasOpenRouter) {
+      try {
+        text = await callOpenRouter(extractPrompt, base64Image, mimeType);
+      } catch (openRouterError) {
+        console.error("❌ OpenRouter text extraction failed:", openRouterError.message);
+        throw openRouterError;
+      }
+    }
 
-    const response = await result.response;
-    const text = response.text();
+    if (!text) {
+      return res.status(500).json({
+        success: false,
+        message: "All AI providers failed"
+      });
+    }
 
     res.json({
       success: true,
