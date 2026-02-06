@@ -16,7 +16,12 @@ const getGenAI = () => {
 
 // OpenRouter fallback - uses OpenAI-compatible API
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "google/gemini-flash-1.5"; // Vision-capable model on OpenRouter
+// Vision-capable models to try in order
+const OPENROUTER_MODELS = [
+  "openrouter/free",                      // Auto-routes to free models with vision
+  "google/gemini-3-flash-preview",        // Latest Gemini on OpenRouter
+  "google/gemini-2.0-flash",              // Gemini 2.0 on OpenRouter
+];
 
 const callOpenRouter = async (prompt, base64Data, mimeType) => {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -26,48 +31,66 @@ const callOpenRouter = async (prompt, base64Data, mimeType) => {
 
   console.log("🔄 Falling back to OpenRouter...");
 
-  const response = await fetch(OPENROUTER_BASE_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5001",
-      "X-Title": "Invoice OCR"
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
+  let lastError = null;
+
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      console.log(`🔷 Trying OpenRouter model: ${model}`);
+
+      const response = await fetch(OPENROUTER_BASE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "http://localhost:5001",
+          "X-Title": "Invoice OCR"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
             {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Data}`
-              }
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${mimeType};base64,${base64Data}`
+                  }
+                }
+              ]
             }
-          ]
-        }
-      ],
-      max_tokens: 4096
-    })
-  });
+          ],
+          max_tokens: 4096
+        })
+      });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenRouter API error ${response.status}: ${errorBody}`);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.log(`⚠️ OpenRouter model ${model} failed: ${response.status}`);
+        lastError = new Error(`OpenRouter API error ${response.status}: ${errorBody}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
+
+      if (!text) {
+        console.log(`⚠️ OpenRouter model ${model}: No content in response`);
+        lastError = new Error("No content in OpenRouter response");
+        continue;
+      }
+
+      console.log(`✅ OpenRouter success with model: ${model}`);
+      return text;
+    } catch (error) {
+      console.log(`⚠️ OpenRouter model ${model} error: ${error.message}`);
+      lastError = error;
+      continue;
+    }
   }
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
-
-  if (!text) {
-    throw new Error("No content in OpenRouter response");
-  }
-
-  console.log("✅ OpenRouter response received");
-  return text;
+  throw lastError || new Error("All OpenRouter models failed");
 };
 
 // Invoice OCR extraction prompt
@@ -162,18 +185,39 @@ const processWithGemini = async (base64Data, mimeType) => {
   const ai = getGenAI();
   if (!ai) throw new Error("Gemini AI not initialized");
 
-  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Try multiple model options in order of preference
+  // Note: 1.5 models are deprecated, only 2.0 models available
+  const modelOptions = [
+    "gemini-2.0-flash-lite",    // Lighter model (different quota pool)
+    "gemini-2.0-flash",         // Latest flash model
+  ];
 
-  const imagePart = {
-    inlineData: {
-      data: base64Data,
-      mimeType: mimeType,
-    },
-  };
+  let lastError = null;
 
-  const result = await model.generateContent([INVOICE_EXTRACTION_PROMPT, imagePart]);
-  const response = await result.response;
-  return response.text();
+  for (const modelName of modelOptions) {
+    try {
+      console.log(`🔷 Trying model: ${modelName}`);
+      const model = ai.getGenerativeModel({ model: modelName });
+
+      const imagePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType,
+        },
+      };
+
+      const result = await model.generateContent([INVOICE_EXTRACTION_PROMPT, imagePart]);
+      const response = await result.response;
+      console.log(`✅ Success with model: ${modelName}`);
+      return response.text();
+    } catch (error) {
+      console.log(`⚠️ Model ${modelName} failed: ${error.message}`);
+      lastError = error;
+      continue;
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed");
 };
 
 // POST /api/ai/invoice-ocr
@@ -336,20 +380,28 @@ router.post("/extract-text", async (req, res) => {
 
     let text = null;
 
-    // Try Gemini first
+    // Try Gemini first with multiple model fallbacks
     if (hasGemini) {
-      try {
-        const ai = getGenAI();
-        if (ai) {
-          const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-          const result = await model.generateContent([
-            extractPrompt,
-            { inlineData: { data: base64Image, mimeType } }
-          ]);
-          text = (await result.response).text();
+      const modelOptions = ["gemini-2.0-flash-lite", "gemini-2.0-flash"];
+
+      for (const modelName of modelOptions) {
+        try {
+          const ai = getGenAI();
+          if (ai) {
+            console.log(`🔷 Trying text extraction with: ${modelName}`);
+            const model = ai.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent([
+              extractPrompt,
+              { inlineData: { data: base64Image, mimeType } }
+            ]);
+            text = (await result.response).text();
+            console.log(`✅ Text extraction success with: ${modelName}`);
+            break;
+          }
+        } catch (geminiError) {
+          console.warn(`⚠️ ${modelName} failed:`, geminiError.message);
+          continue;
         }
-      } catch (geminiError) {
-        console.warn("⚠️ Gemini text extraction failed:", geminiError.message);
       }
     }
 
