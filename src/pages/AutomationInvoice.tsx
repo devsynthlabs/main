@@ -1043,8 +1043,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 <Camera className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-sm md:text-xl font-bold text-white">OCR Scan</h3>
-                <p className="text-blue-200/70 text-xs hidden md:block">Camera & upload</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">Invoice OCR</h3>
+                <p className="text-blue-200/70 text-xs hidden md:block">Scan & Auto-Extract</p>
               </div>
             </div>
           </button>
@@ -1808,13 +1808,36 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
         {/* OCR Tab */}
         {activeTab === 'ocr' && (
           <div className="backdrop-blur-2xl bg-white/10 rounded-3xl p-8 shadow-2xl shadow-blue-500/20 border border-blue-400/20">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
               <Camera className="h-6 w-6 text-blue-400" />
-              Document Scanner
+              Invoice OCR Scanner
             </h2>
-            <p className="text-blue-200/70 mb-8">
-              Scan documents using camera or upload images. Apply filters, crop, and extract text with OCR.
+            <p className="text-blue-200/70 mb-6">
+              Capture or upload invoice images to automatically extract vendor details, line items, taxes, and totals using AI-powered OCR.
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Camera className="h-4 w-4 text-blue-400" />
+                  <span className="text-white font-medium text-sm">Capture</span>
+                </div>
+                <p className="text-blue-200/60 text-xs">Use camera to scan invoices, bills, or receipts</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Upload className="h-4 w-4 text-purple-400" />
+                  <span className="text-white font-medium text-sm">Upload</span>
+                </div>
+                <p className="text-blue-200/60 text-xs">Import existing invoice images from your device</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <span className="text-white font-medium text-sm">AI Extract</span>
+                </div>
+                <p className="text-blue-200/60 text-xs">Gemini AI auto-fills invoice form with extracted data</p>
+              </div>
+            </div>
 
             <DocScanner
               onTextExtracted={(text) => {

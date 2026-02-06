@@ -137,6 +137,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const [isAddingPage, setIsAddingPage] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [aiError, setAIError] = useState<string | null>(null);
+  const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -144,12 +146,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Scan modes configuration
+  // Scan modes configuration - Invoice focused
   const scanModes = [
-    { id: 'document', label: 'Document', icon: FileText, description: 'A4, Letters' },
-    { id: 'idcard', label: 'ID Card', icon: CreditCard, description: 'Cards, IDs' },
-    { id: 'book', label: 'Book', icon: BookOpen, description: 'Books, Pages' },
-    { id: 'qrcode', label: 'QR Code', icon: QrCode, description: 'QR & Barcodes' },
+    { id: 'document', label: 'Invoice', icon: FileText, description: 'Tax Invoices' },
+    { id: 'idcard', label: 'Receipt', icon: CreditCard, description: 'Bills & Receipts' },
+    { id: 'book', label: 'Purchase', icon: BookOpen, description: 'Purchase Orders' },
+    { id: 'qrcode', label: 'Challan', icon: QrCode, description: 'Delivery Challan' },
   ];
 
   // Filters configuration
@@ -307,15 +309,15 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       setPages(prev => prev.map((page, index) =>
         index === currentPageIndex
           ? {
-              ...page,
-              processedImage: processedImage,
-              filter: currentFilter,
-              rotation: rotation,
-              flipH: flipH,
-              flipV: flipV,
-              brightness: brightness,
-              contrast: contrast
-            }
+            ...page,
+            processedImage: processedImage,
+            filter: currentFilter,
+            rotation: rotation,
+            flipH: flipH,
+            flipV: flipV,
+            brightness: brightness,
+            contrast: contrast
+          }
           : page
       ));
     }
@@ -367,8 +369,26 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     if (!file) return;
 
     const reader = new FileReader();
+
+    // Check if it's a PDF
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
     reader.onload = (e) => {
-      const imageData = e.target?.result as string;
+      const fileData = e.target?.result as string;
+
+      if (isPdf) {
+        // Handle PDF - skip editing, go directly to export for AI extraction
+        setUploadedPdf(fileData);
+        setPdfFileName(file.name);
+        setCapturedImage(null);
+        setProcessedImage(null);
+        setPages([]);
+        setActiveStep('export');
+        return;
+      }
+
+      // Handle image files
+      const imageData = fileData;
 
       if (isAddingPage) {
         // Adding a new page
@@ -402,6 +422,10 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
         setPages([newPage]);
         setCurrentPageIndex(0);
       }
+
+      // Clear any previous PDF
+      setUploadedPdf(null);
+      setPdfFileName(null);
 
       setCapturedImage(imageData);
       setProcessedImage(imageData);
@@ -583,17 +607,29 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const analyzeWithAI = async () => {
     saveCurrentPageEdits();
 
-    if (pages.length === 0 && !processedImage) return;
+    // Check if we have PDF or image to analyze
+    if (!uploadedPdf && pages.length === 0 && !processedImage) return;
 
     setIsProcessingAI(true);
     setAIError(null);
 
     try {
-      // Use the first page or current processed image
-      const imageToAnalyze = pages.length > 0 ? pages[0].processedImage : processedImage;
+      let dataToAnalyze: string;
+      let mimeType: string;
 
-      if (!imageToAnalyze) {
-        throw new Error("No image available for analysis");
+      if (uploadedPdf) {
+        // Use PDF
+        dataToAnalyze = uploadedPdf;
+        mimeType = 'application/pdf';
+      } else {
+        // Use the first page or current processed image
+        const imageToAnalyze = pages.length > 0 ? pages[0].processedImage : processedImage;
+
+        if (!imageToAnalyze) {
+          throw new Error("No image available for analysis");
+        }
+        dataToAnalyze = imageToAnalyze;
+        mimeType = 'image/jpeg';
       }
 
       const response = await fetch(API_ENDPOINTS.AI_INVOICE_OCR, {
@@ -602,8 +638,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image: imageToAnalyze,
-          mimeType: 'image/jpeg'
+          image: dataToAnalyze,
+          mimeType: mimeType
         })
       });
 
@@ -683,6 +719,9 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     setPages([]);
     setCurrentPageIndex(0);
     setIsAddingPage(false);
+    setUploadedPdf(null);
+    setPdfFileName(null);
+    setAIError(null);
     stopCamera();
   };
 
@@ -704,27 +743,29 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     <div className="space-y-6">
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-4 mb-8">
-        {['capture', 'edit', 'export'].map((step, index) => (
-          <React.Fragment key={step}>
+        {[
+          { id: 'capture', label: 'Scan' },
+          { id: 'edit', label: 'Enhance' },
+          { id: 'export', label: 'Extract' }
+        ].map((step, index) => (
+          <React.Fragment key={step.id}>
             <button
               onClick={() => {
-                if (step === 'capture') resetScanner();
-                else if (capturedImage) setActiveStep(step as any);
+                if (step.id === 'capture') resetScanner();
+                else if (capturedImage) setActiveStep(step.id as any);
               }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                activeStep === step
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeStep === step.id
                   ? 'bg-blue-500/30 text-white border border-blue-400/50'
-                  : capturedImage || step === 'capture'
-                  ? 'bg-white/5 text-blue-300 border border-blue-400/20 hover:bg-white/10'
-                  : 'bg-white/5 text-blue-400/40 border border-blue-400/10 cursor-not-allowed'
-              }`}
+                  : capturedImage || step.id === 'capture'
+                    ? 'bg-white/5 text-blue-300 border border-blue-400/20 hover:bg-white/10'
+                    : 'bg-white/5 text-blue-400/40 border border-blue-400/10 cursor-not-allowed'
+                }`}
             >
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                activeStep === step ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-300'
-              }`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${activeStep === step.id ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-300'
+                }`}>
                 {index + 1}
               </span>
-              <span className="font-medium capitalize">{step}</span>
+              <span className="font-medium">{step.label}</span>
             </button>
             {index < 2 && (
               <div className={`w-12 h-0.5 ${capturedImage ? 'bg-blue-400/50' : 'bg-blue-400/20'}`} />
@@ -745,15 +786,13 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
               <button
                 key={mode.id}
                 onClick={() => setScanMode(mode.id as ScanMode)}
-                className={`p-4 rounded-2xl border transition-all ${
-                  scanMode === mode.id
+                className={`p-4 rounded-2xl border transition-all ${scanMode === mode.id
                     ? 'bg-blue-500/20 border-blue-400/50 shadow-lg shadow-blue-500/20'
                     : 'bg-white/5 border-blue-400/20 hover:bg-white/10 hover:border-blue-400/30'
-                }`}
+                  }`}
               >
-                <mode.icon className={`h-6 w-6 mx-auto mb-2 ${
-                  scanMode === mode.id ? 'text-blue-400' : 'text-blue-400/60'
-                }`} />
+                <mode.icon className={`h-6 w-6 mx-auto mb-2 ${scanMode === mode.id ? 'text-blue-400' : 'text-blue-400/60'
+                  }`} />
                 <p className="font-medium text-white text-sm">{mode.label}</p>
                 <p className="text-xs text-blue-300/60">{mode.description}</p>
               </button>
@@ -781,7 +820,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                     <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-400 rounded-br-lg" />
                   </div>
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 px-4 py-2 rounded-full">
-                    <p className="text-white text-sm">Align document within frame</p>
+                    <p className="text-white text-sm">Align invoice within frame for best OCR results</p>
                   </div>
                 </div>
 
@@ -813,10 +852,10 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white mb-2">
-                      Scan Your Document
+                      Scan Invoice for OCR
                     </p>
                     <p className="text-blue-300/80">
-                      Use camera to capture or upload an image
+                      Capture or upload invoice to auto-extract data with AI
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -825,21 +864,21 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                       className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-3"
                     >
                       <Camera className="h-5 w-5" />
-                      Open Camera
+                      Scan Invoice
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="px-8 py-4 bg-white/10 text-blue-300 rounded-2xl font-bold hover:bg-white/20 transition-all border border-blue-400/30 flex items-center gap-3"
                     >
                       <Upload className="h-5 w-5" />
-                      Upload Image
+                      Upload Invoice/PDF
                     </button>
                   </div>
                   <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
-                    accept="image/*"
+                    accept="image/*,application/pdf"
                     className="hidden"
                   />
                 </div>
@@ -896,11 +935,10 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 {pages.map((page, index) => (
                   <div
                     key={page.id}
-                    className={`relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      index === currentPageIndex
+                    className={`relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${index === currentPageIndex
                         ? 'border-blue-400 ring-2 ring-blue-400/30'
                         : 'border-blue-400/20 hover:border-blue-400/50'
-                    }`}
+                      }`}
                     onClick={() => switchToPage(index)}
                   >
                     <img
@@ -953,18 +991,16 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
               </button>
               <button
                 onClick={() => setFlipH(!flipH)}
-                className={`p-3 rounded-xl transition-all border ${
-                  flipH ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
-                }`}
+                className={`p-3 rounded-xl transition-all border ${flipH ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
+                  }`}
                 title="Flip Horizontal"
               >
                 <FlipHorizontal className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setFlipV(!flipV)}
-                className={`p-3 rounded-xl transition-all border ${
-                  flipV ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
-                }`}
+                className={`p-3 rounded-xl transition-all border ${flipV ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
+                  }`}
                 title="Flip Vertical"
               >
                 <FlipVertical className="h-5 w-5" />
@@ -1003,11 +1039,10 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   <button
                     key={filter.id}
                     onClick={() => applyFilter(filter.id)}
-                    className={`p-3 rounded-xl text-xs font-medium transition-all ${
-                      currentFilter === filter.id
+                    className={`p-3 rounded-xl text-xs font-medium transition-all ${currentFilter === filter.id
                         ? 'bg-blue-500/30 text-white border border-blue-400/50'
                         : 'bg-white/5 text-blue-300 border border-blue-400/10 hover:bg-white/10'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col items-center gap-1">
                       {filter.icon}
@@ -1089,17 +1124,34 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       )}
 
       {/* EXPORT STEP */}
-      {activeStep === 'export' && processedImage && (
+      {activeStep === 'export' && (processedImage || uploadedPdf) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Final Preview */}
           <div className="space-y-4">
-            <h3 className="font-bold text-white text-lg">Final Document</h3>
+            <h3 className="font-bold text-white text-lg">
+              {uploadedPdf ? 'Uploaded PDF' : 'Final Document'}
+            </h3>
             <div className="border border-blue-400/20 rounded-2xl overflow-hidden bg-black/20 backdrop-blur-xl">
-              <img
-                src={processedImage}
-                alt="Final document"
-                className="w-full h-[400px] object-contain"
-              />
+              {uploadedPdf ? (
+                <div className="w-full h-[400px] flex flex-col items-center justify-center gap-4 p-6">
+                  <div className="p-6 bg-red-500/20 rounded-full border border-red-400/30">
+                    <FileText className="h-16 w-16 text-red-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-bold text-lg mb-1">{pdfFileName || 'Invoice.pdf'}</p>
+                    <p className="text-blue-300/70 text-sm">PDF ready for AI extraction</p>
+                  </div>
+                  <div className="bg-emerald-500/20 text-emerald-300 px-4 py-2 rounded-xl text-sm font-medium border border-emerald-400/30">
+                    Click "Auto-Fill Invoice with AI" to extract data
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={processedImage || ''}
+                  alt="Final document"
+                  className="w-full h-[400px] object-contain"
+                />
+              )}
             </div>
           </div>
 
@@ -1144,7 +1196,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   AI Invoice Analysis
                 </h3>
                 <p className="text-blue-200/80 text-sm mb-4">
-                  Use Gemini AI to automatically extract vendor, items, taxes, and totals from this invoice.
+                  Use AI to automatically extract vendor, items, taxes, and totals from this invoice.
                 </p>
                 <button
                   onClick={analyzeWithAI}

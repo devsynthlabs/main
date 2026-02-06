@@ -1,13 +1,18 @@
 import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { uploadInvoiceFile } from "../utils/invoiceStorage.js";
 
 const router = express.Router();
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Initialize Gemini AI lazily (after env is loaded by server.js)
+let genAI = null;
+const getGenAI = () => {
+  if (!genAI && process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log("✅ Gemini AI initialized");
+  }
+  return genAI;
+};
 
 // Invoice OCR extraction prompt
 const INVOICE_EXTRACTION_PROMPT = `You are an expert invoice data extractor. Analyze this invoice image and extract ALL information in a structured JSON format.
@@ -73,7 +78,7 @@ Return ONLY valid JSON in this exact structure:
   "notes": "Any additional notes or terms"
 }
 
-Analyze the invoice image carefully and extract all data.`;
+Analyze the invoice document (image or PDF) carefully and extract all data.`;
 
 // POST /api/ai/invoice-ocr
 router.post("/invoice-ocr", async (req, res) => {
@@ -95,17 +100,30 @@ router.post("/invoice-ocr", async (req, res) => {
     }
 
     console.log("🤖 Processing invoice with Gemini AI...");
+    console.log("📄 File type:", mimeType);
+
+    // Get Gemini AI instance
+    const ai = getGenAI();
+    if (!ai) {
+      return res.status(500).json({
+        success: false,
+        message: "Gemini AI not initialized. Please check GEMINI_API_KEY in .env"
+      });
+    }
 
     // Get the Gemini model - using gemini-1.5-flash for faster processing
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Remove data URL prefix if present
-    const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
+    // Remove data URL prefix if present (handles both images and PDFs)
+    let base64Data = image;
+    if (image.includes('base64,')) {
+      base64Data = image.split('base64,')[1];
+    }
 
-    // Create the image part for Gemini
+    // Create the file part for Gemini (works for both images and PDFs)
     const imagePart = {
       inlineData: {
-        data: base64Image,
+        data: base64Data,
         mimeType: mimeType,
       },
     };
@@ -150,10 +168,23 @@ router.post("/invoice-ocr", async (req, res) => {
 
     console.log("✅ Successfully extracted invoice data");
 
+    // Store the uploaded file in Supabase (auto-deletes after 5 hours)
+    let storageInfo = null;
+    try {
+      storageInfo = await uploadInvoiceFile(image, mimeType, 'invoice');
+      if (storageInfo) {
+        console.log(`📁 File stored in Supabase: ${storageInfo.fileName} (expires: ${storageInfo.expiresAt})`);
+      }
+    } catch (storageError) {
+      console.warn("⚠️ Failed to store file in Supabase:", storageError.message);
+      // Continue without storage - not critical
+    }
+
     res.json({
       success: true,
       data: extractedData,
-      message: "Invoice data extracted successfully"
+      message: "Invoice data extracted successfully",
+      storage: storageInfo
     });
 
   } catch (error) {
@@ -194,14 +225,15 @@ router.post("/extract-text", async (req, res) => {
       });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    const ai = getGenAI();
+    if (!ai) {
       return res.status(500).json({
         success: false,
         message: "Gemini API key not configured"
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const base64Image = image.replace(/^data:image\/\w+;base64,/, "");
 
