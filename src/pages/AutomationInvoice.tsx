@@ -21,7 +21,6 @@ import {
   User,
   Mail,
   Package,
-  DollarSign,
   Percent,
   Sparkles,
   Database,
@@ -45,7 +44,7 @@ import {
   Save
 } from "lucide-react";
 import { parseVoiceInvoiceText, parseInvoiceText } from "@/lib/voiceInvoiceParser";
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, API_BASE_URL } from "@/lib/api";
 import Tesseract from "tesseract.js";
 import DocScanner from "@/components/DocScanner";
 import { Button } from "@/components/ui/button";
@@ -67,9 +66,10 @@ const INDIAN_STATES = [
 const GST_SLABS = ["0", "5", "12", "18", "28"];
 const UNITS = ["Pcs", "Kg", "Ltr", "Mtr", "Box", "Dozen", "Pair", "Set", "Nos"];
 
-// Vyapar-style Invoice Item interface
+// Invoice Item interface
 interface InvoiceItem {
   id: string;
+  inventoryItemId?: string; // Track which inventory item this came from
   itemName: string;
   itemCode: string;
   hsnCode: string;
@@ -81,20 +81,38 @@ interface InvoiceItem {
   discountAmount: number;
   taxPercent: number;
   taxAmount: number;
+  // GST Breakdown
+  sgstRate: number;
+  sgstAmount: number;
+  cgstRate: number;
+  cgstAmount: number;
+  igstRate: number;
+  igstAmount: number;
+  isInterState: boolean;
   amount: number;
+  stockReserved?: boolean; // Track if stock was reserved for this item
 }
 
-// Vyapar-style Invoice Data interface
+// Default Business State (can be made configurable)
+const BUSINESS_STATE = "Tamil Nadu";
+
+// Invoice Data interface
 interface InvoiceData {
   type: 'sales' | 'purchase';
-  saleType: 'credit' | 'cash';
+  saleType: 'credit' | 'cash' | 'gpay' | 'netbanking';
   partyName: string;
   phoneNo: string;
   eWayBillNo: string;
   invoiceNo: string;
   invoiceDate: string;
   stateOfSupply: string;
+  businessState: string;
   items: InvoiceItem[];
+  subtotal: number;
+  totalSgst: number;
+  totalCgst: number;
+  totalIgst: number;
+  totalTax: number;
   total: number;
   paid: number;
   balance: number;
@@ -104,10 +122,23 @@ interface InvoiceData {
   customerGSTIN?: string;
 }
 
+// Inventory Item interface (from Inventory Management)
+interface InventoryStockItem {
+  _id: string;
+  itemName: string;
+  sku: string;
+  quantity: number;
+  price: number;
+  category: string;
+  gstRate?: number;
+  stateOfSupply?: string;
+}
+
 const AutomationInvoice = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const billUploadRef = useRef<HTMLInputElement>(null);
+  const inventoryDropdownRef = useRef<HTMLDivElement>(null);
 
   const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history' | 'voice'>('create');
   const [invoiceType, setInvoiceType] = useState<'sales' | 'purchase'>('sales');
@@ -122,7 +153,7 @@ const AutomationInvoice = () => {
     return `${prefix}-${year}${month}-${random}`;
   };
 
-  // Invoice state (Vyapar-style)
+  // Invoice state
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceData>({
     type: 'sales',
     saleType: 'cash',
@@ -132,7 +163,13 @@ const AutomationInvoice = () => {
     invoiceNo: generateInvoiceNo('sales'),
     invoiceDate: new Date().toISOString().split('T')[0],
     stateOfSupply: '',
+    businessState: BUSINESS_STATE,
     items: [],
+    subtotal: 0,
+    totalSgst: 0,
+    totalCgst: 0,
+    totalIgst: 0,
+    totalTax: 0,
     total: 0,
     paid: 0,
     balance: 0,
@@ -144,6 +181,7 @@ const AutomationInvoice = () => {
 
   // New item form state
   const [newItem, setNewItem] = useState<Partial<InvoiceItem>>({
+    inventoryItemId: undefined,
     itemName: '',
     itemCode: '',
     hsnCode: '',
@@ -154,6 +192,9 @@ const AutomationInvoice = () => {
     discountPercent: 0,
     taxPercent: 18
   });
+
+  // Track max available quantity for selected inventory item
+  const [selectedInventoryMaxQty, setSelectedInventoryMaxQty] = useState<number | null>(null);
 
   // State for invoice history
   const [invoiceHistory, setInvoiceHistory] = useState<InvoiceData[]>([]);
@@ -176,12 +217,56 @@ const AutomationInvoice = () => {
   // Search state for history
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Inventory stock items state
+  const [inventoryItems, setInventoryItems] = useState<InventoryStockItem[]>([]);
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
+  const [isInventoryDropdownOpen, setIsInventoryDropdownOpen] = useState(false);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
+
+  // Fetch inventory items on mount
+  useEffect(() => {
+    const fetchInventory = async () => {
+      setIsLoadingInventory(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/inventory/all`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Filter only items with quantity > 0 (in stock)
+          const inStockItems = data.filter((item: InventoryStockItem) => item.quantity > 0);
+          setInventoryItems(inStockItems);
+        }
+      } catch (error) {
+        console.error("Error fetching inventory:", error);
+      } finally {
+        setIsLoadingInventory(false);
+      }
+    };
+    fetchInventory();
+  }, []);
+
   // Load saved invoices from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('savedInvoices');
     if (saved) {
       setInvoiceHistory(JSON.parse(saved));
     }
+  }, []);
+
+  // Close inventory dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inventoryDropdownRef.current && !inventoryDropdownRef.current.contains(event.target as Node)) {
+        setIsInventoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Switch between Sales and Purchase
@@ -193,14 +278,26 @@ const AutomationInvoice = () => {
       type: type,
       invoiceNo: generateInvoiceNo(type),
       items: [],
+      subtotal: 0,
+      totalSgst: 0,
+      totalCgst: 0,
+      totalIgst: 0,
+      totalTax: 0,
       total: 0,
       paid: 0,
       balance: 0
     }));
   };
 
-  // Calculate item amounts
-  const calculateItemAmounts = (item: Partial<InvoiceItem>): Partial<InvoiceItem> => {
+  // Check if inter-state transaction
+  const isInterStateTransaction = (): boolean => {
+    const customerState = currentInvoice.stateOfSupply;
+    const businessState = currentInvoice.businessState || BUSINESS_STATE;
+    return customerState !== '' && businessState !== '' && customerState !== businessState;
+  };
+
+  // Calculate item amounts with GST breakdown
+  const calculateItemAmounts = (item: Partial<InvoiceItem>, forceInterState?: boolean): Partial<InvoiceItem> => {
     const qty = item.quantity || 0;
     const price = item.pricePerUnit || 0;
     const discountPct = item.discountPercent || 0;
@@ -211,41 +308,154 @@ const AutomationInvoice = () => {
     let discountAmount = (baseAmount * discountPct) / 100;
     let afterDiscount = baseAmount - discountAmount;
 
-    let taxAmount: number;
-    let finalAmount: number;
+    // Determine if inter-state
+    const isInterState = forceInterState !== undefined ? forceInterState : isInterStateTransaction();
 
-    if (priceWithTax) {
-      const taxMultiplier = 1 + (taxPct / 100);
-      const preTaxAmount = afterDiscount / taxMultiplier;
-      taxAmount = afterDiscount - preTaxAmount;
-      finalAmount = afterDiscount;
+    let sgstRate = 0, cgstRate = 0, igstRate = 0;
+    let sgstAmount = 0, cgstAmount = 0, igstAmount = 0;
+    let taxAmount = 0;
+    let finalAmount = 0;
+
+    if (isInterState) {
+      // Inter-State: Apply standard IGST 18%
+      igstRate = 18;
+      if (priceWithTax) {
+        const taxMultiplier = 1 + (igstRate / 100);
+        const preTaxAmount = afterDiscount / taxMultiplier;
+        igstAmount = afterDiscount - preTaxAmount;
+        finalAmount = afterDiscount;
+      } else {
+        igstAmount = (afterDiscount * igstRate) / 100;
+        finalAmount = afterDiscount + igstAmount;
+      }
+      taxAmount = igstAmount;
     } else {
-      taxAmount = (afterDiscount * taxPct) / 100;
-      finalAmount = afterDiscount + taxAmount;
+      // Intra-State: Split GST 50-50 into SGST + CGST
+      sgstRate = taxPct / 2;
+      cgstRate = taxPct / 2;
+      if (priceWithTax) {
+        const taxMultiplier = 1 + (taxPct / 100);
+        const preTaxAmount = afterDiscount / taxMultiplier;
+        taxAmount = afterDiscount - preTaxAmount;
+        sgstAmount = taxAmount / 2;
+        cgstAmount = taxAmount / 2;
+        finalAmount = afterDiscount;
+      } else {
+        sgstAmount = (afterDiscount * sgstRate) / 100;
+        cgstAmount = (afterDiscount * cgstRate) / 100;
+        taxAmount = sgstAmount + cgstAmount;
+        finalAmount = afterDiscount + taxAmount;
+      }
     }
 
     return {
       ...item,
       discountAmount: Math.round(discountAmount * 100) / 100,
       taxAmount: Math.round(taxAmount * 100) / 100,
+      sgstRate: Math.round(sgstRate * 100) / 100,
+      sgstAmount: Math.round(sgstAmount * 100) / 100,
+      cgstRate: Math.round(cgstRate * 100) / 100,
+      cgstAmount: Math.round(cgstAmount * 100) / 100,
+      igstRate: Math.round(igstRate * 100) / 100,
+      igstAmount: Math.round(igstAmount * 100) / 100,
+      isInterState,
       amount: Math.round(finalAmount * 100) / 100
     };
   };
 
+  // Calculate invoice totals from items
+  const calculateInvoiceTotals = (items: InvoiceItem[]) => {
+    const subtotal = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit) - i.discountAmount, 0);
+    const totalSgst = items.reduce((sum, i) => sum + i.sgstAmount, 0);
+    const totalCgst = items.reduce((sum, i) => sum + i.cgstAmount, 0);
+    const totalIgst = items.reduce((sum, i) => sum + i.igstAmount, 0);
+    const totalTax = totalSgst + totalCgst + totalIgst;
+    const total = items.reduce((sum, i) => sum + i.amount, 0);
+
+    return {
+      subtotal: Math.round(subtotal * 100) / 100,
+      totalSgst: Math.round(totalSgst * 100) / 100,
+      totalCgst: Math.round(totalCgst * 100) / 100,
+      totalIgst: Math.round(totalIgst * 100) / 100,
+      totalTax: Math.round(totalTax * 100) / 100,
+      total: Math.round(total * 100) / 100
+    };
+  };
+
+  // Refresh inventory items
+  const refreshInventory = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/inventory/all`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const inStockItems = data.filter((item: InventoryStockItem) => item.quantity > 0);
+        setInventoryItems(inStockItems);
+      }
+    } catch (error) {
+      console.error("Error refreshing inventory:", error);
+    }
+  };
+
   // Add item to invoice
-  const addItemToInvoice = () => {
+  const addItemToInvoice = async () => {
     if (!newItem.itemName || !newItem.pricePerUnit) {
       toast.error("Please enter item name and price");
       return;
     }
 
+    // Check if state is selected for GST calculation
+    if (!currentInvoice.stateOfSupply) {
+      toast.error("Please select State of Supply for GST calculation");
+      return;
+    }
+
+    const quantity = newItem.quantity || 1;
+
+    // If item is from inventory, check stock and reserve it
+    if (newItem.inventoryItemId) {
+      if (selectedInventoryMaxQty !== null && quantity > selectedInventoryMaxQty) {
+        toast.error(`Insufficient stock! Only ${selectedInventoryMaxQty} available.`);
+        return;
+      }
+
+      // Reserve stock in inventory
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/inventory/reserve/${newItem.inventoryItemId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ quantity })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          toast.error(data.message || "Failed to reserve stock");
+          return;
+        }
+
+        // Refresh inventory to show updated stock
+        refreshInventory();
+      } catch (error) {
+        console.error("Error reserving stock:", error);
+        toast.error("Error reserving stock from inventory");
+        return;
+      }
+    }
+
     const calculatedItem = calculateItemAmounts(newItem);
     const item: InvoiceItem = {
       id: `item-${Date.now()}`,
+      inventoryItemId: newItem.inventoryItemId,
       itemName: newItem.itemName || '',
       itemCode: newItem.itemCode || '',
       hsnCode: newItem.hsnCode || '',
-      quantity: newItem.quantity || 1,
+      quantity: quantity,
       unit: newItem.unit || 'Pcs',
       pricePerUnit: newItem.pricePerUnit || 0,
       priceWithTax: newItem.priceWithTax || false,
@@ -253,22 +463,31 @@ const AutomationInvoice = () => {
       discountAmount: calculatedItem.discountAmount || 0,
       taxPercent: newItem.taxPercent || 0,
       taxAmount: calculatedItem.taxAmount || 0,
-      amount: calculatedItem.amount || 0
+      sgstRate: calculatedItem.sgstRate || 0,
+      sgstAmount: calculatedItem.sgstAmount || 0,
+      cgstRate: calculatedItem.cgstRate || 0,
+      cgstAmount: calculatedItem.cgstAmount || 0,
+      igstRate: calculatedItem.igstRate || 0,
+      igstAmount: calculatedItem.igstAmount || 0,
+      isInterState: calculatedItem.isInterState || false,
+      amount: calculatedItem.amount || 0,
+      stockReserved: !!newItem.inventoryItemId
     };
 
     const updatedItems = [...currentInvoice.items, item];
-    const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
+    const totals = calculateInvoiceTotals(updatedItems);
 
     setLastSavedId(null);
     setCurrentInvoice(prev => ({
       ...prev,
       items: updatedItems,
-      total: newTotal,
-      balance: newTotal - prev.paid
+      ...totals,
+      balance: totals.total - prev.paid
     }));
 
     // Reset new item form
     setNewItem({
+      inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
       hsnCode: '',
@@ -279,21 +498,76 @@ const AutomationInvoice = () => {
       discountPercent: 0,
       taxPercent: 18
     });
+    setSelectedInventoryMaxQty(null);
 
-    toast.success("Item added to invoice");
+    toast.success(newItem.inventoryItemId ? "Item added & stock reserved" : "Item added to invoice");
   };
 
+  // Select inventory item and auto-populate form
+  const selectInventoryItem = (inventoryItem: InventoryStockItem) => {
+    setNewItem({
+      inventoryItemId: inventoryItem._id,
+      itemName: inventoryItem.itemName,
+      itemCode: inventoryItem.sku,
+      hsnCode: '',
+      quantity: 1,
+      unit: 'Pcs',
+      pricePerUnit: inventoryItem.price,
+      priceWithTax: false,
+      discountPercent: 0,
+      taxPercent: inventoryItem.gstRate || 18
+    });
+    setSelectedInventoryMaxQty(inventoryItem.quantity);
+    setInventorySearchTerm("");
+    setIsInventoryDropdownOpen(false);
+    toast.success(`Selected: ${inventoryItem.itemName} (${inventoryItem.quantity} in stock)`);
+  };
+
+  // Filter inventory items based on search
+  const filteredInventoryItems = inventoryItems.filter(item =>
+    item.itemName.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    item.sku.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(inventorySearchTerm.toLowerCase())
+  );
+
   // Remove item from invoice
-  const removeItem = (itemId: string) => {
+  const removeItem = async (itemId: string) => {
+    // Find the item being removed
+    const itemToRemove = currentInvoice.items.find(i => i.id === itemId);
+
+    // If item was from inventory and stock was reserved, restore it
+    if (itemToRemove?.inventoryItemId && itemToRemove?.stockReserved) {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/inventory/restore/${itemToRemove.inventoryItemId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ quantity: itemToRemove.quantity })
+        });
+
+        if (res.ok) {
+          toast.success(`Stock restored: ${itemToRemove.quantity} ${itemToRemove.itemName}`);
+          refreshInventory();
+        } else {
+          console.error("Failed to restore stock");
+        }
+      } catch (error) {
+        console.error("Error restoring stock:", error);
+      }
+    }
+
     setLastSavedId(null);
     const updatedItems = currentInvoice.items.filter(i => i.id !== itemId);
-    const newTotal = updatedItems.reduce((sum, i) => sum + i.amount, 0);
+    const totals = calculateInvoiceTotals(updatedItems);
 
     setCurrentInvoice(prev => ({
       ...prev,
       items: updatedItems,
-      total: newTotal,
-      balance: newTotal - prev.paid
+      ...totals,
+      balance: totals.total - prev.paid
     }));
   };
 
@@ -360,10 +634,14 @@ const AutomationInvoice = () => {
         })),
         subtotal: currentInvoice.total - currentInvoice.items.reduce((sum, item) => sum + item.taxAmount, 0),
         taxAmount: currentInvoice.items.reduce((sum, item) => sum + item.taxAmount, 0),
+        // GST Breakdown
+        sgst: currentInvoice.items.reduce((sum, item) => sum + item.sgstAmount, 0),
+        cgst: currentInvoice.items.reduce((sum, item) => sum + item.cgstAmount, 0),
+        igst: currentInvoice.items.reduce((sum, item) => sum + item.igstAmount, 0),
         grandTotal: currentInvoice.total,
         amountPaid: currentInvoice.paid,
         balanceDue: currentInvoice.balance,
-        paymentMethod: currentInvoice.paymentMethod || 'cash',
+        paymentMethod: currentInvoice.saleType || 'cash',
         status: currentInvoice.balance <= 0 ? 'paid' : 'sent'
       };
 
@@ -390,10 +668,9 @@ const AutomationInvoice = () => {
       localStorage.setItem('savedInvoices', JSON.stringify(savedList));
       setInvoiceHistory(savedList);
 
-      toast.success(`${currentInvoice.type === 'sales' ? 'Invoice' : 'Purchase Bill'} saved successfully!`);
+      toast.success(`${currentInvoice.type === 'sales' ? 'Invoice' : 'Purchase Bill'} saved! You can now share on WhatsApp.`);
 
-      // Reset form
-      resetForm();
+      // Don't reset form - keep data visible until WhatsApp share or Save & New
     } catch (error: any) {
       console.error("Save Error:", error);
       toast.error(`Error saving invoice: ${error.message}`);
@@ -404,7 +681,16 @@ const AutomationInvoice = () => {
 
   // Save and create new
   const saveAndNew = async () => {
+    if (currentInvoice.items.length === 0) {
+      toast.error("Please add items before saving");
+      return;
+    }
     await saveInvoice();
+    // Reset form after saving for new invoice
+    setTimeout(() => {
+      resetForm();
+      toast.info("Ready for new invoice");
+    }, 500);
   };
 
   // Reset form
@@ -419,7 +705,13 @@ const AutomationInvoice = () => {
       invoiceNo: generateInvoiceNo(invoiceType),
       invoiceDate: new Date().toISOString().split('T')[0],
       stateOfSupply: '',
+      businessState: BUSINESS_STATE,
       items: [],
+      subtotal: 0,
+      totalSgst: 0,
+      totalCgst: 0,
+      totalIgst: 0,
+      totalTax: 0,
       total: 0,
       paid: 0,
       balance: 0,
@@ -428,6 +720,20 @@ const AutomationInvoice = () => {
       customerEmail: '',
       customerGSTIN: ''
     });
+    // Reset new item form
+    setNewItem({
+      inventoryItemId: undefined,
+      itemName: '',
+      itemCode: '',
+      hsnCode: '',
+      quantity: 1,
+      unit: 'Pcs',
+      pricePerUnit: 0,
+      priceWithTax: false,
+      discountPercent: 0,
+      taxPercent: 18
+    });
+    setSelectedInventoryMaxQty(null);
   };
 
   // Handle file upload for OCR
@@ -459,18 +765,52 @@ const AutomationInvoice = () => {
 
   // Export invoice
   const exportInvoice = (format: 'csv' | 'pdf') => {
+    if (currentInvoice.items.length === 0) {
+      toast.error("No items to export. Please add items first.");
+      return;
+    }
+
     if (format === 'csv') {
-      let csvContent = "Item,Code,HSN,Quantity,Unit,Price,Discount,Tax,Amount\n";
+      // Invoice Header Info
+      let csvContent = "INVOICE DETAILS\n";
+      csvContent += `Invoice No,${currentInvoice.invoiceNo}\n`;
+      csvContent += `Invoice Date,${currentInvoice.invoiceDate}\n`;
+      csvContent += `Customer Name,${currentInvoice.partyName}\n`;
+      csvContent += `Phone,${currentInvoice.phoneNo}\n`;
+      csvContent += `State of Supply,${currentInvoice.stateOfSupply}\n`;
+      csvContent += `Business State,${currentInvoice.businessState}\n`;
+      csvContent += `Payment Mode,${currentInvoice.saleType}\n`;
+      csvContent += "\n";
+
+      // Items Header
+      csvContent += "ITEMS\n";
+      csvContent += "Item Name,Item Code,HSN Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
+
+      // Items Data
       currentInvoice.items.forEach(item => {
-        csvContent += `"${item.itemName}","${item.itemCode}","${item.hsnCode}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.taxAmount},${item.amount}\n`;
+        csvContent += `"${item.itemName}","${item.itemCode || '-'}","${item.hsnCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
       });
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+      // Summary
+      csvContent += "\n";
+      csvContent += "SUMMARY\n";
+      csvContent += `Subtotal,${currentInvoice.subtotal}\n`;
+      csvContent += `Total SGST,${currentInvoice.totalSgst}\n`;
+      csvContent += `Total CGST,${currentInvoice.totalCgst}\n`;
+      csvContent += `Total IGST,${currentInvoice.totalIgst}\n`;
+      csvContent += `Total Tax,${currentInvoice.totalTax}\n`;
+      csvContent += `Grand Total,${currentInvoice.total}\n`;
+      csvContent += `Amount Paid,${currentInvoice.paid}\n`;
+      csvContent += `Balance Due,${currentInvoice.balance}\n`;
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoice_${currentInvoice.invoiceNo}.csv`;
+      a.download = `invoice_${currentInvoice.invoiceNo}_${currentInvoice.invoiceDate}.csv`;
       a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("Invoice exported to CSV!");
     } else {
       toast.info("PDF export coming soon!");
     }
@@ -663,7 +1003,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
               <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Invoice & Billing
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">Vyapar-style Invoice with OCR & Voice Input</p>
+              <p className="text-blue-200/80 font-medium mt-1">Professional Invoice with OCR & Voice Input</p>
             </div>
           </div>
         </div>
@@ -779,14 +1119,14 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 {/* Sale Type (Only for Sales) */}
                 {invoiceType === 'sales' && (
                   <div className="backdrop-blur-2xl bg-white/10 rounded-2xl p-5 border border-blue-400/20">
-                    <Label className="text-blue-100 mb-3 block font-medium">Sale Type</Label>
-                    <div className="flex gap-4">
+                    <Label className="text-blue-100 mb-3 block font-medium">Payment Mode</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <button
                         onClick={() => {
                           setLastSavedId(null);
                           setCurrentInvoice(prev => ({ ...prev, saleType: 'cash' }));
                         }}
-                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'cash'
+                        className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'cash'
                           ? 'bg-emerald-600 text-white'
                           : 'bg-white/5 text-emerald-300 border border-emerald-400/30'
                           }`}
@@ -799,13 +1139,39 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                           setLastSavedId(null);
                           setCurrentInvoice(prev => ({ ...prev, saleType: 'credit' }));
                         }}
-                        className={`flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'credit'
+                        className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'credit'
                           ? 'bg-blue-600 text-white'
                           : 'bg-white/5 text-blue-300 border border-blue-400/30'
                           }`}
                       >
                         <CreditCard className="h-4 w-4" />
                         Credit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, saleType: 'gpay' }));
+                        }}
+                        className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'gpay'
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-white/5 text-violet-300 border border-violet-400/30'
+                          }`}
+                      >
+                        <Smartphone className="h-4 w-4" />
+                        GPay
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, saleType: 'netbanking' }));
+                        }}
+                        className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === 'netbanking'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white/5 text-indigo-300 border border-indigo-400/30'
+                          }`}
+                      >
+                        <Building2 className="h-4 w-4" />
+                        Netbanking
                       </button>
                     </div>
                   </div>
@@ -933,6 +1299,79 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   </h2>
 
                   <div className="space-y-4">
+                    {/* Select from Inventory Dropdown */}
+                    {inventoryItems.length > 0 && (
+                      <div className="relative" ref={inventoryDropdownRef}>
+                        <Label className="text-blue-100 text-sm mb-2 block">Select from Inventory Stock</Label>
+                        <div className="relative">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400/60" />
+                              <Input
+                                value={inventorySearchTerm}
+                                onChange={(e) => {
+                                  setInventorySearchTerm(e.target.value);
+                                  setIsInventoryDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsInventoryDropdownOpen(true)}
+                                placeholder="Search inventory by name, SKU, or category..."
+                                className="pl-10 bg-white/5 border-blue-400/30 text-white h-10"
+                              />
+                            </div>
+                            <button
+                              onClick={() => setIsInventoryDropdownOpen(!isInventoryDropdownOpen)}
+                              className="px-3 h-10 bg-blue-600/20 border border-blue-400/30 rounded-lg text-blue-300 hover:bg-blue-600/30 transition-all flex items-center gap-2"
+                            >
+                              <Database className="h-4 w-4" />
+                              <span className="hidden md:inline">{inventoryItems.length} in stock</span>
+                            </button>
+                          </div>
+
+                          {/* Inventory Dropdown */}
+                          {isInventoryDropdownOpen && (
+                            <div className="absolute z-50 w-full mt-2 bg-slate-900/95 backdrop-blur-xl border border-blue-400/30 rounded-xl shadow-2xl shadow-blue-500/20 max-h-64 overflow-y-auto">
+                              {isLoadingInventory ? (
+                                <div className="p-4 text-center text-blue-300">
+                                  <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                                  Loading inventory...
+                                </div>
+                              ) : filteredInventoryItems.length > 0 ? (
+                                filteredInventoryItems.map((item) => (
+                                  <button
+                                    key={item._id}
+                                    onClick={() => selectInventoryItem(item)}
+                                    className="w-full px-4 py-3 text-left hover:bg-blue-500/20 transition-all border-b border-blue-400/10 last:border-b-0 flex items-center justify-between group"
+                                  >
+                                    <div>
+                                      <p className="font-medium text-white group-hover:text-blue-300 transition-colors">{item.itemName}</p>
+                                      <p className="text-xs text-blue-300/60">SKU: {item.sku} • {item.category}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-emerald-400">₹{item.price}</p>
+                                      <p className="text-xs text-blue-300/60">{item.quantity} in stock</p>
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="p-4 text-center text-blue-300/60">
+                                  No items found matching "{inventorySearchTerm}"
+                                </div>
+                              )}
+                              {filteredInventoryItems.length > 0 && (
+                                <button
+                                  onClick={() => setIsInventoryDropdownOpen(false)}
+                                  className="w-full py-2 text-xs text-blue-400/60 hover:text-blue-300 border-t border-blue-400/10"
+                                >
+                                  Close
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-blue-300/50 mt-1">Select an item from your inventory or enter details manually below</p>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="col-span-2 space-y-2">
                         <Label className="text-blue-100 text-sm">Item Name *</Label>
@@ -973,13 +1412,27 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                       <div className="space-y-2">
-                        <Label className="text-blue-100 text-sm">Qty</Label>
+                        <Label className="text-blue-100 text-sm">
+                          Qty {selectedInventoryMaxQty !== null && (
+                            <span className="text-emerald-400/80 text-xs">(max: {selectedInventoryMaxQty})</span>
+                          )}
+                        </Label>
                         <Input
                           type="number"
                           value={newItem.quantity}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            // Validate against max stock if from inventory
+                            if (selectedInventoryMaxQty !== null && val > selectedInventoryMaxQty) {
+                              toast.error(`Max available: ${selectedInventoryMaxQty}`);
+                              setNewItem(prev => ({ ...prev, quantity: selectedInventoryMaxQty }));
+                            } else {
+                              setNewItem(prev => ({ ...prev, quantity: val }));
+                            }
+                          }}
                           min="1"
-                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                          max={selectedInventoryMaxQty || undefined}
+                          className={`bg-white/5 border-blue-400/30 text-white h-9 ${selectedInventoryMaxQty !== null ? 'border-emerald-400/50' : ''}`}
                         />
                       </div>
 
@@ -1048,14 +1501,35 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       </div>
                     </div>
 
-                    {/* Item Preview */}
+                    {/* Item Preview with GST Breakdown */}
                     {newItem.itemName && newItem.pricePerUnit ? (
-                      <div className="bg-blue-500/10 rounded-xl p-3 border border-blue-400/20 flex justify-between items-center">
-                        <div className="flex gap-4 text-sm">
-                          <span className="text-blue-300/70">Disc: <span className="text-blue-100">₹{(itemPreview.discountAmount || 0).toFixed(2)}</span></span>
-                          <span className="text-blue-300/70">Tax: <span className="text-blue-100">₹{(itemPreview.taxAmount || 0).toFixed(2)}</span></span>
+                      <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-400/20 space-y-3">
+                        {/* State comparison indicator */}
+                        {currentInvoice.stateOfSupply && (
+                          <div className={`text-xs py-1.5 px-3 rounded-lg inline-block ${isInterStateTransaction()
+                            ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                            {isInterStateTransaction()
+                              ? `Inter-State: ${currentInvoice.businessState} → ${currentInvoice.stateOfSupply} (IGST 18%)`
+                              : `Intra-State: ${currentInvoice.stateOfSupply} (SGST ${(newItem.taxPercent || 0) / 2}% + CGST ${(newItem.taxPercent || 0) / 2}%)`
+                            }
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <div className="flex flex-wrap gap-3 text-sm">
+                            <span className="text-blue-300/70">Disc: <span className="text-blue-100">₹{(itemPreview.discountAmount || 0).toFixed(2)}</span></span>
+                            {isInterStateTransaction() ? (
+                              <span className="text-orange-300/70">IGST (18%): <span className="text-orange-200">₹{(itemPreview.igstAmount || 0).toFixed(2)}</span></span>
+                            ) : (
+                              <>
+                                <span className="text-indigo-300/70">SGST ({(newItem.taxPercent || 0) / 2}%): <span className="text-indigo-200">₹{(itemPreview.sgstAmount || 0).toFixed(2)}</span></span>
+                                <span className="text-indigo-300/70">CGST ({(newItem.taxPercent || 0) / 2}%): <span className="text-indigo-200">₹{(itemPreview.cgstAmount || 0).toFixed(2)}</span></span>
+                              </>
+                            )}
+                          </div>
+                          <span className="text-lg font-bold text-emerald-400">₹{(itemPreview.amount || 0).toFixed(2)}</span>
                         </div>
-                        <span className="text-lg font-bold text-emerald-400">₹{(itemPreview.amount || 0).toFixed(2)}</span>
                       </div>
                     ) : null}
 
@@ -1080,27 +1554,49 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-white/5">
-                            <th className="text-left py-2 px-3 text-blue-200">Item</th>
-                            <th className="text-left py-2 px-3 text-blue-200">HSN</th>
-                            <th className="text-center py-2 px-3 text-blue-200">Qty</th>
-                            <th className="text-right py-2 px-3 text-blue-200">Price</th>
-                            <th className="text-right py-2 px-3 text-blue-200">Disc.</th>
-                            <th className="text-right py-2 px-3 text-blue-200">Tax</th>
-                            <th className="text-right py-2 px-3 text-blue-200">Amount</th>
-                            <th className="text-center py-2 px-3 text-blue-200"></th>
+                            <th className="text-left py-2 px-2 text-blue-200">Item</th>
+                            <th className="text-center py-2 px-2 text-blue-200">Qty</th>
+                            <th className="text-right py-2 px-2 text-blue-200">Price</th>
+                            <th className="text-right py-2 px-2 text-blue-200">Disc.</th>
+                            <th className="text-right py-2 px-2 text-blue-200">SGST</th>
+                            <th className="text-right py-2 px-2 text-blue-200">CGST</th>
+                            <th className="text-right py-2 px-2 text-blue-200">IGST</th>
+                            <th className="text-right py-2 px-2 text-blue-200">Amount</th>
+                            <th className="text-center py-2 px-2 text-blue-200"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {currentInvoice.items.map((item) => (
                             <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5">
-                              <td className="py-2 px-3 text-white">{item.itemName}</td>
-                              <td className="py-2 px-3 text-blue-300">{item.hsnCode || '-'}</td>
-                              <td className="py-2 px-3 text-center text-blue-200">{item.quantity}</td>
-                              <td className="py-2 px-3 text-right text-blue-200">₹{item.pricePerUnit}</td>
-                              <td className="py-2 px-3 text-right text-orange-300">₹{item.discountAmount}</td>
-                              <td className="py-2 px-3 text-right text-indigo-300">₹{item.taxAmount}</td>
-                              <td className="py-2 px-3 text-right font-bold text-emerald-400">₹{item.amount}</td>
-                              <td className="py-2 px-3 text-center">
+                              <td className="py-2 px-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white text-sm">{item.itemName}</span>
+                                  {item.stockReserved && (
+                                    <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded">STOCK</span>
+                                  )}
+                                </div>
+                                <div className="text-blue-400/60 text-xs">{item.hsnCode || item.itemCode || '-'}</div>
+                              </td>
+                              <td className="py-2 px-2 text-center text-blue-200">{item.quantity}</td>
+                              <td className="py-2 px-2 text-right text-blue-200">₹{item.pricePerUnit}</td>
+                              <td className="py-2 px-2 text-right text-orange-300">₹{item.discountAmount}</td>
+                              <td className="py-2 px-2 text-right text-indigo-300">
+                                {item.sgstAmount > 0 ? (
+                                  <span>₹{item.sgstAmount}<br/><span className="text-[10px] text-indigo-400/60">({item.sgstRate}%)</span></span>
+                                ) : '-'}
+                              </td>
+                              <td className="py-2 px-2 text-right text-indigo-300">
+                                {item.cgstAmount > 0 ? (
+                                  <span>₹{item.cgstAmount}<br/><span className="text-[10px] text-indigo-400/60">({item.cgstRate}%)</span></span>
+                                ) : '-'}
+                              </td>
+                              <td className="py-2 px-2 text-right text-orange-300">
+                                {item.igstAmount > 0 ? (
+                                  <span>₹{item.igstAmount}<br/><span className="text-[10px] text-orange-400/60">({item.igstRate}%)</span></span>
+                                ) : '-'}
+                              </td>
+                              <td className="py-2 px-2 text-right font-bold text-emerald-400">₹{item.amount}</td>
+                              <td className="py-2 px-2 text-center">
                                 <button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:bg-red-500/10 rounded">
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -1180,9 +1676,55 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     Summary
                   </h2>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-white/10">
-                      <span className="text-white/80">Total</span>
+                  {/* Business State Info */}
+                  <div className="mb-4 p-2 bg-white/5 rounded-lg">
+                    <p className="text-xs text-white/60">Business State: <span className="text-white/90 font-medium">{currentInvoice.businessState}</span></p>
+                    {currentInvoice.stateOfSupply && (
+                      <p className="text-xs text-white/60 mt-1">
+                        Customer State: <span className="text-white/90 font-medium">{currentInvoice.stateOfSupply}</span>
+                        <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold ${isInterStateTransaction() ? 'bg-orange-500/30 text-orange-300' : 'bg-emerald-500/30 text-emerald-300'}`}>
+                          {isInterStateTransaction() ? 'INTER-STATE' : 'INTRA-STATE'}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {/* Subtotal */}
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-white/70">Subtotal</span>
+                      <span className="text-white/90">₹{currentInvoice.subtotal.toFixed(2)}</span>
+                    </div>
+
+                    {/* GST Breakdown */}
+                    {currentInvoice.totalSgst > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-indigo-300/70">SGST</span>
+                        <span className="text-indigo-300">₹{currentInvoice.totalSgst.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {currentInvoice.totalCgst > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-indigo-300/70">CGST</span>
+                        <span className="text-indigo-300">₹{currentInvoice.totalCgst.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {currentInvoice.totalIgst > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-orange-300/70">IGST (18%)</span>
+                        <span className="text-orange-300">₹{currentInvoice.totalIgst.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {/* Total Tax */}
+                    <div className="flex justify-between items-center text-sm border-t border-white/10 pt-2">
+                      <span className="text-white/70">Total Tax</span>
+                      <span className="text-white/90">₹{currentInvoice.totalTax.toFixed(2)}</span>
+                    </div>
+
+                    {/* Grand Total */}
+                    <div className="flex justify-between items-center py-3 border-t border-white/10">
+                      <span className="text-white font-medium">Grand Total</span>
                       <span className={`text-2xl font-bold ${invoiceType === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`}>
                         ₹{currentInvoice.total.toFixed(2)}
                       </span>
@@ -1202,14 +1744,14 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     <div className="flex justify-between items-center py-2 border-t border-white/10">
                       <span className="text-white/80">Balance</span>
                       <span className={`text-xl font-bold ${currentInvoice.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        ${currentInvoice.balance.toFixed(2)}
+                        ₹{currentInvoice.balance.toFixed(2)}
                       </span>
                     </div>
 
                     {currentInvoice.balance > 0 && (
                       <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 p-2 rounded-lg">
                         <AlertCircle className="h-4 w-4" />
-                        <span>Due: ${currentInvoice.balance.toFixed(2)}</span>
+                        <span>Due: ₹{currentInvoice.balance.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -1457,10 +1999,10 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         </div>
                         <div className="text-right">
                           <p className={`text-xl font-bold ${invoice.type === 'sales' ? 'text-emerald-400' : 'text-orange-400'}`}>
-                            ${invoice.total.toFixed(2)}
+                            ₹{invoice.total.toFixed(2)}
                           </p>
                           {invoice.balance > 0 && (
-                            <p className="text-red-400 text-sm">Due: ${invoice.balance.toFixed(2)}</p>
+                            <p className="text-red-400 text-sm">Due: ₹{invoice.balance.toFixed(2)}</p>
                           )}
                         </div>
                       </div>

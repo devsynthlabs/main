@@ -262,4 +262,60 @@ router.delete("/categories/:id", verifyToken, async (req, res) => {
     }
 });
 
+// ✅ POST route to reserve stock (reduce quantity for invoice)
+router.post("/reserve/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { quantity } = req.body;
+
+        const item = await InventoryItem.findOne({ _id: id, userId: req.user.id });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        if (item.quantity < quantity) {
+            return res.status(400).json({ message: "Insufficient stock" });
+        }
+
+        item.quantity -= quantity;
+        item.lastUpdated = Date.now();
+        await item.save();
+
+        res.json({
+            message: "Stock reserved successfully",
+            item,
+            remainingStock: item.quantity
+        });
+    } catch (error) {
+        console.error("Error reserving stock:", error);
+        res.status(500).json({ message: "Error reserving stock", error });
+    }
+});
+
+// ✅ POST route to restore stock (add quantity back when removing from invoice)
+router.post("/restore/:id", verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { quantity } = req.body;
+
+        const item = await InventoryItem.findOne({ _id: id, userId: req.user.id });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        item.quantity += quantity;
+        item.lastUpdated = Date.now();
+        await item.save();
+
+        res.json({
+            message: "Stock restored successfully",
+            item,
+            currentStock: item.quantity
+        });
+    } catch (error) {
+        console.error("Error restoring stock:", error);
+        res.status(500).json({ message: "Error restoring stock", error });
+    }
+});
+
 export default router;

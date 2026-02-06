@@ -37,6 +37,9 @@ interface InvoiceData {
     items: InvoiceItem[];
     subtotal: number;
     taxAmount: number;
+    sgst?: number;
+    cgst?: number;
+    igst?: number;
     grandTotal: number;
     paymentMethod: string;
     status: string;
@@ -221,8 +224,31 @@ const PublicInvoiceView = () => {
                                     <span>Subtotal</span>
                                     <span className="text-white font-medium">₹{invoice.subtotal.toFixed(2)}</span>
                                 </div>
+                                {/* GST Breakdown */}
+                                {(invoice.sgst && invoice.sgst > 0) || (invoice.cgst && invoice.cgst > 0) ? (
+                                    <>
+                                        <div className="flex justify-between items-center text-slate-400 text-sm">
+                                            <span>SGST</span>
+                                            <span className="text-white font-medium">₹{(invoice.sgst || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-slate-400 text-sm">
+                                            <span>CGST</span>
+                                            <span className="text-white font-medium">₹{(invoice.cgst || 0).toFixed(2)}</span>
+                                        </div>
+                                    </>
+                                ) : invoice.igst && invoice.igst > 0 ? (
+                                    <div className="flex justify-between items-center text-slate-400 text-sm">
+                                        <span>IGST</span>
+                                        <span className="text-white font-medium">₹{invoice.igst.toFixed(2)}</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between items-center text-slate-400">
+                                        <span>Tax Amount</span>
+                                        <span className="text-white font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center text-slate-400 pb-4 border-b border-white/5">
-                                    <span>Tax Amount</span>
+                                    <span>Total Tax</span>
                                     <span className="text-white font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
