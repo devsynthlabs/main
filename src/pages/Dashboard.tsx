@@ -184,7 +184,7 @@ const Dashboard = () => {
       stats: "Smart Prevention",
     },
     {
-      title: "Smart Invoicing",
+      title: "Invoice Automation",
       description: "AI-powered invoice automation with OCR scanning, voice input, and smart processing.",
       icon: FileText,
       path: "/invoice",

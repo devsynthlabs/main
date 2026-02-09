@@ -13,7 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, isSameDay, isToday, isYesterday, startOfDay, endOfDay } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, DollarSign, Filter, BarChart3, FileText, Loader2 } from "lucide-react";
+import { CalendarIcon, ArrowLeft, Plus, Trash2, Download, TrendingUp, TrendingDown, IndianRupee, Filter, BarChart3, FileText, Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import {
     AlertDialog,
@@ -417,7 +417,7 @@ const Bookkeeping = () => {
                         <div
                             className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl backdrop-blur-xl border border-emerald-400/30 hover:rotate-12 transition-transform duration-300"
                         >
-                            <DollarSign className="h-8 w-8 text-emerald-400" />
+                            <IndianRupee className="h-8 w-8 text-emerald-400" />
                         </div>
                         <div>
                             <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(20,184,166,0.8)] leading-tight">
@@ -928,7 +928,7 @@ const Bookkeeping = () => {
                                                     ? 'bg-teal-500/30'
                                                     : 'bg-orange-500/30'
                                                     }`}>
-                                                    <DollarSign className={`h-5 w-5 ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
+                                                    <IndianRupee className={`h-5 w-5 ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
                                                         }`} />
                                                 </div>
                                                 <span className={`text-sm font-bold ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
