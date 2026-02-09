@@ -1016,7 +1016,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             </div>
             <div>
               <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                Invoice & Billing
+                Invoice Automation
               </h1>
               <p className="text-blue-200/80 font-medium mt-1">Professional Invoice with OCR & Voice Input</p>
             </div>
@@ -2158,7 +2158,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
       <footer className="mt-12 py-8 border-t border-blue-400/20 backdrop-blur-xl bg-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-blue-300/60 text-sm">
-            Invoice & Billing System • OCR & Voice Powered
+            Invoice Automation • OCR & Voice Powered
           </p>
         </div>
       </footer>
