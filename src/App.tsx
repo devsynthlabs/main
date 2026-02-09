@@ -66,6 +66,7 @@ const App = () => {
             <Route path="/bank-reconciliation" element={isMaintenanceMode ? <ServerIssues /> : <BankReconciliation />} />
             <Route path="/fraud-detection" element={isMaintenanceMode ? <ServerIssues /> : <FraudDetection />} />
             <Route path="/invoice" element={isMaintenanceMode ? <ServerIssues /> : <AutomationInvoice />} />
+            <Route path="/invoice/ocr" element={isMaintenanceMode ? <ServerIssues /> : <AutomationInvoice />} />
             <Route path="/invoice/view/:id" element={<PublicInvoiceView />} />
 
             <Route path="*" element={<NotFound />} />

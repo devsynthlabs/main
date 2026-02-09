@@ -28,7 +28,9 @@ interface InventoryItem {
     _id?: string;
     itemName: string;
     sku: string;
+    hsnCode?: string;
     quantity: number;
+    unit: string;
     price: number;
     category: string;
     gstRate?: number;
@@ -96,13 +98,16 @@ const Inventory = () => {
     const [isSelling, setIsSelling] = useState(false);
 
     // GST Rate Options
-    const GST_SLABS = ["0", "5", "18", "28"];
+    const GST_SLABS = ["0", "5", "12", "18", "28"];
+    const UNITS = ["Pcs", "Kg", "Ltr", "Mtr", "Box", "Dozen", "Pair", "Set", "Nos"];
 
     // Form State
     const [formData, setFormData] = useState({
         itemName: "",
         sku: "",
+        hsnCode: "",
         quantity: "",
+        unit: "Pcs",
         price: "",
         category: "General",
         gstRate: "0",
@@ -357,7 +362,9 @@ const Inventory = () => {
                 setFormData({
                     itemName: "",
                     sku: "",
+                    hsnCode: "",
                     quantity: "",
+                    unit: "Pcs",
                     price: "",
                     category: "General",
                     gstRate: "0",
@@ -601,12 +608,12 @@ const Inventory = () => {
                                                             <h3 className="text-lg font-semibold text-violet-100">{item.itemName}</h3>
                                                             <Badge variant="outline" className="border-violet-400/30 text-violet-300">{item.category}</Badge>
                                                         </div>
-                                                        <p className="text-violet-300/60 text-sm">SKU: {item.sku}</p>
+                                                        <p className="text-violet-300/60 text-sm">SKU: {item.sku}{item.hsnCode ? ` | HSN: ${item.hsnCode}` : ''}</p>
                                                     </div>
                                                     <div className="flex items-center gap-6">
                                                         <div className="text-right">
                                                             <p className="text-violet-100 font-bold text-lg">₹{item.price}</p>
-                                                            <p className="text-violet-300/60 text-sm">Qty: {item.quantity}</p>
+                                                            <p className="text-violet-300/60 text-sm">Qty: {item.quantity} {item.unit || 'Pcs'}</p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             {/* <Button
@@ -721,11 +728,11 @@ const Inventory = () => {
                                                 const sellState = sellStateOfSupply;
                                                 const isInterState = itemState && sellState && itemState !== sellState;
 
-                                                // Get the GST rate from item (fallback to combined old rates)
-                                                const itemGstRate = (selectedItem?.sgst || 0) + (selectedItem?.cgst || 0) + (selectedItem?.igst || 0);
+                                                // Get the GST rate from item (prefer gstRate, fallback to combined old rates)
+                                                const itemGstRate = selectedItem?.gstRate || ((selectedItem?.sgst || 0) + (selectedItem?.cgst || 0) + (selectedItem?.igst || 0));
 
-                                                // Inter-state: IGST 18%, Intra-state: Split GST 50-50
-                                                const igstRate = isInterState ? 18 : 0;
+                                                // Inter-state: IGST at item's GST rate, Intra-state: Split GST 50-50
+                                                const igstRate = isInterState ? itemGstRate : 0;
                                                 const sgstRate = isInterState ? 0 : itemGstRate / 2;
                                                 const cgstRate = isInterState ? 0 : itemGstRate / 2;
 
@@ -842,6 +849,30 @@ const Inventory = () => {
                                                 onClear={() => handleInputChange("sku", "")}
                                             />
                                         </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <Label className="text-violet-100">HSN Code</Label>
+                                        <Input
+                                            value={formData.hsnCode}
+                                            onChange={(e) => handleInputChange("hsnCode", e.target.value)}
+                                            className="bg-white/5 border-violet-400/30 text-violet-100"
+                                            placeholder="e.g. 9403"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <Label className="text-violet-100">Unit</Label>
+                                        <Select value={formData.unit} onValueChange={(val) => handleInputChange("unit", val)}>
+                                            <SelectTrigger className="bg-white/5 border-violet-400/30 text-violet-100 h-10">
+                                                <SelectValue placeholder="Select Unit" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-slate-900 border-violet-400/20 text-white">
+                                                {UNITS.map(unit => (
+                                                    <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
@@ -984,7 +1015,7 @@ const Inventory = () => {
                                                     <span className="font-semibold text-violet-200">Intra-State:</span> SGST {(parseFloat(formData.gstRate) / 2).toFixed(1)}% + CGST {(parseFloat(formData.gstRate) / 2).toFixed(1)}%
                                                 </p>
                                                 <p className="text-violet-300/80 mt-1">
-                                                    <span className="font-semibold text-violet-200">Inter-State:</span> IGST 18%
+                                                    <span className="font-semibold text-violet-200">Inter-State:</span> IGST {formData.gstRate}%
                                                 </p>
                                             </div>
                                         </div>

@@ -184,8 +184,8 @@ const Dashboard = () => {
       stats: "Smart Prevention",
     },
     {
-      title: "Invoice Management",
-      description: "Track, manage, and analyze invoices with automated invoice processing and analysis.",
+      title: "Smart Invoicing",
+      description: "AI-powered invoice automation with OCR scanning, voice input, and smart processing.",
       icon: FileText,
       path: "/invoice",
       color: "from-amber-500 to-orange-600",

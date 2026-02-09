@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Upload,
@@ -72,7 +72,7 @@ interface InvoiceItem {
   inventoryItemId?: string; // Track which inventory item this came from
   itemName: string;
   itemCode: string;
-
+  hsnCode: string;
   quantity: number;
   unit: string;
   pricePerUnit: number;
@@ -127,7 +127,9 @@ interface InventoryStockItem {
   _id: string;
   itemName: string;
   sku: string;
+  hsnCode?: string;
   quantity: number;
+  unit?: string;
   price: number;
   category: string;
   gstRate?: number;
@@ -136,12 +138,24 @@ interface InventoryStockItem {
 
 const AutomationInvoice = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const billUploadRef = useRef<HTMLInputElement>(null);
   const inventoryDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [activeTab, setActiveTab] = useState<'create' | 'ocr' | 'history' | 'voice'>('create');
+  const initialTab = location.pathname === '/invoice/ocr' ? 'ocr' : 'create';
+  const [activeTab, setActiveTabState] = useState<'create' | 'ocr' | 'history' | 'voice'>(initialTab);
   const [invoiceType, setInvoiceType] = useState<'sales' | 'purchase'>('sales');
+
+  // Sync URL with active tab
+  const setActiveTab = (tab: 'create' | 'ocr' | 'history' | 'voice') => {
+    setActiveTabState(tab);
+    if (tab === 'ocr') {
+      navigate('/invoice/ocr', { replace: true });
+    } else if (location.pathname === '/invoice/ocr') {
+      navigate('/invoice', { replace: true });
+    }
+  };
 
   // Generate invoice number
   const generateInvoiceNo = (type: 'sales' | 'purchase') => {
@@ -184,6 +198,7 @@ const AutomationInvoice = () => {
     inventoryItemId: undefined,
     itemName: '',
     itemCode: '',
+    hsnCode: '',
     quantity: 1,
     unit: 'Pcs',
     pricePerUnit: 0,
@@ -316,8 +331,8 @@ const AutomationInvoice = () => {
     let finalAmount = 0;
 
     if (isInterState) {
-      // Inter-State: Apply standard IGST 18%
-      igstRate = 18;
+      // Inter-State: Apply IGST at the item's tax rate
+      igstRate = taxPct;
       if (priceWithTax) {
         const taxMultiplier = 1 + (igstRate / 100);
         const preTaxAmount = afterDiscount / taxMultiplier;
@@ -453,7 +468,7 @@ const AutomationInvoice = () => {
       inventoryItemId: newItem.inventoryItemId,
       itemName: newItem.itemName || '',
       itemCode: newItem.itemCode || '',
-
+      hsnCode: newItem.hsnCode || '',
       quantity: quantity,
       unit: newItem.unit || 'Pcs',
       pricePerUnit: newItem.pricePerUnit || 0,
@@ -489,7 +504,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
-
+      hsnCode: '',
       quantity: 1,
       unit: 'Pcs',
       pricePerUnit: 0,
@@ -508,9 +523,9 @@ const AutomationInvoice = () => {
       inventoryItemId: inventoryItem._id,
       itemName: inventoryItem.itemName,
       itemCode: inventoryItem.sku,
-
+      hsnCode: inventoryItem.hsnCode || '',
       quantity: 1,
-      unit: 'Pcs',
+      unit: inventoryItem.unit || 'Pcs',
       pricePerUnit: inventoryItem.price,
       priceWithTax: false,
       discountPercent: 0,
@@ -725,7 +740,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
-
+      hsnCode: '',
       quantity: 1,
       unit: 'Pcs',
       pricePerUnit: 0,
@@ -784,11 +799,11 @@ const AutomationInvoice = () => {
 
       // Items Header
       csvContent += "ITEMS\n";
-      csvContent += "Item Name,Item Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
+      csvContent += "Item Name,Item Code,HSN Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
 
       // Items Data
       currentInvoice.items.forEach(item => {
-        csvContent += `"${item.itemName}","${item.itemCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
+        csvContent += `"${item.itemName}","${item.itemCode || '-'}","${item.hsnCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
       });
 
       // Summary
@@ -925,7 +940,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             itemName: item.product,
             itemCode: '',
-      
+            hsnCode: '',
             quantity: item.quantity,
             unit: 'Pcs',
             pricePerUnit: item.rate,
@@ -1099,7 +1114,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   }`}
               >
                 <ShoppingCart className="h-5 w-5" />
-                Sales Invoice
+                Create Invoice
               </button>
               <button
                 onClick={() => handleInvoiceTypeChange('purchase')}
@@ -1232,6 +1247,19 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                           }}
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-blue-100 text-sm">GST IN</Label>
+                      <Input
+                        value={currentInvoice.customerGSTIN || ''}
+                        onChange={(e) => {
+                          setLastSavedId(null);
+                          setCurrentInvoice(prev => ({ ...prev, customerGSTIN: e.target.value }));
+                        }}
+                        placeholder="Enter GSTIN"
+                        className="bg-white/5 border-blue-400/30 text-white h-9"
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -1399,6 +1427,15 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         />
                       </div>
 
+                      <div className="space-y-2">
+                        <Label className="text-blue-100 text-sm">HSN Code</Label>
+                        <Input
+                          value={newItem.hsnCode}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
+                          placeholder="HSN"
+                          className="bg-white/5 border-blue-400/30 text-white h-9"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -1566,7 +1603,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                                     <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded">STOCK</span>
                                   )}
                                 </div>
-                                <div className="text-blue-400/60 text-xs">{item.itemCode || '-'}</div>
+                                <div className="text-blue-400/60 text-xs">{item.hsnCode || item.itemCode || '-'}</div>
                               </td>
                               <td className="py-2 px-2 text-center text-blue-200">{item.quantity}</td>
                               <td className="py-2 px-2 text-right text-blue-200">₹{item.pricePerUnit}</td>
@@ -1843,7 +1880,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       id: Math.random().toString(36).substr(2, 9),
                       itemName: item.product,
                       itemCode: '',
-                
+                      hsnCode: '',
                       quantity: item.quantity,
                       unit: 'Pcs',
                       pricePerUnit: item.rate,
@@ -1907,7 +1944,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     inventoryItemId: undefined,
                     itemName: item.name || `Item ${index + 1}`,
                     itemCode: '',
-
+                    hsnCode: item.hsnCode || '',
                     quantity: qty,
                     unit: item.unit || 'Pcs',
                     pricePerUnit: rate,

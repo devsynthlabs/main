@@ -61,7 +61,7 @@ export interface AIInvoiceData {
   items?: Array<{
     name?: string;
     description?: string;
-
+    hsnCode?: string;
     quantity?: number;
     unit?: string;
     rate?: number;
@@ -860,15 +860,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button
-                      onClick={startCamera}
-                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-3"
-                    >
-                      <Camera className="h-5 w-5" />
-                      Scan Invoice
-                    </button>
-                    <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-8 py-4 bg-white/10 text-blue-300 rounded-2xl font-bold hover:bg-white/20 transition-all border border-blue-400/30 flex items-center gap-3"
+                      className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-3"
                     >
                       <Upload className="h-5 w-5" />
                       Upload Invoice/PDF
