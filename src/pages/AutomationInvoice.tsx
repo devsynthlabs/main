@@ -1040,8 +1040,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 <Plus className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-sm md:text-xl font-bold text-white">Create</h3>
-                <p className="text-blue-200/70 text-xs hidden md:block">Sales Invoice</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">Create Invoice</h3>
               </div>
             </div>
           </button>
@@ -1517,15 +1516,18 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
                       <div className="space-y-2">
                         <Label className="text-blue-100 text-sm">Price Type</Label>
-                        <button
-                          onClick={() => setNewItem(prev => ({ ...prev, priceWithTax: !prev.priceWithTax }))}
-                          className={`w-full h-9 px-2 rounded-lg text-xs font-medium transition-all ${newItem.priceWithTax
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-blue-300 border border-blue-400/30'
-                            }`}
+                        <Select
+                          value={newItem.priceWithTax ? 'with_tax' : 'without_tax'}
+                          onValueChange={(val) => setNewItem(prev => ({ ...prev, priceWithTax: val === 'with_tax' }))}
                         >
-                          {newItem.priceWithTax ? 'With Tax' : 'Without Tax'}
-                        </button>
+                          <SelectTrigger className="bg-white/5 border-blue-400/30 text-white h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-blue-400/20 text-white">
+                            <SelectItem value="without_tax">Without Tax</SelectItem>
+                            <SelectItem value="with_tax">With Tax</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
