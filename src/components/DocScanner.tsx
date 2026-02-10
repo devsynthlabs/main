@@ -24,18 +24,16 @@ import {
   Loader2,
   RefreshCw,
   Share2,
-  Smartphone,
-  CreditCard,
-  BookOpen,
-  QrCode,
   Image as ImageIcon,
   Plus,
   ChevronLeft,
   ChevronRight,
   Trash2,
-  Files
+  Files,
+  MessageCircle
 } from "lucide-react";
 import Tesseract from "tesseract.js";
+import jsPDF from "jspdf";
 import { API_ENDPOINTS } from "@/lib/api";
 
 // AI-extracted invoice data structure (exported for use in other components)
@@ -95,7 +93,6 @@ interface DocScannerProps {
   onAIDataExtracted?: (data: AIInvoiceData) => void;
 }
 
-type ScanMode = 'document' | 'idcard' | 'book' | 'qrcode';
 type FilterType = 'original' | 'grayscale' | 'highContrast' | 'blackWhite' | 'brighten' | 'darken' | 'sepia' | 'invert' | 'sharpen';
 
 interface PageData {
@@ -113,8 +110,6 @@ interface PageData {
 const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcessed, onAIDataExtracted }) => {
   // States
   const [activeStep, setActiveStep] = useState<'capture' | 'edit' | 'export'>('capture');
-  const [scanMode, setScanMode] = useState<ScanMode>('document');
-
   // Multi-page support
   const [pages, setPages] = useState<PageData[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -145,14 +140,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-  // Scan modes configuration - Invoice focused
-  const scanModes = [
-    { id: 'document', label: 'Invoice', icon: FileText, description: 'Tax Invoices' },
-    { id: 'idcard', label: 'Receipt', icon: CreditCard, description: 'Bills & Receipts' },
-    { id: 'book', label: 'Purchase', icon: BookOpen, description: 'Purchase Orders' },
-    { id: 'qrcode', label: 'Challan', icon: QrCode, description: 'Delivery Challan' },
-  ];
 
   // Filters configuration
   const filters: { id: FilterType; label: string; icon: React.ReactNode }[] = [
@@ -254,12 +241,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
         id: `page-${Date.now()}`,
         originalImage: imageData,
         processedImage: imageData,
-        filter: 'original',
+        filter: 'highContrast',
         rotation: 0,
         flipH: false,
         flipV: false,
         brightness: 100,
-        contrast: 100
+        contrast: 120
       };
       setPages(prev => [...prev, newPage]);
       setCurrentPageIndex(pages.length);
@@ -270,12 +257,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
         id: `page-${Date.now()}`,
         originalImage: imageData,
         processedImage: imageData,
-        filter: 'original',
+        filter: 'highContrast',
         rotation: 0,
         flipH: false,
         flipV: false,
         brightness: 100,
-        contrast: 100
+        contrast: 120
       };
       setPages([newPage]);
       setCurrentPageIndex(0);
@@ -283,12 +270,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
     setCapturedImage(imageData);
     setProcessedImage(imageData);
-    setCurrentFilter('original');
+    setCurrentFilter('highContrast');
     setRotation(0);
     setFlipH(false);
     setFlipV(false);
     setBrightness(100);
-    setContrast(100);
+    setContrast(120);
 
     // Stop camera after capture
     stopCamera();
@@ -396,12 +383,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
           id: `page-${Date.now()}`,
           originalImage: imageData,
           processedImage: imageData,
-          filter: 'original',
+          filter: 'highContrast',
           rotation: 0,
           flipH: false,
           flipV: false,
           brightness: 100,
-          contrast: 100
+          contrast: 120
         };
         setPages(prev => [...prev, newPage]);
         setCurrentPageIndex(pages.length);
@@ -412,12 +399,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
           id: `page-${Date.now()}`,
           originalImage: imageData,
           processedImage: imageData,
-          filter: 'original',
+          filter: 'highContrast',
           rotation: 0,
           flipH: false,
           flipV: false,
           brightness: 100,
-          contrast: 100
+          contrast: 120
         };
         setPages([newPage]);
         setCurrentPageIndex(0);
@@ -429,12 +416,12 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
       setCapturedImage(imageData);
       setProcessedImage(imageData);
-      setCurrentFilter('original');
+      setCurrentFilter('highContrast');
       setRotation(0);
       setFlipH(false);
       setFlipV(false);
       setBrightness(100);
-      setContrast(100);
+      setContrast(120);
       setActiveStep('edit');
     };
     reader.readAsDataURL(file);
@@ -670,9 +657,32 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     if (!processedImage) return;
 
     if (format === 'pdf') {
-      // For PDF, we'll create a simple PDF with the image
-      // In production, use a library like jsPDF
-      alert("PDF export - implementing with jsPDF library");
+      const pdf = new jsPDF();
+      const img = new Image();
+      img.onload = () => {
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const imgRatio = img.width / img.height;
+        const pageRatio = pageWidth / pageHeight;
+
+        let drawWidth: number;
+        let drawHeight: number;
+
+        if (imgRatio > pageRatio) {
+          drawWidth = pageWidth - 20;
+          drawHeight = drawWidth / imgRatio;
+        } else {
+          drawHeight = pageHeight - 20;
+          drawWidth = drawHeight * imgRatio;
+        }
+
+        const x = (pageWidth - drawWidth) / 2;
+        const y = (pageHeight - drawHeight) / 2;
+
+        pdf.addImage(processedImage!, 'JPEG', x, y, drawWidth, drawHeight);
+        pdf.save(`scanned_document_${Date.now()}.pdf`);
+      };
+      img.src = processedImage!;
       return;
     }
 
@@ -700,6 +710,62 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       }
     } catch (error) {
       console.error("Share error:", error);
+    }
+  };
+
+  // Share to WhatsApp as PDF
+  const shareToWhatsApp = async () => {
+    try {
+      const pdf = new jsPDF();
+      const pagesToExport = pages.length > 0 ? pages : processedImage ? [{ processedImage }] : [];
+
+      if (pagesToExport.length === 0) return;
+
+      for (let i = 0; i < pagesToExport.length; i++) {
+        const pageImg = pagesToExport[i].processedImage;
+        if (!pageImg) continue;
+
+        if (i > 0) pdf.addPage();
+
+        // Load image to get dimensions
+        const img = new Image();
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.src = pageImg;
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const imgRatio = img.width / img.height;
+        const pageRatio = pageWidth / pageHeight;
+
+        let drawWidth: number;
+        let drawHeight: number;
+
+        if (imgRatio > pageRatio) {
+          drawWidth = pageWidth - 20;
+          drawHeight = drawWidth / imgRatio;
+        } else {
+          drawHeight = pageHeight - 20;
+          drawWidth = drawHeight * imgRatio;
+        }
+
+        const x = (pageWidth - drawWidth) / 2;
+        const y = (pageHeight - drawHeight) / 2;
+
+        pdf.addImage(pageImg, 'JPEG', x, y, drawWidth, drawHeight);
+      }
+
+      // Download the PDF
+      pdf.save(`scanned_document_${Date.now()}.pdf`);
+
+      // Open WhatsApp with greeting message
+      const message = "Here is your invoice. Thank you! - Powered by Shree Andal AI Software Solutions";
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    } catch (error) {
+      console.error("WhatsApp share error:", error);
+      alert("Failed to generate PDF. Please try again.");
     }
   };
 
@@ -780,25 +846,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       {/* CAPTURE STEP */}
       {activeStep === 'capture' && (
         <div className="space-y-6">
-          {/* Scan Mode Selection */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {scanModes.map((mode) => (
-              <button
-                key={mode.id}
-                onClick={() => setScanMode(mode.id as ScanMode)}
-                className={`p-4 rounded-2xl border transition-all ${scanMode === mode.id
-                    ? 'bg-blue-500/20 border-blue-400/50 shadow-lg shadow-blue-500/20'
-                    : 'bg-white/5 border-blue-400/20 hover:bg-white/10 hover:border-blue-400/30'
-                  }`}
-              >
-                <mode.icon className={`h-6 w-6 mx-auto mb-2 ${scanMode === mode.id ? 'text-blue-400' : 'text-blue-400/60'
-                  }`} />
-                <p className="font-medium text-white text-sm">{mode.label}</p>
-                <p className="text-xs text-blue-300/60">{mode.description}</p>
-              </button>
-            ))}
-          </div>
-
           {/* Camera / Upload Area */}
           <div className="border-2 border-dashed border-blue-400/30 rounded-3xl overflow-hidden bg-gradient-to-b from-blue-500/10 to-indigo-500/10 backdrop-blur-xl">
             {isUsingCamera ? (
@@ -1220,13 +1267,22 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 <Share2 className="h-5 w-5 text-blue-400" />
                 Share
               </h3>
-              <button
-                onClick={shareImage}
-                className="w-full py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-white/10 transition-all border border-blue-400/20 flex items-center justify-center gap-2"
-              >
-                <Share2 className="h-5 w-5" />
-                Share Document
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={shareToWhatsApp}
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold hover:from-green-500 hover:to-emerald-500 transition-all shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Share to WhatsApp as PDF
+                </button>
+                <button
+                  onClick={shareImage}
+                  className="w-full py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-white/10 transition-all border border-blue-400/20 flex items-center justify-center gap-2"
+                >
+                  <Share2 className="h-5 w-5" />
+                  Share Document
+                </button>
+              </div>
             </div>
 
             {/* OCR Result */}
