@@ -1845,27 +1845,20 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             <p className="text-blue-200/70 mb-6">
               Capture or upload invoice images to automatically extract vendor details, line items, taxes, and totals using AI-powered OCR.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Camera className="h-4 w-4 text-blue-400" />
-                  <span className="text-white font-medium text-sm">Capture</span>
+                  <span className="text-white font-medium text-sm">Capture / Upload</span>
                 </div>
-                <p className="text-blue-200/60 text-xs">Use camera to scan invoices, bills, or receipts</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Upload className="h-4 w-4 text-purple-400" />
-                  <span className="text-white font-medium text-sm">Upload</span>
-                </div>
-                <p className="text-blue-200/60 text-xs">Import existing invoice images from your device</p>
+                <p className="text-blue-200/60 text-xs">Scan with camera or upload invoice images & PDFs</p>
               </div>
               <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-amber-400" />
-                  <span className="text-white font-medium text-sm">AI Extract</span>
+                  <span className="text-white font-medium text-sm">AI Extract & Share</span>
                 </div>
-                <p className="text-blue-200/60 text-xs">Gemini AI auto-fills invoice form with extracted data</p>
+                <p className="text-blue-200/60 text-xs">Auto-enhanced, AI auto-fill, download PDF, share via WhatsApp</p>
               </div>
             </div>
 

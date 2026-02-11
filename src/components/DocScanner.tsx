@@ -2,34 +2,16 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   Camera,
   Upload,
-  RotateCw,
-  RotateCcw,
-  FlipHorizontal,
-  FlipVertical,
-  Crop,
   Download,
   FileText,
-  Contrast,
-  Sun,
-  Moon,
   Sparkles,
   X,
-  Check,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
   ScanLine,
   FileImage,
   Type,
   Loader2,
   RefreshCw,
   Share2,
-  Image as ImageIcon,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  Files,
   MessageCircle
 } from "lucide-react";
 import Tesseract from "tesseract.js";
@@ -109,7 +91,7 @@ interface PageData {
 
 const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcessed, onAIDataExtracted }) => {
   // States
-  const [activeStep, setActiveStep] = useState<'capture' | 'edit' | 'export'>('capture');
+  const [activeStep, setActiveStep] = useState<'capture' | 'export'>('capture');
   // Multi-page support
   const [pages, setPages] = useState<PageData[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -140,19 +122,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-  // Filters configuration
-  const filters: { id: FilterType; label: string; icon: React.ReactNode }[] = [
-    { id: 'original', label: 'Original', icon: <ImageIcon className="h-4 w-4" /> },
-    { id: 'grayscale', label: 'Grayscale', icon: <Moon className="h-4 w-4" /> },
-    { id: 'highContrast', label: 'High Contrast', icon: <Contrast className="h-4 w-4" /> },
-    { id: 'blackWhite', label: 'B&W', icon: <FileText className="h-4 w-4" /> },
-    { id: 'brighten', label: 'Brighten', icon: <Sun className="h-4 w-4" /> },
-    { id: 'darken', label: 'Darken', icon: <Moon className="h-4 w-4" /> },
-    { id: 'sepia', label: 'Sepia', icon: <Sparkles className="h-4 w-4" /> },
-    { id: 'invert', label: 'Invert', icon: <RefreshCw className="h-4 w-4" /> },
-    { id: 'sharpen', label: 'Sharpen', icon: <ZoomIn className="h-4 w-4" /> },
-  ];
 
   // Start camera
   const startCamera = async () => {
@@ -277,9 +246,9 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     setBrightness(100);
     setContrast(120);
 
-    // Stop camera after capture
+    // Stop camera after capture, go directly to export
     stopCamera();
-    setActiveStep('edit');
+    setActiveStep('export');
   };
 
   // Add another page
@@ -422,7 +391,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       setFlipV(false);
       setBrightness(100);
       setContrast(120);
-      setActiveStep('edit');
+      setActiveStep('export');
     };
     reader.readAsDataURL(file);
 
@@ -811,18 +780,17 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
       <div className="flex items-center justify-center gap-4 mb-8">
         {[
           { id: 'capture', label: 'Scan' },
-          { id: 'edit', label: 'Enhance' },
           { id: 'export', label: 'Extract' }
         ].map((step, index) => (
           <React.Fragment key={step.id}>
             <button
               onClick={() => {
                 if (step.id === 'capture') resetScanner();
-                else if (capturedImage) setActiveStep(step.id as any);
+                else if (capturedImage || uploadedPdf) setActiveStep(step.id as any);
               }}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeStep === step.id
                   ? 'bg-blue-500/30 text-white border border-blue-400/50'
-                  : capturedImage || step.id === 'capture'
+                  : capturedImage || uploadedPdf || step.id === 'capture'
                     ? 'bg-white/5 text-blue-300 border border-blue-400/20 hover:bg-white/10'
                     : 'bg-white/5 text-blue-400/40 border border-blue-400/10 cursor-not-allowed'
                 }`}
@@ -833,8 +801,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
               </span>
               <span className="font-medium">{step.label}</span>
             </button>
-            {index < 2 && (
-              <div className={`w-12 h-0.5 ${capturedImage ? 'bg-blue-400/50' : 'bg-blue-400/20'}`} />
+            {index < 1 && (
+              <div className={`w-12 h-0.5 ${capturedImage || uploadedPdf ? 'bg-blue-400/50' : 'bg-blue-400/20'}`} />
             )}
           </React.Fragment>
         ))}
@@ -907,8 +875,15 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={startCamera}
                       className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-3"
+                    >
+                      <Camera className="h-5 w-5" />
+                      Capture
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold hover:from-indigo-500 hover:to-purple-500 transition-all shadow-xl shadow-indigo-500/30 flex items-center gap-3"
                     >
                       <Upload className="h-5 w-5" />
                       Upload Invoice/PDF
@@ -924,241 +899,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* EDIT STEP */}
-      {activeStep === 'edit' && processedImage && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Image Preview */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Page indicator and navigation */}
-            {pages.length > 0 && (
-              <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-2 border border-blue-400/20">
-                <div className="flex items-center gap-2">
-                  <Files className="h-4 w-4 text-blue-400" />
-                  <span className="text-blue-300 text-sm font-medium">
-                    Page {currentPageIndex + 1} of {pages.length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => switchToPage(Math.max(0, currentPageIndex - 1))}
-                    disabled={currentPageIndex === 0}
-                    className="p-1.5 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => switchToPage(Math.min(pages.length - 1, currentPageIndex + 1))}
-                    disabled={currentPageIndex === pages.length - 1}
-                    className="p-1.5 bg-white/10 rounded-lg text-blue-300 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="border border-blue-400/20 rounded-2xl overflow-hidden bg-black/20 backdrop-blur-xl">
-              <img
-                src={processedImage}
-                alt="Scanned document"
-                className="w-full h-[500px] object-contain"
-              />
-            </div>
-
-            {/* Page Thumbnails */}
-            {pages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {pages.map((page, index) => (
-                  <div
-                    key={page.id}
-                    className={`relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${index === currentPageIndex
-                        ? 'border-blue-400 ring-2 ring-blue-400/30'
-                        : 'border-blue-400/20 hover:border-blue-400/50'
-                      }`}
-                    onClick={() => switchToPage(index)}
-                  >
-                    <img
-                      src={page.processedImage}
-                      alt={`Page ${index + 1}`}
-                      className="w-16 h-20 object-cover"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-center py-0.5">
-                      <span className="text-white text-xs">{index + 1}</span>
-                    </div>
-                    {pages.length > 1 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deletePage(index);
-                        }}
-                        className="absolute top-0.5 right-0.5 p-0.5 bg-red-500/80 rounded text-white hover:bg-red-500"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                {/* Add Page Button in thumbnails */}
-                <button
-                  onClick={addAnotherPage}
-                  className="flex-shrink-0 w-16 h-20 border-2 border-dashed border-blue-400/30 rounded-lg flex flex-col items-center justify-center text-blue-400 hover:bg-blue-500/10 hover:border-blue-400/50 transition-all"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span className="text-xs mt-1">Add</span>
-                </button>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="flex flex-wrap gap-3 justify-center">
-              <button
-                onClick={() => rotateImage('ccw')}
-                className="p-3 bg-white/10 text-blue-300 rounded-xl hover:bg-white/20 transition-all border border-blue-400/20"
-                title="Rotate Left"
-              >
-                <RotateCcw className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => rotateImage('cw')}
-                className="p-3 bg-white/10 text-blue-300 rounded-xl hover:bg-white/20 transition-all border border-blue-400/20"
-                title="Rotate Right"
-              >
-                <RotateCw className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setFlipH(!flipH)}
-                className={`p-3 rounded-xl transition-all border ${flipH ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
-                  }`}
-                title="Flip Horizontal"
-              >
-                <FlipHorizontal className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setFlipV(!flipV)}
-                className={`p-3 rounded-xl transition-all border ${flipV ? 'bg-blue-500/30 text-white border-blue-400/50' : 'bg-white/10 text-blue-300 border-blue-400/20 hover:bg-white/20'
-                  }`}
-                title="Flip Vertical"
-              >
-                <FlipVertical className="h-5 w-5" />
-              </button>
-              <div className="h-10 w-px bg-blue-400/20" />
-              <button
-                onClick={runOcr}
-                disabled={isProcessingOcr}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-500 hover:to-indigo-500 transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                {isProcessingOcr ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    {ocrProgress}%
-                  </>
-                ) : (
-                  <>
-                    <Type className="h-5 w-5" />
-                    Extract Text
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Edit Controls */}
-          <div className="space-y-6">
-            {/* Filters */}
-            <div className="backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-blue-400/20">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-blue-400" />
-                Filters
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {filters.map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => applyFilter(filter.id)}
-                    className={`p-3 rounded-xl text-xs font-medium transition-all ${currentFilter === filter.id
-                        ? 'bg-blue-500/30 text-white border border-blue-400/50'
-                        : 'bg-white/5 text-blue-300 border border-blue-400/10 hover:bg-white/10'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      {filter.icon}
-                      <span>{filter.label}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Adjustments */}
-            <div className="backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-blue-400/20">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <Sun className="h-5 w-5 text-blue-400" />
-                Adjustments
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-blue-300">Brightness</span>
-                    <span className="text-white font-medium">{brightness}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    value={brightness}
-                    onChange={(e) => setBrightness(Number(e.target.value))}
-                    className="w-full accent-blue-500"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-blue-300">Contrast</span>
-                    <span className="text-white font-medium">{contrast}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    value={contrast}
-                    onChange={(e) => setContrast(Number(e.target.value))}
-                    className="w-full accent-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-3">
-              {/* Add Another Page Button */}
-              <button
-                onClick={addAnotherPage}
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-2xl font-bold hover:from-emerald-500 hover:to-green-500 transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2"
-              >
-                <Plus className="h-5 w-5" />
-                Add Page {pages.length > 0 ? `(${pages.length} captured)` : ''}
-              </button>
-
-              <button
-                onClick={() => {
-                  saveCurrentPageEdits();
-                  setActiveStep('export');
-                }}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2"
-              >
-                <Check className="h-5 w-5" />
-                Done Editing
-              </button>
-              <button
-                onClick={resetScanner}
-                className="w-full py-3 bg-white/10 text-blue-300 rounded-xl font-medium hover:bg-white/20 transition-all border border-blue-400/20"
-              >
-                Start Over
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1311,12 +1051,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
             {/* Actions */}
             <div className="flex gap-3">
-              <button
-                onClick={() => setActiveStep('edit')}
-                className="flex-1 py-3 bg-white/10 text-blue-300 rounded-xl font-medium hover:bg-white/20 transition-all border border-blue-400/20"
-              >
-                Back to Edit
-              </button>
               <button
                 onClick={resetScanner}
                 className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-500 hover:to-indigo-500 transition-all"
