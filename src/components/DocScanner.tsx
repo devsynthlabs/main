@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Tesseract from "tesseract.js";
 import jsPDF from "jspdf";
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, API_BASE_URL } from "@/lib/api";
 
 // AI-extracted invoice data structure (exported for use in other components)
 export interface AIInvoiceData {
@@ -117,6 +117,9 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
   const [aiError, setAIError] = useState<string | null>(null);
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
   const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [isSavingToCloud, setIsSavingToCloud] = useState(false);
+  const [savedToCloud, setSavedToCloud] = useState(false);
+  const [savedFileUrl, setSavedFileUrl] = useState<string | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -689,8 +692,97 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     }
   };
 
+  // Save scanned document to backend (MongoDB)
+  const saveToCloud = async () => {
+    const pagesToSave = pages.length > 0 ? pages : processedImage ? [{ processedImage }] : [];
+    if (pagesToSave.length === 0) {
+      alert("No scanned document to save");
+      return;
+    }
+
+    setIsSavingToCloud(true);
+    try {
+      // Generate a PDF from all pages
+      const pdf = new jsPDF();
+      for (let i = 0; i < pagesToSave.length; i++) {
+        const pageImg = pagesToSave[i].processedImage;
+        if (!pageImg) continue;
+        if (i > 0) pdf.addPage();
+
+        const img = new Image();
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.src = pageImg;
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const imgRatio = img.width / img.height;
+        const pageRatio = pageWidth / pageHeight;
+        let drawWidth: number, drawHeight: number;
+
+        if (imgRatio > pageRatio) {
+          drawWidth = pageWidth - 20;
+          drawHeight = drawWidth / imgRatio;
+        } else {
+          drawHeight = pageHeight - 20;
+          drawWidth = drawHeight * imgRatio;
+        }
+
+        const x = (pageWidth - drawWidth) / 2;
+        const y = (pageHeight - drawHeight) / 2;
+        pdf.addImage(pageImg, 'JPEG', x, y, drawWidth, drawHeight);
+      }
+
+      // Convert PDF to base64
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+      const timestamp = Date.now();
+      const fileName = `scan_${timestamp}.pdf`;
+
+      // Upload via backend API
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/scanned-docs/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fileData: pdfBase64, fileName }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to save");
+      }
+
+      const data = await res.json();
+      // Build the public file URL for sharing
+      const fileUrl = `${API_BASE_URL}/scanned-docs/file/${data.docId}`;
+      setSavedFileUrl(fileUrl);
+      setSavedToCloud(true);
+    } catch (error: any) {
+      console.error("Save error:", error);
+    } finally {
+      setIsSavingToCloud(false);
+    }
+  };
+
+  // Guard to prevent overlapping share calls
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Share to WhatsApp (save first if not saved)
+  const saveAndShareWhatsApp = async () => {
+    if (isSharing) return;
+    if (!savedToCloud) {
+      await saveToCloud();
+    }
+    await shareToWhatsApp();
+  };
+
   // Share to WhatsApp as PDF
   const shareToWhatsApp = async () => {
+    if (isSharing) return;
+    setIsSharing(true);
     try {
       const pdf = new jsPDF();
       const pagesToExport = pages.length > 0 ? pages : processedImage ? [{ processedImage }] : [];
@@ -703,7 +795,6 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
 
         if (i > 0) pdf.addPage();
 
-        // Load image to get dimensions
         const img = new Image();
         await new Promise<void>((resolve) => {
           img.onload = () => resolve();
@@ -732,16 +823,48 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
         pdf.addImage(pageImg, 'JPEG', x, y, drawWidth, drawHeight);
       }
 
-      // Download the PDF
-      pdf.save(`scanned_document_${Date.now()}.pdf`);
+      // Convert PDF to a File object for sharing
+      const pdfBlob = pdf.output('blob');
+      const pdfFile = new File([pdfBlob], `scanned_document_${Date.now()}.pdf`, { type: 'application/pdf' });
 
-      // Open WhatsApp with greeting message
-      const message = "Here is your invoice. Thank you! - Powered by Shree Andal AI Software Solutions";
-      const encodedMessage = encodeURIComponent(message);
-      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-    } catch (error) {
+      // Try Web Share API first (shares actual PDF file on mobile)
+      let shared = false;
+      if (navigator.share && navigator.canShare) {
+        try {
+          if (navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({
+              title: 'Scanned Document',
+              text: 'Here is your invoice. Thank you! - Powered by Shree Andal AI Software Solutions',
+              files: [pdfFile],
+            });
+            shared = true;
+          }
+        } catch (shareErr: any) {
+          // AbortError = user cancelled, InvalidStateError = previous share pending
+          if (shareErr.name !== 'AbortError') {
+            console.warn("Web Share failed, using fallback:", shareErr.message);
+          } else {
+            shared = true; // user cancelled intentionally
+          }
+        }
+      }
+
+      // Fallback: open WhatsApp directly with document link
+      if (!shared) {
+        if (savedFileUrl) {
+          const message = `Here is your invoice: ${savedFileUrl}\n\nThank you! - Powered by Shree Andal AI Software Solutions`;
+          window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        } else {
+          // No saved URL — download PDF and open WhatsApp
+          pdf.save(`scanned_document_${Date.now()}.pdf`);
+          const message = "Here is your invoice. Thank you! - Powered by Shree Andal AI Software Solutions";
+          window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        }
+      }
+    } catch (error: any) {
       console.error("WhatsApp share error:", error);
-      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -764,6 +887,8 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
     setUploadedPdf(null);
     setPdfFileName(null);
     setAIError(null);
+    setSavedToCloud(false);
+    setSavedFileUrl(null);
     stopCamera();
   };
 
@@ -996,7 +1121,7 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
               </div>
             </div>
 
-            {/* AI Analysis - For Invoice Auto-Fill */}
+            {/* AI Analysis - Commented out
             {onAIDataExtracted && (
               <div className="backdrop-blur-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl p-6 border border-purple-400/30">
                 <h3 className="font-bold text-white mb-4 flex items-center gap-2">
@@ -1028,21 +1153,53 @@ const DocScanner: React.FC<DocScannerProps> = ({ onTextExtracted, onImageProcess
                 )}
               </div>
             )}
+            */}
 
-            {/* Share Options */}
+            {/* Save & Share */}
             <div className="backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-blue-400/20">
               <h3 className="font-bold text-white mb-4 flex items-center gap-2">
                 <Share2 className="h-5 w-5 text-blue-400" />
-                Share
+                Save & Share
               </h3>
               <div className="space-y-3">
+                {/* Save to Cloud */}
                 <button
-                  onClick={shareToWhatsApp}
-                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold hover:from-green-500 hover:to-emerald-500 transition-all shadow-lg shadow-green-500/30 flex items-center justify-center gap-2"
+                  onClick={saveToCloud}
+                  disabled={isSavingToCloud || savedToCloud}
+                  className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                    savedToCloud
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-default'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-500/30'
+                  } disabled:opacity-70`}
+                >
+                  {isSavingToCloud ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : savedToCloud ? (
+                    <>
+                      <Download className="h-5 w-5" />
+                      Saved to Cloud
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5" />
+                      Save Document
+                    </>
+                  )}
+                </button>
+
+                {/* WhatsApp Share - enabled after save */}
+                <button
+                  onClick={saveAndShareWhatsApp}
+                  disabled={isSavingToCloud}
+                  className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold hover:from-green-500 hover:to-emerald-500 transition-all shadow-lg shadow-green-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Share to WhatsApp as PDF
+                  {savedToCloud ? 'Share to WhatsApp' : 'Save & Share to WhatsApp'}
                 </button>
+
                 <button
                   onClick={shareImage}
                   className="w-full py-3 bg-white/5 text-blue-300 rounded-xl font-medium hover:bg-white/10 transition-all border border-blue-400/20 flex items-center justify-center gap-2"

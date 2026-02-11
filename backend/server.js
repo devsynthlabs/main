@@ -21,6 +21,7 @@ import invoiceRoutes from "./routes/invoiceRoutes.js";
 import invoiceSummaryRoutes from "./routes/invoiceSummaryRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import purchaseInvoiceRoutes from "./routes/purchaseInvoiceRoutes.js";
+import scannedDocRoutes from "./routes/scannedDocRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -465,6 +466,7 @@ app.use("/api/invoice", invoiceRoutes);
 app.use("/api/invoice-summary", invoiceSummaryRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/purchase-invoice", purchaseInvoiceRoutes);
+app.use("/api/scanned-docs", scannedDocRoutes);
 
 // ✅ Start Server (after MongoDB connection)
 const PORT = process.env.PORT || 5000;
