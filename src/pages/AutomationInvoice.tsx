@@ -1040,8 +1040,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 <Plus className="h-5 w-5 md:h-6 md:w-6 text-blue-400" />
               </div>
               <div className="text-left">
-                <h3 className="text-sm md:text-xl font-bold text-white">Create</h3>
-                <p className="text-blue-200/70 text-xs hidden md:block">Sales Invoice</p>
+                <h3 className="text-sm md:text-xl font-bold text-white">Create Invoice</h3>
               </div>
             </div>
           </button>
@@ -1517,15 +1516,18 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
                       <div className="space-y-2">
                         <Label className="text-blue-100 text-sm">Price Type</Label>
-                        <button
-                          onClick={() => setNewItem(prev => ({ ...prev, priceWithTax: !prev.priceWithTax }))}
-                          className={`w-full h-9 px-2 rounded-lg text-xs font-medium transition-all ${newItem.priceWithTax
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-blue-300 border border-blue-400/30'
-                            }`}
+                        <Select
+                          value={newItem.priceWithTax ? 'with_tax' : 'without_tax'}
+                          onValueChange={(val) => setNewItem(prev => ({ ...prev, priceWithTax: val === 'with_tax' }))}
                         >
-                          {newItem.priceWithTax ? 'With Tax' : 'Without Tax'}
-                        </button>
+                          <SelectTrigger className="bg-white/5 border-blue-400/30 text-white h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-900 border-blue-400/20 text-white">
+                            <SelectItem value="without_tax">Without Tax</SelectItem>
+                            <SelectItem value="with_tax">With Tax</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -1843,27 +1845,20 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             <p className="text-blue-200/70 mb-6">
               Capture or upload invoice images to automatically extract vendor details, line items, taxes, and totals using AI-powered OCR.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Camera className="h-4 w-4 text-blue-400" />
-                  <span className="text-white font-medium text-sm">Capture</span>
+                  <span className="text-white font-medium text-sm">Capture / Upload</span>
                 </div>
-                <p className="text-blue-200/60 text-xs">Use camera to scan invoices, bills, or receipts</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Upload className="h-4 w-4 text-purple-400" />
-                  <span className="text-white font-medium text-sm">Upload</span>
-                </div>
-                <p className="text-blue-200/60 text-xs">Import existing invoice images from your device</p>
+                <p className="text-blue-200/60 text-xs">Scan with camera or upload invoice images & PDFs</p>
               </div>
               <div className="bg-white/5 rounded-xl p-4 border border-blue-400/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-amber-400" />
-                  <span className="text-white font-medium text-sm">AI Extract</span>
+                  <span className="text-white font-medium text-sm">AI Extract & Share</span>
                 </div>
-                <p className="text-blue-200/60 text-xs">Gemini AI auto-fills invoice form with extracted data</p>
+                <p className="text-blue-200/60 text-xs">Auto-enhanced, AI auto-fill, download PDF, share via WhatsApp</p>
               </div>
             </div>
 

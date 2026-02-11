@@ -776,6 +776,7 @@ const Bookkeeping = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-2">
+                                        <Label className="text-emerald-100 font-bold">Category</Label>
                                         <Select
                                             value={formData.category}
                                             onValueChange={(value) => handleInputChange("category", value)}
