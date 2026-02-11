@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Package, Search, Archive, ShoppingCart, Loader2, Shield, Mic, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Search, Archive, ShoppingCart, Loader2, Shield, Mic, Save, FileText, Calculator, IndianRupee, AlertCircle } from "lucide-react";
 import { parseVoiceInventoryText } from "@/lib/voiceInventoryParser";
 import { API_BASE_URL } from "@/lib/api";
 import {
@@ -60,6 +60,51 @@ interface SaleItem {
     saleDate: Date;
     stateOfSupply: string;
 }
+
+interface PurchaseItem {
+    id: string;
+    itemName: string;
+    itemCode: string;
+    hsnCode: string;
+    quantity: number;
+    unit: string;
+    pricePerUnit: number;
+    priceWithTax: boolean;
+    discountPercent: number;
+    discountAmount: number;
+    taxPercent: number;
+    taxAmount: number;
+    sgstRate: number;
+    sgstAmount: number;
+    cgstRate: number;
+    cgstAmount: number;
+    igstRate: number;
+    igstAmount: number;
+    isInterState: boolean;
+    amount: number;
+}
+
+interface PurchaseInvoice {
+    type: 'purchase';
+    supplierName: string;
+    phone: string;
+    gstin: string;
+    billNo: string;
+    billDate: string;
+    stateOfSupply: string;
+    businessState: string;
+    items: PurchaseItem[];
+    subtotal: number;
+    totalSgst: number;
+    totalCgst: number;
+    totalIgst: number;
+    totalTax: number;
+    total: number;
+    paid: number;
+    balance: number;
+}
+
+const BUSINESS_STATE = "Tamil Nadu";
 
 const INDIAN_STATES = [
     "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -113,6 +158,273 @@ const Inventory = () => {
         gstRate: "0",
         stateOfSupply: ""
     });
+
+    // Purchase Invoice State
+    const generatePurchaseNo = () => {
+        const date = new Date();
+        const year = date.getFullYear().toString().slice(-2);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `PUR-${year}${month}-${random}`;
+    };
+
+    const [purchaseInvoice, setPurchaseInvoice] = useState<PurchaseInvoice>({
+        type: 'purchase',
+        supplierName: '',
+        phone: '',
+        gstin: '',
+        billNo: generatePurchaseNo(),
+        billDate: new Date().toISOString().split('T')[0],
+        stateOfSupply: '',
+        businessState: BUSINESS_STATE,
+        items: [],
+        subtotal: 0,
+        totalSgst: 0,
+        totalCgst: 0,
+        totalIgst: 0,
+        totalTax: 0,
+        total: 0,
+        paid: 0,
+        balance: 0,
+    });
+
+    const [purchaseNewItem, setPurchaseNewItem] = useState<Partial<PurchaseItem>>({
+        itemName: '',
+        itemCode: '',
+        hsnCode: '',
+        quantity: 1,
+        unit: 'Pcs',
+        pricePerUnit: 0,
+        priceWithTax: false,
+        discountPercent: 0,
+        taxPercent: 18,
+    });
+
+    const [isPurchaseSaving, setIsPurchaseSaving] = useState(false);
+
+    const isInterStatePurchase = (): boolean => {
+        const supplierState = purchaseInvoice.stateOfSupply;
+        return supplierState !== '' && BUSINESS_STATE !== '' && supplierState !== BUSINESS_STATE;
+    };
+
+    const calculatePurchaseItemAmounts = (item: Partial<PurchaseItem>): Partial<PurchaseItem> => {
+        const qty = item.quantity || 0;
+        const price = item.pricePerUnit || 0;
+        const discountPct = item.discountPercent || 0;
+        const taxPct = item.taxPercent || 0;
+        const priceWithTax = item.priceWithTax || false;
+
+        let baseAmount = qty * price;
+        let discountAmount = (baseAmount * discountPct) / 100;
+        let afterDiscount = baseAmount - discountAmount;
+
+        const isInterState = isInterStatePurchase();
+
+        let sgstRate = 0, cgstRate = 0, igstRate = 0;
+        let sgstAmount = 0, cgstAmount = 0, igstAmount = 0;
+        let taxAmount = 0;
+        let finalAmount = 0;
+
+        if (isInterState) {
+            igstRate = taxPct;
+            if (priceWithTax) {
+                const taxMultiplier = 1 + (igstRate / 100);
+                const preTaxAmount = afterDiscount / taxMultiplier;
+                igstAmount = afterDiscount - preTaxAmount;
+                finalAmount = afterDiscount;
+            } else {
+                igstAmount = (afterDiscount * igstRate) / 100;
+                finalAmount = afterDiscount + igstAmount;
+            }
+            taxAmount = igstAmount;
+        } else {
+            sgstRate = taxPct / 2;
+            cgstRate = taxPct / 2;
+            if (priceWithTax) {
+                const taxMultiplier = 1 + (taxPct / 100);
+                const preTaxAmount = afterDiscount / taxMultiplier;
+                taxAmount = afterDiscount - preTaxAmount;
+                sgstAmount = taxAmount / 2;
+                cgstAmount = taxAmount / 2;
+                finalAmount = afterDiscount;
+            } else {
+                sgstAmount = (afterDiscount * sgstRate) / 100;
+                cgstAmount = (afterDiscount * cgstRate) / 100;
+                taxAmount = sgstAmount + cgstAmount;
+                finalAmount = afterDiscount + taxAmount;
+            }
+        }
+
+        return {
+            ...item,
+            discountAmount: Math.round(discountAmount * 100) / 100,
+            taxAmount: Math.round(taxAmount * 100) / 100,
+            sgstRate: Math.round(sgstRate * 100) / 100,
+            sgstAmount: Math.round(sgstAmount * 100) / 100,
+            cgstRate: Math.round(cgstRate * 100) / 100,
+            cgstAmount: Math.round(cgstAmount * 100) / 100,
+            igstRate: Math.round(igstRate * 100) / 100,
+            igstAmount: Math.round(igstAmount * 100) / 100,
+            isInterState,
+            amount: Math.round(finalAmount * 100) / 100,
+        };
+    };
+
+    const calculatePurchaseTotals = (items: PurchaseItem[]) => {
+        const subtotal = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit) - i.discountAmount, 0);
+        const totalSgst = items.reduce((sum, i) => sum + i.sgstAmount, 0);
+        const totalCgst = items.reduce((sum, i) => sum + i.cgstAmount, 0);
+        const totalIgst = items.reduce((sum, i) => sum + i.igstAmount, 0);
+        const totalTax = totalSgst + totalCgst + totalIgst;
+        const total = items.reduce((sum, i) => sum + i.amount, 0);
+        return {
+            subtotal: Math.round(subtotal * 100) / 100,
+            totalSgst: Math.round(totalSgst * 100) / 100,
+            totalCgst: Math.round(totalCgst * 100) / 100,
+            totalIgst: Math.round(totalIgst * 100) / 100,
+            totalTax: Math.round(totalTax * 100) / 100,
+            total: Math.round(total * 100) / 100,
+        };
+    };
+
+    const addPurchaseItem = () => {
+        if (!purchaseNewItem.itemName || !purchaseNewItem.pricePerUnit) {
+            toast.error("Please enter item name and price");
+            return;
+        }
+        if (!purchaseInvoice.stateOfSupply) {
+            toast.error("Please select State of Supply for GST calculation");
+            return;
+        }
+
+        const calculatedItem = calculatePurchaseItemAmounts(purchaseNewItem);
+        const item: PurchaseItem = {
+            id: `pur-item-${Date.now()}`,
+            itemName: purchaseNewItem.itemName || '',
+            itemCode: purchaseNewItem.itemCode || '',
+            hsnCode: purchaseNewItem.hsnCode || '',
+            quantity: purchaseNewItem.quantity || 1,
+            unit: purchaseNewItem.unit || 'Pcs',
+            pricePerUnit: purchaseNewItem.pricePerUnit || 0,
+            priceWithTax: purchaseNewItem.priceWithTax || false,
+            discountPercent: purchaseNewItem.discountPercent || 0,
+            discountAmount: calculatedItem.discountAmount || 0,
+            taxPercent: purchaseNewItem.taxPercent || 0,
+            taxAmount: calculatedItem.taxAmount || 0,
+            sgstRate: calculatedItem.sgstRate || 0,
+            sgstAmount: calculatedItem.sgstAmount || 0,
+            cgstRate: calculatedItem.cgstRate || 0,
+            cgstAmount: calculatedItem.cgstAmount || 0,
+            igstRate: calculatedItem.igstRate || 0,
+            igstAmount: calculatedItem.igstAmount || 0,
+            isInterState: calculatedItem.isInterState || false,
+            amount: calculatedItem.amount || 0,
+        };
+
+        const updatedItems = [...purchaseInvoice.items, item];
+        const totals = calculatePurchaseTotals(updatedItems);
+
+        setPurchaseInvoice(prev => ({
+            ...prev,
+            items: updatedItems,
+            ...totals,
+            balance: totals.total - prev.paid,
+        }));
+
+        setPurchaseNewItem({
+            itemName: '',
+            itemCode: '',
+            hsnCode: '',
+            quantity: 1,
+            unit: 'Pcs',
+            pricePerUnit: 0,
+            priceWithTax: false,
+            discountPercent: 0,
+            taxPercent: 18,
+        });
+
+        toast.success("Item added to purchase invoice");
+    };
+
+    const removePurchaseItem = (itemId: string) => {
+        const updatedItems = purchaseInvoice.items.filter(i => i.id !== itemId);
+        const totals = calculatePurchaseTotals(updatedItems);
+        setPurchaseInvoice(prev => ({
+            ...prev,
+            items: updatedItems,
+            ...totals,
+            balance: totals.total - prev.paid,
+        }));
+    };
+
+    const savePurchaseInvoice = async () => {
+        if (purchaseInvoice.items.length === 0) {
+            toast.error("Please add at least one item");
+            return;
+        }
+        if (!purchaseInvoice.supplierName.trim()) {
+            toast.error("Please enter supplier name");
+            return;
+        }
+
+        setIsPurchaseSaving(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/purchase-invoice/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(purchaseInvoice),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const stockUpdates = data.stockUpdates || [];
+                const added = stockUpdates.filter((s: { action: string }) => s.action === 'created').length;
+                const updated = stockUpdates.filter((s: { action: string }) => s.action === 'updated').length;
+
+                let msg = "Purchase invoice saved!";
+                if (added > 0) msg += ` ${added} new item(s) added to stock.`;
+                if (updated > 0) msg += ` ${updated} item(s) stock updated.`;
+
+                toast.success(msg);
+                resetPurchaseForm();
+                fetchItems(); // Refresh inventory items list
+            } else {
+                const data = await res.json();
+                toast.error(data.message || "Failed to save purchase invoice");
+            }
+        } catch (error) {
+            console.error("Error saving purchase invoice:", error);
+            toast.error("Error saving purchase invoice");
+        } finally {
+            setIsPurchaseSaving(false);
+        }
+    };
+
+    const resetPurchaseForm = () => {
+        setPurchaseInvoice({
+            type: 'purchase',
+            supplierName: '',
+            phone: '',
+            gstin: '',
+            billNo: generatePurchaseNo(),
+            billDate: new Date().toISOString().split('T')[0],
+            stateOfSupply: '',
+            businessState: BUSINESS_STATE,
+            items: [],
+            subtotal: 0,
+            totalSgst: 0,
+            totalCgst: 0,
+            totalIgst: 0,
+            totalTax: 0,
+            total: 0,
+            paid: 0,
+            balance: 0,
+        });
+    };
 
     // Voice State
     const [transcript, setTranscript] = useState("");
@@ -529,12 +841,15 @@ const Inventory = () => {
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="grid w-full grid-cols-2 backdrop-blur-2xl bg-white/10 border border-violet-400/20 rounded-2xl p-1">
+                    <TabsList className="grid w-full grid-cols-4 backdrop-blur-2xl bg-white/10 border border-violet-400/20 rounded-2xl p-1">
                         <TabsTrigger value="items" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
                             <Archive className="h-4 w-4 mr-2" /> Items
                         </TabsTrigger>
                         <TabsTrigger value="add" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
                             <Plus className="h-4 w-4 mr-2" /> Add Item
+                        </TabsTrigger>
+                        <TabsTrigger value="purchase" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white rounded-xl">
+                            <ShoppingCart className="h-4 w-4 mr-2" /> Purchase
                         </TabsTrigger>
                         <TabsTrigger value="voice" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
                             <Mic className="h-4 w-4 mr-2" /> Voice
@@ -1026,6 +1341,413 @@ const Inventory = () => {
                                 </Button>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    {/* Purchase Invoice Tab */}
+                    <TabsContent value="purchase">
+                        <div className="grid grid-cols-3 gap-6">
+                            {/* Left Column - Form & Items (2 cols) */}
+                            <div className="col-span-2 space-y-6">
+                                {/* Supplier Details */}
+                                <Card className="backdrop-blur-2xl bg-white/10 border border-amber-400/20 rounded-3xl">
+                                    <CardHeader>
+                                        <CardTitle className="text-2xl font-bold text-amber-100 flex items-center gap-2">
+                                            <FileText className="h-6 w-6 text-amber-400" />
+                                            Purchase Invoice
+                                        </CardTitle>
+                                        <CardDescription className="text-amber-300/70">Enter supplier details and add items</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Supplier Name *</Label>
+                                                <Input
+                                                    value={purchaseInvoice.supplierName}
+                                                    onChange={(e) => setPurchaseInvoice(prev => ({ ...prev, supplierName: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="Supplier name"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Phone</Label>
+                                                <Input
+                                                    value={purchaseInvoice.phone}
+                                                    onChange={(e) => setPurchaseInvoice(prev => ({ ...prev, phone: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="Phone number"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">GSTIN</Label>
+                                                <Input
+                                                    value={purchaseInvoice.gstin}
+                                                    onChange={(e) => setPurchaseInvoice(prev => ({ ...prev, gstin: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="Supplier GSTIN"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">State of Supply *</Label>
+                                                <Select
+                                                    value={purchaseInvoice.stateOfSupply}
+                                                    onValueChange={(val) => setPurchaseInvoice(prev => ({ ...prev, stateOfSupply: val }))}
+                                                >
+                                                    <SelectTrigger className="bg-white/5 border-amber-400/30 text-amber-100">
+                                                        <SelectValue placeholder="Select State" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-slate-900 border-amber-400/20 text-white max-h-[300px]">
+                                                        {INDIAN_STATES.map(state => (
+                                                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Bill No</Label>
+                                                <Input
+                                                    value={purchaseInvoice.billNo}
+                                                    onChange={(e) => setPurchaseInvoice(prev => ({ ...prev, billNo: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Bill Date</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={purchaseInvoice.billDate}
+                                                    onChange={(e) => setPurchaseInvoice(prev => ({ ...prev, billDate: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Inter/Intra state indicator */}
+                                        {purchaseInvoice.stateOfSupply && (
+                                            <div className={`flex items-center gap-2 text-xs py-2 px-3 rounded-lg ${isInterStatePurchase()
+                                                ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                                }`}>
+                                                <AlertCircle className="h-3 w-3" />
+                                                {isInterStatePurchase()
+                                                    ? `Inter-State: ${purchaseInvoice.stateOfSupply} → ${BUSINESS_STATE} (IGST)`
+                                                    : `Intra-State: ${BUSINESS_STATE} (SGST + CGST)`
+                                                }
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Add Item Form */}
+                                <Card className="backdrop-blur-2xl bg-white/10 border border-amber-400/20 rounded-3xl">
+                                    <CardHeader>
+                                        <CardTitle className="text-lg font-bold text-amber-100 flex items-center gap-2">
+                                            <Plus className="h-5 w-5 text-amber-400" />
+                                            Add Item
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Item Name *</Label>
+                                                <Input
+                                                    value={purchaseNewItem.itemName}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, itemName: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="Item name"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Item Code</Label>
+                                                <Input
+                                                    value={purchaseNewItem.itemCode}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, itemCode: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="SKU / Code"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">HSN Code</Label>
+                                                <Input
+                                                    value={purchaseNewItem.hsnCode}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="HSN"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Qty *</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={purchaseNewItem.quantity}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    min="1"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Unit</Label>
+                                                <Select
+                                                    value={purchaseNewItem.unit}
+                                                    onValueChange={(val) => setPurchaseNewItem(prev => ({ ...prev, unit: val }))}
+                                                >
+                                                    <SelectTrigger className="bg-white/5 border-amber-400/30 text-amber-100">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-slate-900 border-amber-400/20 text-white">
+                                                        {UNITS.map(u => (
+                                                            <SelectItem key={u} value={u}>{u}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Price/Unit *</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={purchaseNewItem.pricePerUnit}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, pricePerUnit: Number(e.target.value) }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Discount %</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={purchaseNewItem.discountPercent}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, discountPercent: Number(e.target.value) }))}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4 items-end">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">GST %</Label>
+                                                <Select
+                                                    value={String(purchaseNewItem.taxPercent)}
+                                                    onValueChange={(val) => setPurchaseNewItem(prev => ({ ...prev, taxPercent: Number(val) }))}
+                                                >
+                                                    <SelectTrigger className="bg-white/5 border-amber-400/30 text-amber-100">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-slate-900 border-amber-400/20 text-white">
+                                                        {GST_SLABS.map(rate => (
+                                                            <SelectItem key={rate} value={rate}>{rate}%</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="flex items-center gap-2 pb-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={purchaseNewItem.priceWithTax}
+                                                    onChange={(e) => setPurchaseNewItem(prev => ({ ...prev, priceWithTax: e.target.checked }))}
+                                                    className="rounded border-amber-400/30"
+                                                />
+                                                <Label className="text-amber-100 text-sm">Price includes tax</Label>
+                                            </div>
+                                            <Button
+                                                onClick={addPurchaseItem}
+                                                className="bg-amber-600 hover:bg-amber-500 text-white font-bold h-10 rounded-xl"
+                                            >
+                                                <Plus className="h-4 w-4 mr-2" /> Add Item
+                                            </Button>
+                                        </div>
+
+                                        {/* Preview calculation */}
+                                        {(purchaseNewItem.pricePerUnit || 0) > 0 && purchaseInvoice.stateOfSupply && (
+                                            <div className="bg-amber-500/5 border border-amber-400/10 rounded-lg p-3 text-sm">
+                                                {(() => {
+                                                    const calc = calculatePurchaseItemAmounts(purchaseNewItem);
+                                                    return (
+                                                        <div className="flex gap-4 text-amber-200/80">
+                                                            <span>Base: ₹{((purchaseNewItem.quantity || 0) * (purchaseNewItem.pricePerUnit || 0)).toFixed(2)}</span>
+                                                            {(calc.discountAmount || 0) > 0 && <span>Disc: -₹{calc.discountAmount?.toFixed(2)}</span>}
+                                                            {(calc.sgstAmount || 0) > 0 && <span>SGST: ₹{calc.sgstAmount?.toFixed(2)}</span>}
+                                                            {(calc.cgstAmount || 0) > 0 && <span>CGST: ₹{calc.cgstAmount?.toFixed(2)}</span>}
+                                                            {(calc.igstAmount || 0) > 0 && <span>IGST: ₹{calc.igstAmount?.toFixed(2)}</span>}
+                                                            <span className="font-bold text-amber-100">Total: ₹{calc.amount?.toFixed(2)}</span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Items Table */}
+                                {purchaseInvoice.items.length > 0 && (
+                                    <Card className="backdrop-blur-2xl bg-white/10 border border-amber-400/20 rounded-3xl">
+                                        <CardHeader>
+                                            <CardTitle className="text-lg font-bold text-amber-100">
+                                                Items ({purchaseInvoice.items.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="border-b border-amber-400/20 text-amber-300/70">
+                                                            <th className="text-left py-2 px-2">#</th>
+                                                            <th className="text-left py-2 px-2">Item</th>
+                                                            <th className="text-right py-2 px-2">Qty</th>
+                                                            <th className="text-right py-2 px-2">Price</th>
+                                                            <th className="text-right py-2 px-2">Disc</th>
+                                                            <th className="text-right py-2 px-2">Tax</th>
+                                                            <th className="text-right py-2 px-2">Amount</th>
+                                                            <th className="text-center py-2 px-2"></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {purchaseInvoice.items.map((item, idx) => (
+                                                            <tr key={item.id} className="border-b border-amber-400/10 hover:bg-white/5">
+                                                                <td className="py-2 px-2 text-amber-300/60">{idx + 1}</td>
+                                                                <td className="py-2 px-2">
+                                                                    <div className="text-amber-100 font-medium">{item.itemName}</div>
+                                                                    <div className="text-amber-300/50 text-xs">
+                                                                        {item.itemCode && `${item.itemCode} • `}{item.hsnCode && `HSN: ${item.hsnCode}`}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-2 text-right text-amber-100">{item.quantity} {item.unit}</td>
+                                                                <td className="py-2 px-2 text-right text-amber-100">₹{item.pricePerUnit.toFixed(2)}</td>
+                                                                <td className="py-2 px-2 text-right text-amber-200/70">
+                                                                    {item.discountAmount > 0 ? `-₹${item.discountAmount.toFixed(2)}` : '-'}
+                                                                </td>
+                                                                <td className="py-2 px-2 text-right">
+                                                                    <div className="text-amber-200/70">₹{item.taxAmount.toFixed(2)}</div>
+                                                                    <div className="text-amber-400/50 text-xs">
+                                                                        {item.isInterState
+                                                                            ? `IGST ${item.igstRate}%`
+                                                                            : `S${item.sgstRate}% C${item.cgstRate}%`
+                                                                        }
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-2 text-right font-bold text-amber-100">₹{item.amount.toFixed(2)}</td>
+                                                                <td className="py-2 px-2 text-center">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => removePurchaseItem(item.id)}
+                                                                        className="text-red-300 hover:text-red-100 hover:bg-red-500/20 h-7 w-7 p-0"
+                                                                    >
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+
+                            {/* Right Column - Summary Panel (1 col) */}
+                            <div className="col-span-1 space-y-6">
+                                <Card className="backdrop-blur-2xl bg-white/10 border border-amber-400/20 rounded-3xl sticky top-6">
+                                    <CardHeader>
+                                        <CardTitle className="text-lg font-bold text-amber-100 flex items-center gap-2">
+                                            <Calculator className="h-5 w-5 text-amber-400" />
+                                            Summary
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* Subtotal */}
+                                        <div className="flex justify-between text-amber-200/80">
+                                            <span>Subtotal</span>
+                                            <span>₹{purchaseInvoice.subtotal.toFixed(2)}</span>
+                                        </div>
+
+                                        {/* GST Breakdown */}
+                                        {purchaseInvoice.totalSgst > 0 && (
+                                            <div className="flex justify-between text-amber-300/70 text-sm">
+                                                <span>SGST</span>
+                                                <span>₹{purchaseInvoice.totalSgst.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {purchaseInvoice.totalCgst > 0 && (
+                                            <div className="flex justify-between text-amber-300/70 text-sm">
+                                                <span>CGST</span>
+                                                <span>₹{purchaseInvoice.totalCgst.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {purchaseInvoice.totalIgst > 0 && (
+                                            <div className="flex justify-between text-orange-300/70 text-sm">
+                                                <span>IGST</span>
+                                                <span>₹{purchaseInvoice.totalIgst.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between text-amber-200/80 text-sm">
+                                            <span>Total Tax</span>
+                                            <span>₹{purchaseInvoice.totalTax.toFixed(2)}</span>
+                                        </div>
+
+                                        <div className="border-t border-amber-400/20 pt-3 flex justify-between font-bold text-xl text-amber-100">
+                                            <span className="flex items-center gap-1"><IndianRupee className="h-5 w-5" /> Total</span>
+                                            <span>₹{purchaseInvoice.total.toFixed(2)}</span>
+                                        </div>
+
+                                        {/* Paid / Balance */}
+                                        <div className="border-t border-amber-400/20 pt-3 space-y-3">
+                                            <div className="space-y-2">
+                                                <Label className="text-amber-100">Amount Paid</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={purchaseInvoice.paid || ''}
+                                                    onChange={(e) => {
+                                                        const paid = Number(e.target.value) || 0;
+                                                        setPurchaseInvoice(prev => ({
+                                                            ...prev,
+                                                            paid,
+                                                            balance: prev.total - paid,
+                                                        }));
+                                                    }}
+                                                    className="bg-white/5 border-amber-400/30 text-amber-100"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-amber-300/70">Balance Due</span>
+                                                <span className={`font-bold ${purchaseInvoice.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                    ₹{purchaseInvoice.balance.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="border-t border-amber-400/20 pt-3 space-y-2">
+                                            <Button
+                                                onClick={savePurchaseInvoice}
+                                                disabled={isPurchaseSaving || purchaseInvoice.items.length === 0}
+                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold h-12 rounded-xl"
+                                            >
+                                                {isPurchaseSaving ? (
+                                                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>
+                                                ) : (
+                                                    <><Save className="h-4 w-4 mr-2" /> Save Purchase Invoice</>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={resetPurchaseForm}
+                                                className="w-full border-amber-400/30 text-amber-300 hover:bg-white/5 rounded-xl"
+                                            >
+                                                Reset Form
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="voice">

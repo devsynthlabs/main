@@ -20,6 +20,7 @@ import fraudDetectionRoutes from "./routes/fraudDetectionRoutes.js";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
 import invoiceSummaryRoutes from "./routes/invoiceSummaryRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import purchaseInvoiceRoutes from "./routes/purchaseInvoiceRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -463,6 +464,7 @@ app.use("/api/fraud-detection", fraudDetectionRoutes);
 app.use("/api/invoice", invoiceRoutes);
 app.use("/api/invoice-summary", invoiceSummaryRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/purchase-invoice", purchaseInvoiceRoutes);
 
 // ✅ Start Server (after MongoDB connection)
 const PORT = process.env.PORT || 5000;
