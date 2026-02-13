@@ -23,6 +23,7 @@ import BankReconciliation from "./pages/BankReconciliation";
 import FraudDetection from "./pages/FraudDetection";
 import AutomationInvoice from "./pages/AutomationInvoice";
 import PublicInvoiceView from "./pages/PublicInvoiceView";
+import PublicPurchaseInvoiceView from "./pages/PublicPurchaseInvoiceView";
 import ServerIssues from "./pages/ServerIssues";
 
 
@@ -68,6 +69,7 @@ const App = () => {
             <Route path="/invoice" element={isMaintenanceMode ? <ServerIssues /> : <AutomationInvoice />} />
             <Route path="/invoice/ocr" element={isMaintenanceMode ? <ServerIssues /> : <AutomationInvoice />} />
             <Route path="/invoice/view/:id" element={<PublicInvoiceView />} />
+            <Route path="/purchase-invoice/view/:id" element={<PublicPurchaseInvoiceView />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

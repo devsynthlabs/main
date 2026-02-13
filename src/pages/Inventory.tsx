@@ -506,9 +506,14 @@ const Inventory = () => {
         toast.success("Purchase invoice exported to CSV!");
     };
 
-    // Print purchase invoice
+    // Print purchase invoice - open public view in new tab
     const printPurchaseInvoice = () => {
-        window.print();
+        if (!lastSavedPurchaseId) {
+            toast.error("Please save the invoice first before printing.");
+            return;
+        }
+        const url = `${window.location.origin}/purchase-invoice/view/${lastSavedPurchaseId}`;
+        window.open(url, '_blank');
     };
 
     // Copy purchase invoice details to clipboard
@@ -548,22 +553,22 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
         }
 
         const supplierName = purchaseInvoice.supplierName || 'Supplier';
+        const shareLink = `${window.location.origin}/purchase-invoice/view/${lastSavedPurchaseId}`;
 
         let message = `*PURCHASE INVOICE: ${purchaseInvoice.billNo}*\n`;
         message += `__________________________\n\n`;
-        message += `Supplier: *${supplierName}*\n`;
-        if (purchaseInvoice.gstin) message += `GSTIN: ${purchaseInvoice.gstin}\n`;
-        message += `Date: ${purchaseInvoice.billDate}\n\n`;
-        message += `*Items:*\n`;
-        purchaseInvoice.items.forEach((item, i) => {
-            message += `${i + 1}. ${item.itemName} - ${item.quantity} ${item.unit} x ${item.pricePerUnit} = ${item.amount}\n`;
-        });
-        message += `\n*Total: ${purchaseInvoice.total.toFixed(2)}*\n`;
-        if (purchaseInvoice.paid > 0) {
-            message += `Paid: ${purchaseInvoice.paid.toFixed(2)}\n`;
-            message += `Balance: ${purchaseInvoice.balance.toFixed(2)}\n`;
+        message += `Dear *${supplierName}*,\n\n`;
+        message += `A purchase invoice has been recorded for your recent transaction.\n\n`;
+        message += `*Bill Summary:*\n`;
+        message += `• Bill No: #${purchaseInvoice.billNo}\n`;
+        message += `• Date: ${purchaseInvoice.billDate}\n`;
+        message += `• Total Amount: ₹${purchaseInvoice.total.toFixed(2)}\n\n`;
+        message += `You can view the full invoice details using the link below:\n`;
+        message += `🔗 ${shareLink}\n\n`;
+        if (purchaseInvoice.balance > 0) {
+            message += `Balance Due: ₹${purchaseInvoice.balance.toFixed(2)}\n\n`;
         }
-        message += `\n__________________________\n`;
+        message += `__________________________\n`;
         message += `_Powered by Sri Andal Financial Automation_`;
 
         const encodedMessage = encodeURIComponent(message);
