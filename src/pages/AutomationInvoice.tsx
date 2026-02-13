@@ -786,37 +786,67 @@ const AutomationInvoice = () => {
     }
 
     if (format === 'csv') {
-      // Invoice Header Info
+      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+      const items = currentInvoice.items;
+      const anyTax = items.some(i => i.taxAmount > 0);
+      const anyDiscount = items.some(i => i.discountAmount > 0);
+      const anyCode = items.some(i => i.itemCode);
+      const anyHSN = items.some(i => i.hsnCode);
+
+      // Invoice Header — only non-empty fields
       let csvContent = "INVOICE DETAILS\n";
-      csvContent += `Invoice No,${currentInvoice.invoiceNo}\n`;
-      csvContent += `Invoice Date,${currentInvoice.invoiceDate}\n`;
-      csvContent += `Customer Name,${currentInvoice.partyName}\n`;
-      csvContent += `Phone,${currentInvoice.phoneNo}\n`;
-      csvContent += `State of Supply,${currentInvoice.stateOfSupply}\n`;
-      csvContent += `Business State,${currentInvoice.businessState}\n`;
-      csvContent += `Payment Mode,${currentInvoice.saleType}\n`;
+      if (currentInvoice.invoiceNo) csvContent += `Invoice No,${currentInvoice.invoiceNo}\n`;
+      if (currentInvoice.invoiceDate) csvContent += `Invoice Date,${currentInvoice.invoiceDate}\n`;
+      if (currentInvoice.partyName) csvContent += `Customer Name,${esc(currentInvoice.partyName)}\n`;
+      if (currentInvoice.phoneNo) csvContent += `Phone,${currentInvoice.phoneNo}\n`;
+      if (currentInvoice.stateOfSupply) csvContent += `State of Supply,${currentInvoice.stateOfSupply}\n`;
+      if (currentInvoice.businessState) csvContent += `Business State,${currentInvoice.businessState}\n`;
+      if (currentInvoice.saleType) csvContent += `Payment Mode,${currentInvoice.saleType}\n`;
       csvContent += "\n";
 
-      // Items Header
+      // Items — dynamic columns based on actual data
       csvContent += "ITEMS\n";
-      csvContent += "Item Name,Item Code,HSN Code,Quantity,Unit,Price,Discount,SGST Rate,SGST Amt,CGST Rate,CGST Amt,IGST Rate,IGST Amt,Total Amount\n";
+      const cols: string[] = ['Item Name'];
+      if (anyCode) cols.push('Item Code');
+      if (anyHSN) cols.push('HSN Code');
+      cols.push('Quantity', 'Unit', 'Price');
+      if (anyDiscount) cols.push('Discount');
+      if (anyTax) cols.push('Tax %', 'Tax Amt');
+      cols.push('Line Total');
+      csvContent += cols.join(',') + '\n';
 
-      // Items Data
-      currentInvoice.items.forEach(item => {
-        csvContent += `"${item.itemName}","${item.itemCode || '-'}","${item.hsnCode || '-'}",${item.quantity},"${item.unit}",${item.pricePerUnit},${item.discountAmount},${item.sgstRate}%,${item.sgstAmount},${item.cgstRate}%,${item.cgstAmount},${item.igstRate}%,${item.igstAmount},${item.amount}\n`;
+      items.forEach(item => {
+        const row: string[] = [esc(item.itemName)];
+        if (anyCode) row.push(esc(item.itemCode || ''));
+        if (anyHSN) row.push(esc(item.hsnCode || ''));
+        row.push(String(item.quantity), esc(item.unit), String(item.pricePerUnit));
+        if (anyDiscount) row.push(String(item.discountAmount));
+        if (anyTax) {
+          const taxPct = item.isInterState ? `IGST ${item.igstRate}%` : `${item.sgstRate + item.cgstRate}%`;
+          row.push(item.taxAmount > 0 ? taxPct : '0%');
+          row.push(String(item.taxAmount));
+        }
+        row.push(String(item.amount));
+        csvContent += row.join(',') + '\n';
       });
 
-      // Summary
-      csvContent += "\n";
-      csvContent += "SUMMARY\n";
-      csvContent += `Subtotal,${currentInvoice.subtotal}\n`;
-      csvContent += `Total SGST,${currentInvoice.totalSgst}\n`;
-      csvContent += `Total CGST,${currentInvoice.totalCgst}\n`;
-      csvContent += `Total IGST,${currentInvoice.totalIgst}\n`;
-      csvContent += `Total Tax,${currentInvoice.totalTax}\n`;
-      csvContent += `Grand Total,${currentInvoice.total}\n`;
-      csvContent += `Amount Paid,${currentInvoice.paid}\n`;
-      csvContent += `Balance Due,${currentInvoice.balance}\n`;
+      // Summary — only non-zero values
+      csvContent += "\nSUMMARY\n";
+      // Recalculate from items to ensure correctness
+      const subtotal = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit) - i.discountAmount, 0);
+      const totalTax = items.reduce((sum, i) => sum + i.taxAmount, 0);
+      const grandTotal = items.reduce((sum, i) => sum + i.amount, 0);
+
+      if (subtotal > 0) csvContent += `Subtotal,${Math.round(subtotal * 100) / 100}\n`;
+      if (anyDiscount) {
+        const discTotal = items.reduce((sum, i) => sum + i.discountAmount, 0);
+        if (discTotal > 0) csvContent += `Total Discount,${Math.round(discTotal * 100) / 100}\n`;
+      }
+      if (totalTax > 0) csvContent += `Total Tax,${Math.round(totalTax * 100) / 100}\n`;
+      csvContent += `Grand Total,${Math.round(grandTotal * 100) / 100}\n`;
+      if (currentInvoice.paid > 0) csvContent += `Amount Paid,${currentInvoice.paid}\n`;
+      const balance = grandTotal - currentInvoice.paid;
+      if (balance > 0) csvContent += `Balance Due,${Math.round(balance * 100) / 100}\n`;
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
@@ -1581,60 +1611,69 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       Items ({currentInvoice.items.length})
                     </h2>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-white/5">
-                            <th className="text-left py-2 px-2 text-blue-200">Item</th>
-                            <th className="text-center py-2 px-2 text-blue-200">Qty</th>
-                            <th className="text-right py-2 px-2 text-blue-200">Price</th>
-                            <th className="text-right py-2 px-2 text-blue-200">Disc.</th>
-                            <th className="text-right py-2 px-2 text-blue-200">SGST</th>
-                            <th className="text-right py-2 px-2 text-blue-200">CGST</th>
-                            <th className="text-right py-2 px-2 text-blue-200">IGST</th>
-                            <th className="text-right py-2 px-2 text-blue-200">Amount</th>
-                            <th className="text-center py-2 px-2 text-blue-200"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentInvoice.items.map((item) => (
-                            <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5">
-                              <td className="py-2 px-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white text-sm">{item.itemName}</span>
-                                  {item.stockReserved && (
-                                    <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded">STOCK</span>
+                      {(() => {
+                        const items = currentInvoice.items;
+                        const anyTax = items.some(i => i.taxAmount > 0);
+                        const anyDiscount = items.some(i => i.discountAmount > 0);
+                        return (
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-white/5">
+                                <th className="text-left py-2 px-2 text-blue-200">Item</th>
+                                <th className="text-center py-2 px-2 text-blue-200">Qty</th>
+                                <th className="text-right py-2 px-2 text-blue-200">Price</th>
+                                {anyDiscount && <th className="text-right py-2 px-2 text-blue-200">Disc.</th>}
+                                {anyTax && <th className="text-right py-2 px-2 text-blue-200">Tax %</th>}
+                                {anyTax && <th className="text-right py-2 px-2 text-blue-200">Tax Amt</th>}
+                                <th className="text-right py-2 px-2 text-blue-200">Amount</th>
+                                <th className="text-center py-2 px-2 text-blue-200"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((item) => (
+                                <tr key={item.id} className="border-b border-blue-400/10 hover:bg-white/5">
+                                  <td className="py-2 px-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-white text-sm">{item.itemName}</span>
+                                      {item.stockReserved && (
+                                        <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded">STOCK</span>
+                                      )}
+                                    </div>
+                                    <div className="text-blue-400/60 text-xs">{item.hsnCode || item.itemCode || ''}</div>
+                                  </td>
+                                  <td className="py-2 px-2 text-center text-blue-200">{item.quantity}</td>
+                                  <td className="py-2 px-2 text-right text-blue-200">₹{item.pricePerUnit.toFixed(2)}</td>
+                                  {anyDiscount && (
+                                    <td className="py-2 px-2 text-right text-orange-300">
+                                      {item.discountAmount > 0 ? `₹${item.discountAmount.toFixed(2)}` : ''}
+                                    </td>
                                   )}
-                                </div>
-                                <div className="text-blue-400/60 text-xs">{item.hsnCode || item.itemCode || '-'}</div>
-                              </td>
-                              <td className="py-2 px-2 text-center text-blue-200">{item.quantity}</td>
-                              <td className="py-2 px-2 text-right text-blue-200">₹{item.pricePerUnit}</td>
-                              <td className="py-2 px-2 text-right text-orange-300">₹{item.discountAmount}</td>
-                              <td className="py-2 px-2 text-right text-indigo-300">
-                                {item.sgstAmount > 0 ? (
-                                  <span>₹{item.sgstAmount}<br/><span className="text-[10px] text-indigo-400/60">({item.sgstRate}%)</span></span>
-                                ) : '-'}
-                              </td>
-                              <td className="py-2 px-2 text-right text-indigo-300">
-                                {item.cgstAmount > 0 ? (
-                                  <span>₹{item.cgstAmount}<br/><span className="text-[10px] text-indigo-400/60">({item.cgstRate}%)</span></span>
-                                ) : '-'}
-                              </td>
-                              <td className="py-2 px-2 text-right text-orange-300">
-                                {item.igstAmount > 0 ? (
-                                  <span>₹{item.igstAmount}<br/><span className="text-[10px] text-orange-400/60">({item.igstRate}%)</span></span>
-                                ) : '-'}
-                              </td>
-                              <td className="py-2 px-2 text-right font-bold text-emerald-400">₹{item.amount}</td>
-                              <td className="py-2 px-2 text-center">
-                                <button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:bg-red-500/10 rounded">
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                  {anyTax && (
+                                    <td className="py-2 px-2 text-right text-indigo-300 text-xs">
+                                      {item.taxAmount > 0
+                                        ? item.isInterState
+                                          ? `IGST ${item.igstRate}%`
+                                          : `${item.sgstRate + item.cgstRate}%`
+                                        : ''}
+                                    </td>
+                                  )}
+                                  {anyTax && (
+                                    <td className="py-2 px-2 text-right text-indigo-300">
+                                      {item.taxAmount > 0 ? `₹${item.taxAmount.toFixed(2)}` : ''}
+                                    </td>
+                                  )}
+                                  <td className="py-2 px-2 text-right font-bold text-emerald-400">₹{item.amount.toFixed(2)}</td>
+                                  <td className="py-2 px-2 text-center">
+                                    <button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:bg-red-500/10 rounded">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -1905,89 +1944,6 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
               }}
               onImageProcessed={(imageData) => {
                 setUploadedImage(imageData);
-              }}
-              onAIDataExtracted={(aiData) => {
-                // Auto-populate invoice from AI-extracted data
-                console.log("AI Extracted Data:", aiData);
-
-                // Map AI items to invoice items
-                const newInvoiceItems: InvoiceItem[] = (aiData.items || []).map((item, index) => {
-                  const qty = item.quantity || 1;
-                  const rate = item.rate || 0;
-                  const subtotal = qty * rate;
-                  const taxPct = item.taxPercent || 18;
-
-                  // Determine GST breakdown based on current state comparison
-                  const isInter = isInterStateTransaction();
-                  let sgstRate = 0, cgstRate = 0, igstRate = 0;
-                  let sgstAmount = 0, cgstAmount = 0, igstAmount = 0;
-
-                  if (isInter) {
-                    igstRate = taxPct;
-                    igstAmount = (subtotal * taxPct) / 100;
-                  } else {
-                    sgstRate = taxPct / 2;
-                    cgstRate = taxPct / 2;
-                    sgstAmount = (subtotal * sgstRate) / 100;
-                    cgstAmount = (subtotal * cgstRate) / 100;
-                  }
-
-                  const totalTaxAmount = sgstAmount + cgstAmount + igstAmount;
-
-                  return {
-                    id: Math.random().toString(36).substr(2, 9),
-                    inventoryItemId: undefined,
-                    itemName: item.name || `Item ${index + 1}`,
-                    itemCode: '',
-                    hsnCode: item.hsnCode || '',
-                    quantity: qty,
-                    unit: item.unit || 'Pcs',
-                    pricePerUnit: rate,
-                    priceWithTax: false,
-                    discountPercent: 0,
-                    discountAmount: item.discount || 0,
-                    taxPercent: taxPct,
-                    taxAmount: totalTaxAmount,
-                    sgstRate,
-                    sgstAmount,
-                    cgstRate,
-                    cgstAmount,
-                    igstRate,
-                    igstAmount,
-                    isInterState: isInter,
-                    amount: subtotal + totalTaxAmount - (item.discount || 0),
-                    stockReserved: false
-                  };
-                });
-
-                const newTotal = newInvoiceItems.reduce((sum, item) => sum + item.amount, 0);
-                const paid = aiData.totals?.amountPaid || 0;
-
-                setCurrentInvoice(prev => ({
-                  ...prev,
-                  // Invoice details
-                  invoiceNo: aiData.invoice?.number || prev.invoiceNo,
-                  invoiceDate: aiData.invoice?.date || prev.invoiceDate,
-                  // Customer/Party details
-                  partyName: aiData.vendor?.name || aiData.customer?.name || prev.partyName,
-                  phoneNo: aiData.vendor?.phone || aiData.customer?.phone || prev.phoneNo,
-                  customerEmail: aiData.vendor?.email || prev.customerEmail,
-                  customerGSTIN: aiData.vendor?.gstin || aiData.customer?.gstin || prev.customerGSTIN,
-                  // Items
-                  items: newInvoiceItems.length > 0 ? newInvoiceItems : prev.items,
-                  // Totals
-                  total: newInvoiceItems.length > 0 ? newTotal : prev.total,
-                  paid: paid,
-                  balance: newInvoiceItems.length > 0 ? newTotal - paid : prev.balance,
-                  // Payment method
-                  saleType: aiData.paymentInfo?.method === 'upi' ? 'gpay' :
-                            aiData.paymentInfo?.method === 'cash' ? 'cash' :
-                            aiData.paymentInfo?.method === 'bank_transfer' ? 'netbanking' : prev.saleType
-                }));
-
-                // Switch to the Create tab
-                setActiveTab('create');
-                toast.success(`✅ AI extracted ${newInvoiceItems.length} items! Review the invoice details.`);
               }}
             />
           </div>

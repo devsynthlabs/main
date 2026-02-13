@@ -38,7 +38,7 @@ const verifyToken = (req, res, next) => {
 // POST - Save scanned document
 router.post("/save", verifyToken, async (req, res) => {
     try {
-        const { fileData, fileName } = req.body;
+        const { fileData, fileName, mimeType } = req.body;
 
         if (!fileData) {
             return res.status(400).json({ message: "No file data provided" });
@@ -51,7 +51,7 @@ router.post("/save", verifyToken, async (req, res) => {
             userId: req.user.id,
             fileName: fileName || `scan_${Date.now()}.pdf`,
             fileData,
-            mimeType: "application/pdf",
+            mimeType: mimeType || "application/pdf",
             fileSize,
         });
 
