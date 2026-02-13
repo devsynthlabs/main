@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Package, Search, Archive, ShoppingCart, Loader2, Shield, Mic, Save, FileText, Calculator, IndianRupee, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Search, Archive, ShoppingCart, Loader2, Shield, Mic, Save, FileText, Calculator, IndianRupee, AlertCircle, Download, Printer, Copy, MessageCircle } from "lucide-react";
 import { parseVoiceInventoryText } from "@/lib/voiceInventoryParser";
 import { API_BASE_URL } from "@/lib/api";
 import {
@@ -201,6 +201,7 @@ const Inventory = () => {
     });
 
     const [isPurchaseSaving, setIsPurchaseSaving] = useState(false);
+    const [lastSavedPurchaseId, setLastSavedPurchaseId] = useState<string | null>(null);
 
     const isInterStatePurchase = (): boolean => {
         const supplierState = purchaseInvoice.stateOfSupply;
@@ -390,7 +391,7 @@ const Inventory = () => {
                 if (updated > 0) msg += ` ${updated} item(s) stock updated.`;
 
                 toast.success(msg);
-                resetPurchaseForm();
+                setLastSavedPurchaseId(data.invoice?._id || null);
                 fetchItems(); // Refresh inventory items list
             } else {
                 const data = await res.json();
@@ -424,6 +425,160 @@ const Inventory = () => {
             paid: 0,
             balance: 0,
         });
+        setLastSavedPurchaseId(null);
+    };
+
+    // Export purchase invoice as CSV
+    const exportPurchaseCSV = () => {
+        if (purchaseInvoice.items.length === 0) {
+            toast.error("No items to export. Please add items first.");
+            return;
+        }
+
+        const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+        const items = purchaseInvoice.items;
+        const anyTax = items.some(i => i.taxAmount > 0);
+        const anyDiscount = items.some(i => i.discountAmount > 0);
+        const anyCode = items.some(i => i.itemCode);
+        const anyHSN = items.some(i => i.hsnCode);
+
+        // Header — only non-empty fields
+        let csvContent = "PURCHASE INVOICE DETAILS\n";
+        if (purchaseInvoice.billNo) csvContent += `Bill No,${purchaseInvoice.billNo}\n`;
+        if (purchaseInvoice.billDate) csvContent += `Bill Date,${purchaseInvoice.billDate}\n`;
+        if (purchaseInvoice.supplierName) csvContent += `Supplier Name,${esc(purchaseInvoice.supplierName)}\n`;
+        if (purchaseInvoice.phone) csvContent += `Phone,${purchaseInvoice.phone}\n`;
+        if (purchaseInvoice.gstin) csvContent += `GSTIN,${purchaseInvoice.gstin}\n`;
+        if (purchaseInvoice.stateOfSupply) csvContent += `State of Supply,${purchaseInvoice.stateOfSupply}\n`;
+        if (purchaseInvoice.businessState) csvContent += `Business State,${purchaseInvoice.businessState}\n`;
+        csvContent += "\n";
+
+        // Items — dynamic columns, no 6 GST columns
+        csvContent += "ITEMS\n";
+        const cols: string[] = ['Item Name'];
+        if (anyCode) cols.push('Item Code');
+        if (anyHSN) cols.push('HSN Code');
+        cols.push('Quantity', 'Unit', 'Price');
+        if (anyDiscount) cols.push('Discount');
+        if (anyTax) cols.push('Tax %', 'Tax Amt');
+        cols.push('Line Total');
+        csvContent += cols.join(',') + '\n';
+
+        items.forEach(item => {
+            const row: string[] = [esc(item.itemName)];
+            if (anyCode) row.push(esc(item.itemCode || ''));
+            if (anyHSN) row.push(esc(item.hsnCode || ''));
+            row.push(String(item.quantity), esc(item.unit), String(item.pricePerUnit));
+            if (anyDiscount) row.push(String(item.discountAmount));
+            if (anyTax) {
+                const taxPct = item.isInterState ? `IGST ${item.igstRate}%` : `${item.sgstRate + item.cgstRate}%`;
+                row.push(item.taxAmount > 0 ? taxPct : '0%');
+                row.push(String(item.taxAmount));
+            }
+            row.push(String(item.amount));
+            csvContent += row.join(',') + '\n';
+        });
+
+        // Summary — recalculate from items, only non-zero values
+        csvContent += "\nSUMMARY\n";
+        const subtotal = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit) - i.discountAmount, 0);
+        const totalTax = items.reduce((sum, i) => sum + i.taxAmount, 0);
+        const grandTotal = items.reduce((sum, i) => sum + i.amount, 0);
+
+        if (subtotal > 0) csvContent += `Subtotal,${Math.round(subtotal * 100) / 100}\n`;
+        if (anyDiscount) {
+            const discTotal = items.reduce((sum, i) => sum + i.discountAmount, 0);
+            if (discTotal > 0) csvContent += `Total Discount,${Math.round(discTotal * 100) / 100}\n`;
+        }
+        if (totalTax > 0) csvContent += `Total Tax,${Math.round(totalTax * 100) / 100}\n`;
+        csvContent += `Grand Total,${Math.round(grandTotal * 100) / 100}\n`;
+        if (purchaseInvoice.paid > 0) csvContent += `Amount Paid,${purchaseInvoice.paid}\n`;
+        const balance = grandTotal - purchaseInvoice.paid;
+        if (balance > 0) csvContent += `Balance Due,${Math.round(balance * 100) / 100}\n`;
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchase_invoice_${purchaseInvoice.billNo}_${purchaseInvoice.billDate}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success("Purchase invoice exported to CSV!");
+    };
+
+    // Print purchase invoice - open public view in new tab
+    const printPurchaseInvoice = () => {
+        if (!lastSavedPurchaseId) {
+            toast.error("Please save the invoice first before printing.");
+            return;
+        }
+        const url = `${window.location.origin}/purchase-invoice/view/${lastSavedPurchaseId}`;
+        window.open(url, '_blank');
+    };
+
+    // Copy purchase invoice details to clipboard
+    const copyPurchaseDetails = () => {
+        const itemsList = purchaseInvoice.items.map(item =>
+            `- ${item.itemName}: ${item.quantity} ${item.unit} x ${item.pricePerUnit} = ${item.amount}`
+        ).join('\n');
+
+        const details = `Purchase Invoice: ${purchaseInvoice.billNo}
+Date: ${purchaseInvoice.billDate}
+Supplier: ${purchaseInvoice.supplierName}
+Phone: ${purchaseInvoice.phone}
+GSTIN: ${purchaseInvoice.gstin}
+
+Items:
+${itemsList}
+
+Total: ${purchaseInvoice.total.toFixed(2)}
+Paid: ${purchaseInvoice.paid.toFixed(2)}
+Balance: ${purchaseInvoice.balance.toFixed(2)}`;
+
+        navigator.clipboard.writeText(details)
+            .then(() => toast.success("Purchase invoice details copied to clipboard!"))
+            .catch(() => toast.error("Failed to copy to clipboard"));
+    };
+
+    // Share purchase invoice on WhatsApp
+    const sharePurchaseOnWhatsApp = () => {
+        if (purchaseInvoice.items.length === 0) {
+            toast.error("Add items before sharing");
+            return;
+        }
+
+        if (!lastSavedPurchaseId) {
+            toast.error("Please save the invoice first before sharing.");
+            return;
+        }
+
+        const supplierName = purchaseInvoice.supplierName || 'Supplier';
+        const shareLink = `${window.location.origin}/purchase-invoice/view/${lastSavedPurchaseId}`;
+
+        let message = `*PURCHASE INVOICE: ${purchaseInvoice.billNo}*\n`;
+        message += `__________________________\n\n`;
+        message += `Dear *${supplierName}*,\n\n`;
+        message += `A purchase invoice has been recorded for your recent transaction.\n\n`;
+        message += `*Bill Summary:*\n`;
+        message += `• Bill No: #${purchaseInvoice.billNo}\n`;
+        message += `• Date: ${purchaseInvoice.billDate}\n`;
+        message += `• Total Amount: ₹${purchaseInvoice.total.toFixed(2)}\n\n`;
+        message += `You can view the full invoice details using the link below:\n`;
+        message += `🔗 ${shareLink}\n\n`;
+        if (purchaseInvoice.balance > 0) {
+            message += `Balance Due: ₹${purchaseInvoice.balance.toFixed(2)}\n\n`;
+        }
+        message += `__________________________\n`;
+        message += `_Powered by Sri Andal Financial Automation_`;
+
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    };
+
+    // Save and create new purchase invoice
+    const saveAndNewPurchase = async () => {
+        await savePurchaseInvoice();
+        resetPurchaseForm();
     };
 
     // Voice State
@@ -1736,6 +1891,41 @@ const Inventory = () => {
                                                     <><Save className="h-4 w-4 mr-2" /> Save Purchase Invoice</>
                                                 )}
                                             </Button>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button onClick={printPurchaseInvoice} variant="outline" className="py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
+                                                    <Printer className="h-4 w-4 mr-1" />
+                                                    Print
+                                                </Button>
+                                                <Button onClick={copyPurchaseDetails} variant="outline" className="py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
+                                                    <Copy className="h-4 w-4 mr-1" />
+                                                    Copy
+                                                </Button>
+                                            </div>
+
+                                            <button
+                                                onClick={sharePurchaseOnWhatsApp}
+                                                className="w-full py-3 bg-[#25D366]/10 text-[#25D366] rounded-xl font-bold hover:bg-[#25D366]/20 transition-all duration-300 border border-[#25D366]/30 hover:border-[#25D366]/50 flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/10"
+                                            >
+                                                <MessageCircle className="h-5 w-5" />
+                                                Share on WhatsApp
+                                            </button>
+
+                                            <Button
+                                                onClick={saveAndNewPurchase}
+                                                disabled={isPurchaseSaving || purchaseInvoice.items.length === 0}
+                                                variant="outline"
+                                                className="w-full py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl"
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Save & New
+                                            </Button>
+
+                                            <Button onClick={exportPurchaseCSV} variant="outline" className="w-full py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
+                                                <Download className="h-4 w-4 mr-1" />
+                                                Export CSV
+                                            </Button>
+
                                             <Button
                                                 variant="outline"
                                                 onClick={resetPurchaseForm}

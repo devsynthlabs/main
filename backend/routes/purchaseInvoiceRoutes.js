@@ -70,6 +70,20 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+// GET - Public (no auth) purchase invoice by ID
+router.get("/public/:id", async (req, res) => {
+    try {
+        const invoice = await PurchaseInvoice.findById(req.params.id);
+        if (!invoice) {
+            return res.status(404).json({ message: "Purchase invoice not found" });
+        }
+        res.json(invoice);
+    } catch (error) {
+        console.error("Error fetching public purchase invoice:", error);
+        res.status(500).json({ message: "Error fetching purchase invoice" });
+    }
+});
+
 // POST - Create purchase invoice & add items to inventory stock
 router.post("/create", verifyToken, async (req, res) => {
     try {

@@ -18,9 +18,7 @@ const getGenAI = () => {
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
 // Vision-capable models to try in order
 const OPENROUTER_MODELS = [
-  "openrouter/free",                      // Auto-routes to free models with vision
-  "google/gemini-3-flash-preview",        // Latest Gemini on OpenRouter
-  "google/gemini-2.0-flash",              // Gemini 2.0 on OpenRouter
+  "openrouter/free",                      // Best free vision model (200K context, auto-routes to best available)
 ];
 
 const callOpenRouter = async (prompt, base64Data, mimeType) => {
@@ -93,91 +91,58 @@ const callOpenRouter = async (prompt, base64Data, mimeType) => {
   throw lastError || new Error("All OpenRouter models failed");
 };
 
-// Invoice OCR extraction prompt
-const INVOICE_EXTRACTION_PROMPT = `You are an expert invoice data extractor. Analyze this invoice image and extract ALL information in a structured JSON format.
+// Invoice OCR extraction prompt — outputs CSV directly
+const INVOICE_EXTRACTION_PROMPT = `
+You are an invoice-to-CSV converter.
 
-IMPORTANT RULES:
-1. Extract ALL line items you can find in the invoice
-2. For amounts, return numbers only (no currency symbols)
-3. For dates, use YYYY-MM-DD format
-4. If a field is not found, use null
-5. Be thorough - extract every item, even if partially visible
-6. For GST/Tax: look for SGST, CGST, IGST, VAT, or any tax percentage
+Extract every visible labeled field and every visible table row from this invoice image and convert it into CSV format.
 
-Return ONLY valid JSON in this exact structure:
-{
-  "vendor": {
-    "name": "Company/Vendor name from invoice",
-    "address": "Full address if available",
-    "gstin": "GST number if available",
-    "phone": "Phone number if available",
-    "email": "Email if available"
-  },
-  "invoice": {
-    "number": "Invoice number",
-    "date": "YYYY-MM-DD",
-    "dueDate": "YYYY-MM-DD or null"
-  },
-  "customer": {
-    "name": "Customer/Bill To name",
-    "address": "Customer address if available",
-    "gstin": "Customer GST if available",
-    "phone": "Customer phone if available"
-  },
-  "items": [
-    {
-      "name": "Item/Product name",
-      "description": "Description if available",
+STRICT RULES:
+1. Output ONLY raw CSV text. No markdown, no backticks, no explanations.
+2. Do NOT invent, infer, or recalculate anything.
+3. Extract ONLY what is visibly present in the image.
+4. Preserve spelling, capitalization, and wording exactly as shown.
+5. Remove currency symbols and thousand separators.
+   Example: ₹1,500.50 → 1500.50
+6. Preserve decimal precision exactly as shown.
+7. If a value contains a comma, wrap it in double quotes.
+8. If a field contains multiple lines (e.g., address), combine into one value separated by spaces.
+9. If a visible label has no value, output the label with an empty value.
 
-      "quantity": 1,
-      "unit": "Pcs/Kg/Nos etc",
-      "rate": 100.00,
-      "discount": 0,
-      "taxPercent": 18,
-      "taxAmount": 18.00,
-      "amount": 118.00
-    }
-  ],
-  "totals": {
-    "subtotal": 100.00,
-    "discountTotal": 0,
-    "sgst": 9.00,
-    "cgst": 9.00,
-    "igst": 0,
-    "taxTotal": 18.00,
-    "grandTotal": 118.00,
-    "amountPaid": 0,
-    "balanceDue": 118.00
-  },
-  "paymentInfo": {
-    "method": "cash/upi/bank_transfer/cheque/credit_card",
-    "bankDetails": "Bank account details if available",
-    "upiId": "UPI ID if available"
-  },
-  "notes": "Any additional notes or terms"
-}
+FORMAT — Three sections separated by one blank line:
 
-Analyze the invoice document (image or PDF) carefully and extract all data.`;
+PART 1 — Invoice Details
+One row per field in this format:
+label,value
 
-// Helper: parse AI response text into structured JSON
-const parseAIResponse = (text) => {
-  // Try to extract JSON from the response (it might have markdown code blocks)
-  const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ||
-    text.match(/```\s*([\s\S]*?)\s*```/) ||
-    [null, text];
+Include all visible fields:
+Invoice number, dates, vendor info, buyer info, GSTIN, phone, email, bank details, payment terms, etc.
 
-  const jsonStr = jsonMatch[1] || text;
-  try {
-    return JSON.parse(jsonStr.trim());
-  } catch (parseError) {
-    // Try to salvage partial data
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}') + 1;
-    if (jsonStart !== -1 && jsonEnd > jsonStart) {
-      return JSON.parse(text.substring(jsonStart, jsonEnd));
-    }
-    throw new Error("Could not find valid JSON in response");
+PART 2 — Line Items Table
+First row = column headers exactly as shown.
+Then include every visible item row.
+
+PART 3 — Totals
+One row per total field in this format:
+label,value
+
+Include subtotal, discounts, tax lines, grand total, paid amount, balance, etc.
+
+Now convert this invoice image to CSV:
+`;
+
+// Helper: clean AI response — strip markdown code blocks if present
+const cleanCSVResponse = (text) => {
+  let cleaned = text.trim();
+  // Remove markdown code blocks (```csv ... ``` or ``` ... ```) — greedy to capture all content
+  const codeBlockMatch = cleaned.match(/```(?:csv)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (codeBlockMatch) {
+    cleaned = codeBlockMatch[1].trim();
   }
+  // Also strip any leading/trailing backticks that aren't full code blocks
+  cleaned = cleaned.replace(/^`+|`+$/g, '').trim();
+  console.log("📝 Cleaned CSV length:", cleaned.length, "| First 200 chars:", cleaned.substring(0, 200));
+  return cleaned;
 };
 
 // Helper: process invoice with Gemini (primary)
@@ -185,11 +150,9 @@ const processWithGemini = async (base64Data, mimeType) => {
   const ai = getGenAI();
   if (!ai) throw new Error("Gemini AI not initialized");
 
-  // Try multiple model options in order of preference
-  // Note: 1.5 models are deprecated, only 2.0 models available
   const modelOptions = [
-    "gemini-2.0-flash-lite",    // Lighter model (different quota pool)
-    "gemini-2.0-flash",         // Latest flash model
+    "gemini-2.5-flash-lite",  // Latest 2.5 flash lite
+    "gemini-2.0-flash-lite",
   ];
 
   let lastError = null;
@@ -293,21 +256,12 @@ router.post("/invoice-ocr", async (req, res) => {
       });
     }
 
-    console.log(`📄 Raw ${provider} Response:`, text.substring(0, 500) + "...");
+    console.log(`📄 Raw ${provider} Response (${text.length} chars):`, text.substring(0, 800));
 
-    // Parse the JSON response
-    let extractedData;
-    try {
-      extractedData = parseAIResponse(text);
-    } catch (e) {
-      return res.status(422).json({
-        success: false,
-        message: "Failed to parse AI response. The invoice may be unclear or in an unsupported format.",
-        rawResponse: text.substring(0, 1000)
-      });
-    }
+    // Clean up the CSV response (strip markdown code blocks if present)
+    const csvText = cleanCSVResponse(text);
 
-    console.log(`✅ Successfully extracted invoice data via ${provider}`);
+    console.log(`✅ Successfully extracted invoice CSV via ${provider}`);
 
     // Store the uploaded file in Supabase (auto-deletes after 5 hours)
     let storageInfo = null;
@@ -322,8 +276,8 @@ router.post("/invoice-ocr", async (req, res) => {
 
     res.json({
       success: true,
-      data: extractedData,
-      message: `Invoice data extracted successfully via ${provider}`,
+      csv: csvText,
+      message: `Invoice CSV extracted successfully via ${provider}`,
       provider: provider,
       storage: storageInfo
     });
@@ -382,7 +336,7 @@ router.post("/extract-text", async (req, res) => {
 
     // Try Gemini first with multiple model fallbacks
     if (hasGemini) {
-      const modelOptions = ["gemini-2.0-flash-lite", "gemini-2.0-flash"];
+      const modelOptions = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
 
       for (const modelName of modelOptions) {
         try {
