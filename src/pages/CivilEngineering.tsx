@@ -87,74 +87,37 @@ const CivilEngineering = () => {
     const [projectHistory, setProjectHistory] = useState<Project[]>([]);
     const [filteredHistory, setFilteredHistory] = useState<Project[]>([]);
 
-    // Initialize with sample data or local storage
+    // Fetch history from Backend Database API
     useEffect(() => {
-        const storedHistory = localStorage.getItem('civilEngineeringHistory');
-
-        let initialData: Project[] = [];
-        if (storedHistory) {
+        const fetchHistory = async () => {
             try {
-                initialData = JSON.parse(storedHistory);
-            } catch (e) {
-                console.error("Failed to parse stored history");
-            }
-        }
+                const response = await apiRequest(API_ENDPOINTS.CIVIL_GET_HISTORY);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.length > 0) {
+                        setProjectHistory(data);
+                        setFilteredHistory(data);
 
-        if (initialData.length === 0) {
-            const sampleData: Project[] = [
-                {
-                    id: "1",
-                    projectName: "Residential Tower",
-                    projectId: "PROJ-2024-001",
-                    projectDescription: "Construction of 20-story residential building",
-                    startDate: "2024-01-15",
-                    endDate: "2024-12-15",
-                    tasks: [
-                        { id: "1", name: "A-Site preparation", duration: 5, dependencies: [], es: 0, ef: 5, ls: 25, lf: 30, slack: 25, critical: false },
-                        { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"], es: 0, ef: 10, ls: 0, lf: 10, slack: 0, critical: true },
-                        { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"], es: 10, ef: 30, ls: 10, lf: 30, slack: 0, critical: true },
-                        { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"], es: 0, ef: 15, ls: 15, lf: 30, slack: 15, critical: false },
-                        { id: "5", name: "E-Finishing", duration: 12, dependencies: ["D-MEP"], es: 0, ef: 12, ls: 13, lf: 25, slack: 13, critical: false },
-                        { id: "6", name: "F-Handover", duration: 5, dependencies: ["E-Finishing"], es: 12, ef: 17, ls: 25, lf: 30, slack: 13, critical: false }
-                    ],
-                    criticalPath: ["B-Foundation", "C-Structure"],
-                    totalDuration: 30,
-                    status: "In Progress",
-                    createdAt: "2024-01-10"
-                },
-                {
-                    id: "2",
-                    projectName: "Commercial Complex",
-                    projectId: "PROJ-2024-002",
-                    projectDescription: "Shopping mall with parking facility",
-                    startDate: "2024-02-01",
-                    endDate: "2024-08-01",
-                    tasks: [
-                        { id: "1", name: "Design Approval", duration: 10, dependencies: [], es: 0, ef: 10, ls: 5, lf: 15, slack: 5, critical: false },
-                        { id: "2", name: "Excavation", duration: 7, dependencies: ["Design Approval"], es: 10, ef: 17, ls: 15, lf: 22, slack: 5, critical: false },
-                        { id: "3", name: "Foundation", duration: 12, dependencies: ["Excavation"], es: 17, ef: 29, ls: 22, lf: 34, slack: 5, critical: false },
-                        { id: "4", name: "Main Structure", duration: 25, dependencies: ["Foundation"], es: 29, ef: 54, ls: 34, lf: 59, slack: 5, critical: false },
-                        { id: "5", name: "Utilities", duration: 10, dependencies: ["Foundation"], es: 29, ef: 39, ls: 49, lf: 59, slack: 20, critical: false },
-                        { id: "6", name: "Finishing", duration: 15, dependencies: ["Main Structure", "Utilities"], es: 54, ef: 69, ls: 59, lf: 74, slack: 5, critical: false }
-                    ],
-                    criticalPath: ["Design Approval", "Excavation", "Foundation", "Main Structure", "Finishing"],
-                    totalDuration: 74,
-                    status: "Planning",
-                    createdAt: "2024-01-25"
+                        // Load the first item to display something by default
+                        setCalculatedResults({
+                            tasks: data[0].tasks,
+                            criticalPath: data[0].criticalPath,
+                            totalDuration: data[0].totalDuration
+                        });
+                        setShowResult(true);
+                    } else {
+                        // Empty state: Set empty UI correctly if no projects found in DB
+                        setProjectHistory([]);
+                        setFilteredHistory([]);
+                        setShowResult(false);
+                    }
                 }
-            ];
-            initialData = sampleData;
-            // Pre-calculate ONLY if it's the very first time holding sample data locally
-            setCalculatedResults({
-                tasks: sampleData[0].tasks,
-                criticalPath: sampleData[0].criticalPath,
-                totalDuration: sampleData[0].totalDuration
-            });
-            setShowResult(true);
-        }
+            } catch (error) {
+                console.error("Failed to load project history from server.", error);
+            }
+        };
 
-        setProjectHistory(initialData);
-        setFilteredHistory(initialData);
+        fetchHistory();
     }, []);
 
     // Handle form input changes
