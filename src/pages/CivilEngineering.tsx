@@ -11,7 +11,7 @@ import { ArrowLeft, Download, Calculator, Sparkles, Search, FileText, Database, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { apiRequest, API_ENDPOINTS } from "@/lib/api";
 interface Task {
     id: string;
     name: string;
@@ -79,64 +79,82 @@ const CivilEngineering = () => {
         totalDuration: number;
     } | null>(null);
     const [showResult, setShowResult] = useState(false);
+    const [isCalculating, setIsCalculating] = useState(false);
+    const [calculationError, setCalculationError] = useState<string | null>(null);
 
     // History State
     const [searchTerm, setSearchTerm] = useState("");
     const [projectHistory, setProjectHistory] = useState<Project[]>([]);
     const [filteredHistory, setFilteredHistory] = useState<Project[]>([]);
 
-    // Initialize with sample data
+    // Initialize with sample data or local storage
     useEffect(() => {
-        const sampleData: Project[] = [
-            {
-                id: "1",
-                projectName: "Residential Tower",
-                projectId: "PROJ-2024-001",
-                projectDescription: "Construction of 20-story residential building",
-                startDate: "2024-01-15",
-                endDate: "2024-12-15",
-                tasks: [
-                    { id: "1", name: "A-Site preparation", duration: 5, dependencies: [], es: 0, ef: 5, ls: 25, lf: 30, slack: 25, critical: false },
-                    { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"], es: 0, ef: 10, ls: 0, lf: 10, slack: 0, critical: true },
-                    { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"], es: 10, ef: 30, ls: 10, lf: 30, slack: 0, critical: true },
-                    { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"], es: 0, ef: 15, ls: 15, lf: 30, slack: 15, critical: false },
-                    { id: "5", name: "E-Finishing", duration: 12, dependencies: ["D-MEP"], es: 0, ef: 12, ls: 13, lf: 25, slack: 13, critical: false },
-                    { id: "6", name: "F-Handover", duration: 5, dependencies: ["E-Finishing"], es: 12, ef: 17, ls: 25, lf: 30, slack: 13, critical: false }
-                ],
-                criticalPath: ["B-Foundation", "C-Structure"],
-                totalDuration: 30,
-                status: "In Progress",
-                createdAt: "2024-01-10"
-            },
-            {
-                id: "2",
-                projectName: "Commercial Complex",
-                projectId: "PROJ-2024-002",
-                projectDescription: "Shopping mall with parking facility",
-                startDate: "2024-02-01",
-                endDate: "2024-08-01",
-                tasks: [
-                    { id: "1", name: "Design Approval", duration: 10, dependencies: [], es: 0, ef: 10, ls: 5, lf: 15, slack: 5, critical: false },
-                    { id: "2", name: "Excavation", duration: 7, dependencies: ["Design Approval"], es: 10, ef: 17, ls: 15, lf: 22, slack: 5, critical: false },
-                    { id: "3", name: "Foundation", duration: 12, dependencies: ["Excavation"], es: 17, ef: 29, ls: 22, lf: 34, slack: 5, critical: false },
-                    { id: "4", name: "Main Structure", duration: 25, dependencies: ["Foundation"], es: 29, ef: 54, ls: 34, lf: 59, slack: 5, critical: false },
-                    { id: "5", name: "Utilities", duration: 10, dependencies: ["Foundation"], es: 29, ef: 39, ls: 49, lf: 59, slack: 20, critical: false },
-                    { id: "6", name: "Finishing", duration: 15, dependencies: ["Main Structure", "Utilities"], es: 54, ef: 69, ls: 59, lf: 74, slack: 5, critical: false }
-                ],
-                criticalPath: ["Design Approval", "Excavation", "Foundation", "Main Structure", "Finishing"],
-                totalDuration: 74,
-                status: "Planning",
-                createdAt: "2024-01-25"
+        const storedHistory = localStorage.getItem('civilEngineeringHistory');
+
+        let initialData: Project[] = [];
+        if (storedHistory) {
+            try {
+                initialData = JSON.parse(storedHistory);
+            } catch (e) {
+                console.error("Failed to parse stored history");
             }
-        ];
+        }
 
-        setProjectHistory(sampleData);
-        setFilteredHistory(sampleData);
+        if (initialData.length === 0) {
+            const sampleData: Project[] = [
+                {
+                    id: "1",
+                    projectName: "Residential Tower",
+                    projectId: "PROJ-2024-001",
+                    projectDescription: "Construction of 20-story residential building",
+                    startDate: "2024-01-15",
+                    endDate: "2024-12-15",
+                    tasks: [
+                        { id: "1", name: "A-Site preparation", duration: 5, dependencies: [], es: 0, ef: 5, ls: 25, lf: 30, slack: 25, critical: false },
+                        { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"], es: 0, ef: 10, ls: 0, lf: 10, slack: 0, critical: true },
+                        { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"], es: 10, ef: 30, ls: 10, lf: 30, slack: 0, critical: true },
+                        { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"], es: 0, ef: 15, ls: 15, lf: 30, slack: 15, critical: false },
+                        { id: "5", name: "E-Finishing", duration: 12, dependencies: ["D-MEP"], es: 0, ef: 12, ls: 13, lf: 25, slack: 13, critical: false },
+                        { id: "6", name: "F-Handover", duration: 5, dependencies: ["E-Finishing"], es: 12, ef: 17, ls: 25, lf: 30, slack: 13, critical: false }
+                    ],
+                    criticalPath: ["B-Foundation", "C-Structure"],
+                    totalDuration: 30,
+                    status: "In Progress",
+                    createdAt: "2024-01-10"
+                },
+                {
+                    id: "2",
+                    projectName: "Commercial Complex",
+                    projectId: "PROJ-2024-002",
+                    projectDescription: "Shopping mall with parking facility",
+                    startDate: "2024-02-01",
+                    endDate: "2024-08-01",
+                    tasks: [
+                        { id: "1", name: "Design Approval", duration: 10, dependencies: [], es: 0, ef: 10, ls: 5, lf: 15, slack: 5, critical: false },
+                        { id: "2", name: "Excavation", duration: 7, dependencies: ["Design Approval"], es: 10, ef: 17, ls: 15, lf: 22, slack: 5, critical: false },
+                        { id: "3", name: "Foundation", duration: 12, dependencies: ["Excavation"], es: 17, ef: 29, ls: 22, lf: 34, slack: 5, critical: false },
+                        { id: "4", name: "Main Structure", duration: 25, dependencies: ["Foundation"], es: 29, ef: 54, ls: 34, lf: 59, slack: 5, critical: false },
+                        { id: "5", name: "Utilities", duration: 10, dependencies: ["Foundation"], es: 29, ef: 39, ls: 49, lf: 59, slack: 20, critical: false },
+                        { id: "6", name: "Finishing", duration: 15, dependencies: ["Main Structure", "Utilities"], es: 54, ef: 69, ls: 59, lf: 74, slack: 5, critical: false }
+                    ],
+                    criticalPath: ["Design Approval", "Excavation", "Foundation", "Main Structure", "Finishing"],
+                    totalDuration: 74,
+                    status: "Planning",
+                    createdAt: "2024-01-25"
+                }
+            ];
+            initialData = sampleData;
+            // Pre-calculate ONLY if it's the very first time holding sample data locally
+            setCalculatedResults({
+                tasks: sampleData[0].tasks,
+                criticalPath: sampleData[0].criticalPath,
+                totalDuration: sampleData[0].totalDuration
+            });
+            setShowResult(true);
+        }
 
-        // Pre-calculate the sample project
-        const tasksWithCPM = calculateCPM(formData.tasks);
-        setCalculatedResults(tasksWithCPM);
-        setShowResult(true);
+        setProjectHistory(initialData);
+        setFilteredHistory(initialData);
     }, []);
 
     // Handle form input changes
@@ -184,143 +202,63 @@ const CivilEngineering = () => {
     };
 
     // Calculate CPM with enhanced dependency checking
-    const calculateCPM = (tasks: Task[]) => {
-        const warnings: string[] = [];
-        const cleanedTasks = tasks.map(task => ({
-            ...task,
-            name: cleanTaskName(task.name),
-            dependencies: task.dependencies.map(dep => cleanTaskName(dep))
-        }));
+    const calculateCPM = async (tasks: Task[]) => {
+        setIsCalculating(true);
+        setCalculationError(null);
+        setDependencyWarnings([]);
 
-        // Check for missing dependencies
-        cleanedTasks.forEach(task => {
-            task.dependencies.forEach(dep => {
-                const depExists = cleanedTasks.some(t => cleanTaskName(t.name) === dep);
-                if (!depExists && dep) {
-                    warnings.push(`Warning: Dependency '${dep}' for task '${task.name}' not found in task list.`);
-                }
+        try {
+            const response = await apiRequest(API_ENDPOINTS.CIVIL_CPM_CALCULATE, {
+                method: 'POST',
+                body: JSON.stringify({ tasks: tasks })
             });
-        });
 
-        setDependencyWarnings(warnings);
+            const data = await response.json();
 
-        // Build graph
-        const graph: Record<string, { duration: number, successors: string[], predecessors: string[] }> = {};
-        const nameToId: Record<string, string> = {};
-
-        // Initialize graph
-        cleanedTasks.forEach(task => {
-            graph[task.name] = {
-                duration: task.duration,
-                successors: [],
-                predecessors: []
-            };
-            nameToId[task.name] = task.id;
-        });
-
-        // Build dependencies
-        cleanedTasks.forEach(task => {
-            task.dependencies.forEach(dep => {
-                if (graph[dep] && dep !== task.name) {
-                    graph[dep].successors.push(task.name);
-                    graph[task.name].predecessors.push(dep);
-                }
-            });
-        });
-
-        // Forward Pass
-        const ES: Record<string, number> = {};
-        const EF: Record<string, number> = {};
-        const visited = new Set<string>();
-
-        function forwardPass(node: string): number {
-            if (visited.has(node)) return EF[node];
-            visited.add(node);
-
-            if (graph[node].predecessors.length === 0) {
-                ES[node] = 0;
-            } else {
-                ES[node] = Math.max(...graph[node].predecessors.map(p => forwardPass(p)));
+            if (!response.ok) {
+                setCalculationError(data.error || "Failed to calculate CPM");
+                return null;
             }
 
-            EF[node] = ES[node] + graph[node].duration;
-            return EF[node];
+            return data;
+        } catch (error: any) {
+            console.error("CPM Calculation error:", error);
+            setCalculationError(error.message || "Network error occurred while connecting to the backend.");
+            return null;
+        } finally {
+            setIsCalculating(false);
         }
-
-        Object.keys(graph).forEach(node => forwardPass(node));
-
-        // Backward Pass
-        const LS: Record<string, number> = {};
-        const LF: Record<string, number> = {};
-        const reverseVisited = new Set<string>();
-        const totalDuration = Math.max(...Object.values(EF));
-
-        function backwardPass(node: string): number {
-            if (reverseVisited.has(node)) return LS[node];
-            reverseVisited.add(node);
-
-            if (graph[node].successors.length === 0) {
-                LF[node] = totalDuration;
-            } else {
-                LF[node] = Math.min(...graph[node].successors.map(s => backwardPass(s)));
-            }
-
-            LS[node] = LF[node] - graph[node].duration;
-            return LS[node];
-        }
-
-        Object.keys(graph).forEach(node => backwardPass(node));
-
-        // Calculate slack and critical path
-        const slack: Record<string, number> = {};
-        const criticalPath: string[] = [];
-
-        const updatedTasks = cleanedTasks.map(task => {
-            const taskSlack = LS[task.name] - ES[task.name];
-            const isCritical = taskSlack === 0;
-
-            if (isCritical) criticalPath.push(task.name);
-
-            return {
-                ...task,
-                es: ES[task.name],
-                ef: EF[task.name],
-                ls: LS[task.name],
-                lf: LF[task.name],
-                slack: taskSlack,
-                critical: isCritical
-            };
-        });
-
-        return {
-            tasks: updatedTasks,
-            criticalPath,
-            totalDuration
-        };
     };
 
-    const handleCalculateCPM = () => {
-        const results = calculateCPM(formData.tasks);
-        setCalculatedResults(results);
-        setShowResult(true);
+    const handleCalculateCPM = async () => {
+        const results = await calculateCPM(formData.tasks);
 
-        // Add to history
-        const newProject: Project = {
-            id: Date.now().toString(),
-            projectName: formData.projectName,
-            projectId: formData.projectId,
-            projectDescription: formData.projectDescription,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            tasks: results.tasks,
-            criticalPath: results.criticalPath,
-            totalDuration: results.totalDuration,
-            status: formData.status,
-            createdAt: new Date().toLocaleDateString()
-        };
+        if (results) {
+            setCalculatedResults(results);
+            setShowResult(true);
 
-        setProjectHistory(prev => [newProject, ...prev]);
-        setFilteredHistory(prev => [newProject, ...prev]);
+            // Add to history
+            const newProject: Project = {
+                id: Date.now().toString(),
+                projectName: formData.projectName,
+                projectId: formData.projectId,
+                projectDescription: formData.projectDescription,
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                tasks: results.tasks,
+                criticalPath: results.criticalPath,
+                totalDuration: results.totalDuration,
+                status: formData.status,
+                createdAt: new Date().toLocaleDateString()
+            };
+
+            setProjectHistory(prev => {
+                const updatedHistory = [newProject, ...prev];
+                localStorage.setItem('civilEngineeringHistory', JSON.stringify(updatedHistory));
+                return updatedHistory;
+            });
+            setFilteredHistory(prev => [newProject, ...prev]);
+        }
     };
 
     // Search function
@@ -488,7 +426,7 @@ Powered by Advanced CPM Engine ⚙️
                             </CardHeader>
 
                             <CardContent className="space-y-8 p-8">
-                                {/* Dependency Warnings */}
+                                {/* Dependency Warnings & Errors */}
                                 {dependencyWarnings.length > 0 && (
                                     <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
                                         <AlertCircle className="h-4 w-4" />
@@ -496,6 +434,15 @@ Powered by Advanced CPM Engine ⚙️
                                             {dependencyWarnings.map((warning, index) => (
                                                 <div key={index} className="text-sm">{warning}</div>
                                             ))}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {calculationError && (
+                                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription className="text-red-200">
+                                            {calculationError}
                                         </AlertDescription>
                                     </Alert>
                                 )}
@@ -728,10 +675,11 @@ Powered by Advanced CPM Engine ⚙️
                                 <div className="flex gap-4 pt-4">
                                     <Button
                                         onClick={handleCalculateCPM}
-                                        className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30"
+                                        disabled={isCalculating}
+                                        className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Calculator className="mr-2 h-5 w-5" />
-                                        Calculate Critical Path
+                                        <Calculator className={`mr-2 h-5 w-5 ${isCalculating ? "animate-spin" : ""}`} />
+                                        {isCalculating ? "Calculating via AI Backend..." : "Calculate Critical Path"}
                                     </Button>
                                 </div>
 
@@ -865,7 +813,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                 </div>
                                                                 <div className="relative h-4 bg-blue-900/30 rounded-full overflow-hidden">
                                                                     <div
-                                                                        className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-cyan-500'}`}
+                                                                        className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-slate-400 to-slate-500' : 'bg-gradient-to-r from-sky-400 to-sky-500'}`}
                                                                         style={{
                                                                             left: `${(task.es || 0) / calculatedResults.totalDuration * 100}%`,
                                                                             width: `${task.duration / calculatedResults.totalDuration * 100}%`
@@ -873,7 +821,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                     ></div>
                                                                     {!task.critical && (
                                                                         <div
-                                                                            className="absolute h-full bg-gradient-to-r from-purple-500/30 to-violet-500/30 rounded-full border border-dashed border-purple-400/50"
+                                                                            className="absolute h-full bg-gradient-to-r from-slate-500/30 to-slate-600/30 rounded-full border border-dashed border-slate-400/50"
                                                                             style={{
                                                                                 left: `${(task.ls || 0) / calculatedResults.totalDuration * 100}%`,
                                                                                 width: `${task.duration / calculatedResults.totalDuration * 100}%`
@@ -914,11 +862,13 @@ Powered by Advanced CPM Engine ⚙️
                                                         Download Schedule
                                                     </Button>
                                                     <Button
-                                                        onClick={() => setActiveTab("history")}
+                                                        onClick={() => {
+                                                            setActiveTab("history");
+                                                        }}
                                                         variant="outline"
                                                         className="px-8 py-4 h-auto border-2 border-cyan-400/40 hover:bg-cyan-400/10 text-cyan-300 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105"
                                                     >
-                                                        Save to History
+                                                        View in History
                                                     </Button>
                                                 </div>
                                             </div>
