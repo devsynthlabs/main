@@ -11,7 +11,7 @@ import { ArrowLeft, Download, Calculator, Sparkles, Search, FileText, Database, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { apiRequest, API_ENDPOINTS } from "@/lib/api";
 interface Task {
     id: string;
     name: string;
@@ -79,6 +79,8 @@ const CivilEngineering = () => {
         totalDuration: number;
     } | null>(null);
     const [showResult, setShowResult] = useState(false);
+    const [isCalculating, setIsCalculating] = useState(false);
+    const [calculationError, setCalculationError] = useState<string | null>(null);
 
     // History State
     const [searchTerm, setSearchTerm] = useState("");
@@ -133,9 +135,13 @@ const CivilEngineering = () => {
         setProjectHistory(sampleData);
         setFilteredHistory(sampleData);
 
-        // Pre-calculate the sample project
-        const tasksWithCPM = calculateCPM(formData.tasks);
-        setCalculatedResults(tasksWithCPM);
+        // Pre-calculate the sample project (we'll avoid backend call on init for speed)
+        // using the hardcoded values already present in the sample data
+        setCalculatedResults({
+            tasks: sampleData[0].tasks,
+            criticalPath: sampleData[0].criticalPath,
+            totalDuration: sampleData[0].totalDuration
+        });
         setShowResult(true);
     }, []);
 
@@ -184,143 +190,59 @@ const CivilEngineering = () => {
     };
 
     // Calculate CPM with enhanced dependency checking
-    const calculateCPM = (tasks: Task[]) => {
-        const warnings: string[] = [];
-        const cleanedTasks = tasks.map(task => ({
-            ...task,
-            name: cleanTaskName(task.name),
-            dependencies: task.dependencies.map(dep => cleanTaskName(dep))
-        }));
+    const calculateCPM = async (tasks: Task[]) => {
+        setIsCalculating(true);
+        setCalculationError(null);
+        setDependencyWarnings([]);
 
-        // Check for missing dependencies
-        cleanedTasks.forEach(task => {
-            task.dependencies.forEach(dep => {
-                const depExists = cleanedTasks.some(t => cleanTaskName(t.name) === dep);
-                if (!depExists && dep) {
-                    warnings.push(`Warning: Dependency '${dep}' for task '${task.name}' not found in task list.`);
-                }
+        try {
+            const response = await apiRequest(API_ENDPOINTS.CIVIL_CPM_CALCULATE, {
+                method: 'POST',
+                body: JSON.stringify({ tasks: tasks })
             });
-        });
 
-        setDependencyWarnings(warnings);
+            const data = await response.json();
 
-        // Build graph
-        const graph: Record<string, { duration: number, successors: string[], predecessors: string[] }> = {};
-        const nameToId: Record<string, string> = {};
-
-        // Initialize graph
-        cleanedTasks.forEach(task => {
-            graph[task.name] = {
-                duration: task.duration,
-                successors: [],
-                predecessors: []
-            };
-            nameToId[task.name] = task.id;
-        });
-
-        // Build dependencies
-        cleanedTasks.forEach(task => {
-            task.dependencies.forEach(dep => {
-                if (graph[dep] && dep !== task.name) {
-                    graph[dep].successors.push(task.name);
-                    graph[task.name].predecessors.push(dep);
-                }
-            });
-        });
-
-        // Forward Pass
-        const ES: Record<string, number> = {};
-        const EF: Record<string, number> = {};
-        const visited = new Set<string>();
-
-        function forwardPass(node: string): number {
-            if (visited.has(node)) return EF[node];
-            visited.add(node);
-
-            if (graph[node].predecessors.length === 0) {
-                ES[node] = 0;
-            } else {
-                ES[node] = Math.max(...graph[node].predecessors.map(p => forwardPass(p)));
+            if (!response.ok) {
+                setCalculationError(data.error || "Failed to calculate CPM");
+                return null;
             }
 
-            EF[node] = ES[node] + graph[node].duration;
-            return EF[node];
+            return data;
+        } catch (error: any) {
+            console.error("CPM Calculation error:", error);
+            setCalculationError(error.message || "Network error occurred while connecting to the backend.");
+            return null;
+        } finally {
+            setIsCalculating(false);
         }
-
-        Object.keys(graph).forEach(node => forwardPass(node));
-
-        // Backward Pass
-        const LS: Record<string, number> = {};
-        const LF: Record<string, number> = {};
-        const reverseVisited = new Set<string>();
-        const totalDuration = Math.max(...Object.values(EF));
-
-        function backwardPass(node: string): number {
-            if (reverseVisited.has(node)) return LS[node];
-            reverseVisited.add(node);
-
-            if (graph[node].successors.length === 0) {
-                LF[node] = totalDuration;
-            } else {
-                LF[node] = Math.min(...graph[node].successors.map(s => backwardPass(s)));
-            }
-
-            LS[node] = LF[node] - graph[node].duration;
-            return LS[node];
-        }
-
-        Object.keys(graph).forEach(node => backwardPass(node));
-
-        // Calculate slack and critical path
-        const slack: Record<string, number> = {};
-        const criticalPath: string[] = [];
-
-        const updatedTasks = cleanedTasks.map(task => {
-            const taskSlack = LS[task.name] - ES[task.name];
-            const isCritical = taskSlack === 0;
-
-            if (isCritical) criticalPath.push(task.name);
-
-            return {
-                ...task,
-                es: ES[task.name],
-                ef: EF[task.name],
-                ls: LS[task.name],
-                lf: LF[task.name],
-                slack: taskSlack,
-                critical: isCritical
-            };
-        });
-
-        return {
-            tasks: updatedTasks,
-            criticalPath,
-            totalDuration
-        };
     };
 
-    const handleCalculateCPM = () => {
-        const results = calculateCPM(formData.tasks);
-        setCalculatedResults(results);
-        setShowResult(true);
+    const handleCalculateCPM = async () => {
+        const results = await calculateCPM(formData.tasks);
 
-        // Add to history
-        const newProject: Project = {
-            id: Date.now().toString(),
-            projectName: formData.projectName,
-            projectId: formData.projectId,
-            projectDescription: formData.projectDescription,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            tasks: results.tasks,
-            criticalPath: results.criticalPath,
-            totalDuration: results.totalDuration,
-            status: formData.status,
-            createdAt: new Date().toLocaleDateString()
-        };
+        if (results) {
+            setCalculatedResults(results);
+            setShowResult(true);
 
-        setProjectHistory(prev => [newProject, ...prev]);
-        setFilteredHistory(prev => [newProject, ...prev]);
+            // Add to history
+            const newProject: Project = {
+                id: Date.now().toString(),
+                projectName: formData.projectName,
+                projectId: formData.projectId,
+                projectDescription: formData.projectDescription,
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                tasks: results.tasks,
+                criticalPath: results.criticalPath,
+                totalDuration: results.totalDuration,
+                status: formData.status,
+                createdAt: new Date().toLocaleDateString()
+            };
+
+            setProjectHistory(prev => [newProject, ...prev]);
+            setFilteredHistory(prev => [newProject, ...prev]);
+        }
     };
 
     // Search function
@@ -488,7 +410,7 @@ Powered by Advanced CPM Engine ⚙️
                             </CardHeader>
 
                             <CardContent className="space-y-8 p-8">
-                                {/* Dependency Warnings */}
+                                {/* Dependency Warnings & Errors */}
                                 {dependencyWarnings.length > 0 && (
                                     <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
                                         <AlertCircle className="h-4 w-4" />
@@ -496,6 +418,15 @@ Powered by Advanced CPM Engine ⚙️
                                             {dependencyWarnings.map((warning, index) => (
                                                 <div key={index} className="text-sm">{warning}</div>
                                             ))}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {calculationError && (
+                                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/30">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription className="text-red-200">
+                                            {calculationError}
                                         </AlertDescription>
                                     </Alert>
                                 )}
@@ -728,10 +659,11 @@ Powered by Advanced CPM Engine ⚙️
                                 <div className="flex gap-4 pt-4">
                                     <Button
                                         onClick={handleCalculateCPM}
-                                        className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30"
+                                        disabled={isCalculating}
+                                        className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Calculator className="mr-2 h-5 w-5" />
-                                        Calculate Critical Path
+                                        <Calculator className={`mr-2 h-5 w-5 ${isCalculating ? "animate-spin" : ""}`} />
+                                        {isCalculating ? "Calculating via AI Backend..." : "Calculate Critical Path"}
                                     </Button>
                                 </div>
 
@@ -865,7 +797,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                 </div>
                                                                 <div className="relative h-4 bg-blue-900/30 rounded-full overflow-hidden">
                                                                     <div
-                                                                        className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-cyan-500'}`}
+                                                                        className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-slate-400 to-slate-500' : 'bg-gradient-to-r from-sky-400 to-sky-500'}`}
                                                                         style={{
                                                                             left: `${(task.es || 0) / calculatedResults.totalDuration * 100}%`,
                                                                             width: `${task.duration / calculatedResults.totalDuration * 100}%`
@@ -873,7 +805,7 @@ Powered by Advanced CPM Engine ⚙️
                                                                     ></div>
                                                                     {!task.critical && (
                                                                         <div
-                                                                            className="absolute h-full bg-gradient-to-r from-purple-500/30 to-violet-500/30 rounded-full border border-dashed border-purple-400/50"
+                                                                            className="absolute h-full bg-gradient-to-r from-slate-500/30 to-slate-600/30 rounded-full border border-dashed border-slate-400/50"
                                                                             style={{
                                                                                 left: `${(task.ls || 0) / calculatedResults.totalDuration * 100}%`,
                                                                                 width: `${task.duration / calculatedResults.totalDuration * 100}%`
