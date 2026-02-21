@@ -87,62 +87,74 @@ const CivilEngineering = () => {
     const [projectHistory, setProjectHistory] = useState<Project[]>([]);
     const [filteredHistory, setFilteredHistory] = useState<Project[]>([]);
 
-    // Initialize with sample data
+    // Initialize with sample data or local storage
     useEffect(() => {
-        const sampleData: Project[] = [
-            {
-                id: "1",
-                projectName: "Residential Tower",
-                projectId: "PROJ-2024-001",
-                projectDescription: "Construction of 20-story residential building",
-                startDate: "2024-01-15",
-                endDate: "2024-12-15",
-                tasks: [
-                    { id: "1", name: "A-Site preparation", duration: 5, dependencies: [], es: 0, ef: 5, ls: 25, lf: 30, slack: 25, critical: false },
-                    { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"], es: 0, ef: 10, ls: 0, lf: 10, slack: 0, critical: true },
-                    { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"], es: 10, ef: 30, ls: 10, lf: 30, slack: 0, critical: true },
-                    { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"], es: 0, ef: 15, ls: 15, lf: 30, slack: 15, critical: false },
-                    { id: "5", name: "E-Finishing", duration: 12, dependencies: ["D-MEP"], es: 0, ef: 12, ls: 13, lf: 25, slack: 13, critical: false },
-                    { id: "6", name: "F-Handover", duration: 5, dependencies: ["E-Finishing"], es: 12, ef: 17, ls: 25, lf: 30, slack: 13, critical: false }
-                ],
-                criticalPath: ["B-Foundation", "C-Structure"],
-                totalDuration: 30,
-                status: "In Progress",
-                createdAt: "2024-01-10"
-            },
-            {
-                id: "2",
-                projectName: "Commercial Complex",
-                projectId: "PROJ-2024-002",
-                projectDescription: "Shopping mall with parking facility",
-                startDate: "2024-02-01",
-                endDate: "2024-08-01",
-                tasks: [
-                    { id: "1", name: "Design Approval", duration: 10, dependencies: [], es: 0, ef: 10, ls: 5, lf: 15, slack: 5, critical: false },
-                    { id: "2", name: "Excavation", duration: 7, dependencies: ["Design Approval"], es: 10, ef: 17, ls: 15, lf: 22, slack: 5, critical: false },
-                    { id: "3", name: "Foundation", duration: 12, dependencies: ["Excavation"], es: 17, ef: 29, ls: 22, lf: 34, slack: 5, critical: false },
-                    { id: "4", name: "Main Structure", duration: 25, dependencies: ["Foundation"], es: 29, ef: 54, ls: 34, lf: 59, slack: 5, critical: false },
-                    { id: "5", name: "Utilities", duration: 10, dependencies: ["Foundation"], es: 29, ef: 39, ls: 49, lf: 59, slack: 20, critical: false },
-                    { id: "6", name: "Finishing", duration: 15, dependencies: ["Main Structure", "Utilities"], es: 54, ef: 69, ls: 59, lf: 74, slack: 5, critical: false }
-                ],
-                criticalPath: ["Design Approval", "Excavation", "Foundation", "Main Structure", "Finishing"],
-                totalDuration: 74,
-                status: "Planning",
-                createdAt: "2024-01-25"
+        const storedHistory = localStorage.getItem('civilEngineeringHistory');
+
+        let initialData: Project[] = [];
+        if (storedHistory) {
+            try {
+                initialData = JSON.parse(storedHistory);
+            } catch (e) {
+                console.error("Failed to parse stored history");
             }
-        ];
+        }
 
-        setProjectHistory(sampleData);
-        setFilteredHistory(sampleData);
+        if (initialData.length === 0) {
+            const sampleData: Project[] = [
+                {
+                    id: "1",
+                    projectName: "Residential Tower",
+                    projectId: "PROJ-2024-001",
+                    projectDescription: "Construction of 20-story residential building",
+                    startDate: "2024-01-15",
+                    endDate: "2024-12-15",
+                    tasks: [
+                        { id: "1", name: "A-Site preparation", duration: 5, dependencies: [], es: 0, ef: 5, ls: 25, lf: 30, slack: 25, critical: false },
+                        { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"], es: 0, ef: 10, ls: 0, lf: 10, slack: 0, critical: true },
+                        { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"], es: 10, ef: 30, ls: 10, lf: 30, slack: 0, critical: true },
+                        { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"], es: 0, ef: 15, ls: 15, lf: 30, slack: 15, critical: false },
+                        { id: "5", name: "E-Finishing", duration: 12, dependencies: ["D-MEP"], es: 0, ef: 12, ls: 13, lf: 25, slack: 13, critical: false },
+                        { id: "6", name: "F-Handover", duration: 5, dependencies: ["E-Finishing"], es: 12, ef: 17, ls: 25, lf: 30, slack: 13, critical: false }
+                    ],
+                    criticalPath: ["B-Foundation", "C-Structure"],
+                    totalDuration: 30,
+                    status: "In Progress",
+                    createdAt: "2024-01-10"
+                },
+                {
+                    id: "2",
+                    projectName: "Commercial Complex",
+                    projectId: "PROJ-2024-002",
+                    projectDescription: "Shopping mall with parking facility",
+                    startDate: "2024-02-01",
+                    endDate: "2024-08-01",
+                    tasks: [
+                        { id: "1", name: "Design Approval", duration: 10, dependencies: [], es: 0, ef: 10, ls: 5, lf: 15, slack: 5, critical: false },
+                        { id: "2", name: "Excavation", duration: 7, dependencies: ["Design Approval"], es: 10, ef: 17, ls: 15, lf: 22, slack: 5, critical: false },
+                        { id: "3", name: "Foundation", duration: 12, dependencies: ["Excavation"], es: 17, ef: 29, ls: 22, lf: 34, slack: 5, critical: false },
+                        { id: "4", name: "Main Structure", duration: 25, dependencies: ["Foundation"], es: 29, ef: 54, ls: 34, lf: 59, slack: 5, critical: false },
+                        { id: "5", name: "Utilities", duration: 10, dependencies: ["Foundation"], es: 29, ef: 39, ls: 49, lf: 59, slack: 20, critical: false },
+                        { id: "6", name: "Finishing", duration: 15, dependencies: ["Main Structure", "Utilities"], es: 54, ef: 69, ls: 59, lf: 74, slack: 5, critical: false }
+                    ],
+                    criticalPath: ["Design Approval", "Excavation", "Foundation", "Main Structure", "Finishing"],
+                    totalDuration: 74,
+                    status: "Planning",
+                    createdAt: "2024-01-25"
+                }
+            ];
+            initialData = sampleData;
+            // Pre-calculate ONLY if it's the very first time holding sample data locally
+            setCalculatedResults({
+                tasks: sampleData[0].tasks,
+                criticalPath: sampleData[0].criticalPath,
+                totalDuration: sampleData[0].totalDuration
+            });
+            setShowResult(true);
+        }
 
-        // Pre-calculate the sample project (we'll avoid backend call on init for speed)
-        // using the hardcoded values already present in the sample data
-        setCalculatedResults({
-            tasks: sampleData[0].tasks,
-            criticalPath: sampleData[0].criticalPath,
-            totalDuration: sampleData[0].totalDuration
-        });
-        setShowResult(true);
+        setProjectHistory(initialData);
+        setFilteredHistory(initialData);
     }, []);
 
     // Handle form input changes
@@ -240,7 +252,11 @@ const CivilEngineering = () => {
                 createdAt: new Date().toLocaleDateString()
             };
 
-            setProjectHistory(prev => [newProject, ...prev]);
+            setProjectHistory(prev => {
+                const updatedHistory = [newProject, ...prev];
+                localStorage.setItem('civilEngineeringHistory', JSON.stringify(updatedHistory));
+                return updatedHistory;
+            });
             setFilteredHistory(prev => [newProject, ...prev]);
         }
     };
@@ -846,11 +862,13 @@ Powered by Advanced CPM Engine ⚙️
                                                         Download Schedule
                                                     </Button>
                                                     <Button
-                                                        onClick={() => setActiveTab("history")}
+                                                        onClick={() => {
+                                                            setActiveTab("history");
+                                                        }}
                                                         variant="outline"
                                                         className="px-8 py-4 h-auto border-2 border-cyan-400/40 hover:bg-cyan-400/10 text-cyan-300 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105"
                                                     >
-                                                        Save to History
+                                                        View in History
                                                     </Button>
                                                 </div>
                                             </div>
