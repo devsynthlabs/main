@@ -43,6 +43,8 @@ export const API_ENDPOINTS = {
 
   // Civil Engineering endpoints
   CIVIL_CPM_CALCULATE: `${API_BASE_URL}/civil-engineering/calculate-cpm`,
+  CIVIL_SAVE_PROJECT: `${API_BASE_URL}/civil-engineering/save-project`,
+  CIVIL_GET_HISTORY: `${API_BASE_URL}/civil-engineering/history`,
 } as const;
 
 // Helper function for making API requests

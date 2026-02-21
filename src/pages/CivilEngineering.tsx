@@ -252,12 +252,23 @@ const CivilEngineering = () => {
                 createdAt: new Date().toLocaleDateString()
             };
 
-            setProjectHistory(prev => {
-                const updatedHistory = [newProject, ...prev];
-                localStorage.setItem('civilEngineeringHistory', JSON.stringify(updatedHistory));
-                return updatedHistory;
-            });
-            setFilteredHistory(prev => [newProject, ...prev]);
+            // Save to Backend Database Instead of Local Storage
+            try {
+                const saveResponse = await apiRequest(API_ENDPOINTS.CIVIL_SAVE_PROJECT, {
+                    method: 'POST',
+                    body: JSON.stringify(newProject)
+                });
+
+                if (saveResponse.ok) {
+                    const savedData = await saveResponse.json();
+                    setProjectHistory(prev => [savedData.project, ...prev]);
+                    setFilteredHistory(prev => [savedData.project, ...prev]);
+                } else {
+                    console.error("Failed to save project to Database");
+                }
+            } catch (err) {
+                console.error("Error saving project to network:", err);
+            }
         }
     };
 

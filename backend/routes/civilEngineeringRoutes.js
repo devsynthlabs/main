@@ -2,10 +2,28 @@ import express from 'express';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from "jsonwebtoken";
+import CivilProject from '../models/CivilProject.js';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+        return res.status(401).json({ message: "Access denied. No token provided." });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(400).json({ message: "Invalid token" });
+    }
+};
 
 // Endpoint to calculate the CPM using the Python script
 router.post('/calculate-cpm', (req, res) => {
@@ -65,6 +83,43 @@ router.post('/calculate-cpm', (req, res) => {
             res.status(500).json({ error: 'Failed to parse CPM results.', details: error.message });
         }
     });
+});
+
+// Endpoint to save a calculated project to project history
+router.post('/save-project', verifyToken, async (req, res) => {
+    try {
+        const { projectName, projectId, projectDescription, startDate, endDate, status, tasks, criticalPath, totalDuration } = req.body;
+
+        const newProject = new CivilProject({
+            userId: req.user.id,
+            projectName,
+            projectId,
+            projectDescription,
+            startDate,
+            endDate,
+            status,
+            tasks,
+            criticalPath,
+            totalDuration
+        });
+
+        await newProject.save();
+        res.status(201).json({ message: "Project saved successfully", project: newProject });
+    } catch (error) {
+        console.error("Error saving project:", error);
+        res.status(500).json({ error: "Failed to save project. Please try again.", details: error.message });
+    }
+});
+
+// Endpoint to fetch project history for the user
+router.get('/history', verifyToken, async (req, res) => {
+    try {
+        const history = await CivilProject.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        res.status(200).json(history);
+    } catch (error) {
+        console.error("Error fetching project history:", error);
+        res.status(500).json({ error: "Failed to load project history." });
+    }
 });
 
 export default router;
