@@ -29,7 +29,101 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// Endpoint to calculate the CPM using the Python script
+// JavaScript CPM Calculation (fallback when Python is unavailable)
+function calculateCPMJS(tasks) {
+    // Build name-to-id map (case-insensitive)
+    const nameToId = {};
+    tasks.forEach(task => {
+        nameToId[task.name.trim().toLowerCase()] = task.id;
+    });
+
+    // Build graph
+    const graph = {};
+    tasks.forEach(task => {
+        graph[task.id] = {
+            duration: task.duration,
+            name: task.name,
+            successors: [],
+            predecessors: []
+        };
+    });
+
+    // Resolve dependencies
+    tasks.forEach(task => {
+        (task.dependencies || []).forEach(depName => {
+            const depId = nameToId[depName.trim().toLowerCase()];
+            if (depId && depId !== task.id && graph[depId]) {
+                graph[depId].successors.push(task.id);
+                graph[task.id].predecessors.push(depId);
+            }
+        });
+    });
+
+    // Forward Pass (ES, EF)
+    const ES = {}, EF = {};
+    const visited = new Set();
+
+    function forwardPass(nodeId) {
+        if (visited.has(nodeId)) return EF[nodeId];
+        visited.add(nodeId);
+
+        if (graph[nodeId].predecessors.length === 0) {
+            ES[nodeId] = 0;
+        } else {
+            ES[nodeId] = Math.max(...graph[nodeId].predecessors.map(p => forwardPass(p)));
+        }
+        EF[nodeId] = ES[nodeId] + graph[nodeId].duration;
+        return EF[nodeId];
+    }
+
+    Object.keys(graph).forEach(nodeId => forwardPass(nodeId));
+
+    // Backward Pass (LS, LF)
+    const LS = {}, LF = {};
+    const reverseVisited = new Set();
+    const efValues = Object.values(EF);
+    const totalDuration = efValues.length > 0 ? Math.max(...efValues) : 0;
+
+    function backwardPass(nodeId) {
+        if (reverseVisited.has(nodeId)) return LS[nodeId];
+        reverseVisited.add(nodeId);
+
+        if (graph[nodeId].successors.length === 0) {
+            LF[nodeId] = totalDuration;
+        } else {
+            LF[nodeId] = Math.min(...graph[nodeId].successors.map(s => backwardPass(s)));
+        }
+        LS[nodeId] = LF[nodeId] - graph[nodeId].duration;
+        return LS[nodeId];
+    }
+
+    Object.keys(graph).forEach(nodeId => backwardPass(nodeId));
+
+    // Calculate slack and critical path
+    const criticalPath = [];
+    const resultTasks = tasks.map(task => {
+        const slack = LS[task.id] - ES[task.id];
+        const critical = slack === 0;
+        if (critical) criticalPath.push(task.name);
+
+        return {
+            id: task.id,
+            name: task.name,
+            duration: task.duration,
+            dependencies: task.dependencies || [],
+            es: ES[task.id],
+            ef: EF[task.id],
+            ls: LS[task.id],
+            lf: LF[task.id],
+            slack,
+            critical
+        };
+    });
+
+    return { tasks: resultTasks, criticalPath, totalDuration };
+}
+
+// Endpoint to calculate CPM - tries Python first, falls back to JavaScript
 router.post('/calculate-cpm', (req, res) => {
     const tasks = req.body.tasks;
 
@@ -52,10 +146,15 @@ router.post('/calculate-cpm', (req, res) => {
     let pythonOutput = '';
     let pythonError = '';
 
-    // Handle spawn errors (e.g., python not found)
+    // Handle spawn errors — fallback to JS calculation
     pythonProcess.on('error', (err) => {
-        console.error('Failed to start Python process:', err.message);
-        return res.status(500).json({ error: 'Failed to start CPM calculation engine. Python is not available.', details: err.message });
+        console.warn('Python not available, using JS fallback:', err.message);
+        try {
+            const result = calculateCPMJS(tasks);
+            return res.status(200).json(result);
+        } catch (jsErr) {
+            return res.status(500).json({ error: 'Failed to calculate CPM.', details: jsErr.message });
+        }
     });
 
     // Pass the tasks as a JSON string to standard input
@@ -75,12 +174,17 @@ router.post('/calculate-cpm', (req, res) => {
     // Handle process completion
     pythonProcess.on('close', (code) => {
         if (code !== 0) {
-            console.error(`Python script exited with code ${code}. Error: ${pythonError}`);
-            return res.status(500).json({ error: 'Failed to calculate CPM. Please check the project dependencies and try again.', details: pythonError });
+            // Python failed — fallback to JS calculation
+            console.warn(`Python script failed (code ${code}), using JS fallback. Error: ${pythonError}`);
+            try {
+                const result = calculateCPMJS(tasks);
+                return res.status(200).json(result);
+            } catch (jsErr) {
+                return res.status(500).json({ error: 'Failed to calculate CPM.', details: jsErr.message });
+            }
         }
 
         try {
-            // Parse the JSON output from the python script
             const result = JSON.parse(pythonOutput);
 
             if (result.error) {
