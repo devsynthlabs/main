@@ -63,7 +63,7 @@ const CivilEngineering = () => {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: "Planning",
         tasks: [
-            { id: "1", name: "A-Site preparation", duration: 5, dependencies: [] },
+            { id: "1", name: "A-Site Preparation", duration: 5, dependencies: [] },
             { id: "2", name: "B-Foundation", duration: 10, dependencies: ["A-Site Preparation"] },
             { id: "3", name: "C-Structure", duration: 20, dependencies: ["B-Foundation"] },
             { id: "4", name: "D-MEP", duration: 15, dependencies: ["C-Structure"] },

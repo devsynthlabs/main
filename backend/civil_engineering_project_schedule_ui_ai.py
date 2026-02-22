@@ -18,10 +18,11 @@ def compute_cpm(df):
         dependencies = row.get("dependencies", [])
         if dependencies:
             for dep in dependencies:
-                # Find the ID of the dependency by its name
+                # Find the ID of the dependency by its name (case-insensitive)
                 dep_id = None
+                dep_lower = dep.strip().lower()
                 for _, dep_row in df.iterrows():
-                     if dep_row["name"] == dep:
+                     if dep_row["name"].strip().lower() == dep_lower:
                          dep_id = dep_row["id"]
                          break
                 if dep_id and dep_id in G.nodes:

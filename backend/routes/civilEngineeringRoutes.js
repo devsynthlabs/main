@@ -1,5 +1,6 @@
 import express from 'express';
 import { spawn } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from "jsonwebtoken";
@@ -36,17 +37,23 @@ router.post('/calculate-cpm', (req, res) => {
     // Path to the python script
     const scriptPath = path.join(__dirname, '..', 'civil_engineering_project_schedule_ui_ai.py');
 
-    // Determine the python command (use python3 for mac/linux, python for windows usually, but venv is mostly python3)
-    const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
-
-    // Default to the system python, but preferably use the venv python if it exists
+    // Determine the python command - try venv first, fallback to system python
     const venvPythonPath = path.join(__dirname, '..', 'venv', 'bin', 'python3');
+    const systemPython = process.platform === 'win32' ? 'python' : 'python3';
 
-    // We will try running it with the virtual environment python for better dependency resolution
-    const pythonProcess = spawn(venvPythonPath, [scriptPath]);
+    // Check if venv python exists, otherwise use system python
+    const pythonPath = fs.existsSync(venvPythonPath) ? venvPythonPath : systemPython;
+
+    const pythonProcess = spawn(pythonPath, [scriptPath]);
 
     let pythonOutput = '';
     let pythonError = '';
+
+    // Handle spawn errors (e.g., python not found)
+    pythonProcess.on('error', (err) => {
+        console.error('Failed to start Python process:', err.message);
+        return res.status(500).json({ error: 'Failed to start CPM calculation engine. Python is not available.', details: err.message });
+    });
 
     // Pass the tasks as a JSON string to standard input
     pythonProcess.stdin.write(JSON.stringify(tasks));
