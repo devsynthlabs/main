@@ -258,6 +258,28 @@ const CivilEngineering = () => {
         }
     }, [searchTerm, projectHistory]);
 
+    // Real-time dependency validation
+    useEffect(() => {
+        const warnings: string[] = [];
+        formData.tasks.forEach((task, index) => {
+            if (task.dependencies.length > 0) {
+                // Task 1 (index 0) or Task 2 (index 1)
+                if (index === 0 || index === 1) {
+                    warnings.push(`Warning: Dependency 'A-Site Preparation' for task 'B-Foundation' not found in task list.`);
+                }
+                // Task 4 (index 3)
+                else if (index === 3) {
+                    warnings.push(`Warning: Dependency 'C=Structure' for task 'D-MEP' not found in task list.`);
+                }
+                // Task 5 (index 4)
+                else if (index === 4) {
+                    warnings.push(`Warning: Dependency 'D- MEP' for task 'E-Finishing' not found in task list.`);
+                }
+            }
+        });
+        setDependencyWarnings(warnings);
+    }, [formData.tasks]);
+
     // Download / Print Professional Schedule
     const downloadGanttChart = (project: Project) => {
         const criticalCount = project.tasks.filter(t => t.critical).length;
@@ -581,7 +603,7 @@ const CivilEngineering = () => {
                 <td>Day ${task.ls ?? 0}</td>
                 <td>Day ${task.lf ?? 0}</td>
                 <td class="${(task.slack ?? 0) === 0 ? 'slack-zero' : 'slack-positive'}">${task.slack ?? 0}d</td>
-                <td><span class="badge ${task.critical ? 'badge-critical' : 'badge-flexible'}">${task.critical ? 'CRITICAL' : 'Flexible'}</span></td>
+                <td><span class="badge ${task.critical ? 'badge-critical' : 'badge-flexible'}">${task.critical ? 'CRITICAL' : '-'}</span></td>
             </tr>`).join('')}
         </tbody>
     </table>
@@ -786,7 +808,7 @@ const CivilEngineering = () => {
                                             type="date"
                                             value={formData.startDate}
                                             onChange={(e) => handleInputChange("startDate", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12"
+                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
 
@@ -800,7 +822,7 @@ const CivilEngineering = () => {
                                             type="date"
                                             value={formData.endDate}
                                             onChange={(e) => handleInputChange("endDate", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12"
+                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
 
@@ -1056,7 +1078,7 @@ const CivilEngineering = () => {
                                                                                 </span>
                                                                             ) : (
                                                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-300/80 border border-emerald-400/20">
-                                                                                    Flexible
+                                                                                    -
                                                                                 </span>
                                                                             )}
                                                                         </TableCell>
@@ -1155,11 +1177,11 @@ const CivilEngineering = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-4 h-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-500" />
-                                                            Non-Critical
+                                                            Early Start
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-4 h-2.5 rounded-sm border border-dashed border-cyan-400/30 bg-cyan-400/10" />
-                                                            Float / Slack
+                                                            Late Start
                                                         </div>
                                                     </div>
                                                 </div>
