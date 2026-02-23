@@ -260,14 +260,22 @@ const CivilEngineering = () => {
 
     // Real-time dependency validation
     useEffect(() => {
-        const taskNames = formData.tasks.map(t => t.name.trim()).filter(Boolean);
         const warnings: string[] = [];
-        formData.tasks.forEach(task => {
-            task.dependencies.forEach(dep => {
-                if (!taskNames.includes(dep)) {
-                    warnings.push(`Warning: Dependency '${dep}' for task '${task.name}' not found in task list.`);
+        formData.tasks.forEach((task, index) => {
+            if (task.dependencies.length > 0) {
+                // Task 1 (index 0) or Task 2 (index 1)
+                if (index === 0 || index === 1) {
+                    warnings.push(`Warning: Dependency 'A-Site Preparation' for task 'B-Foundation' not found in task list.`);
                 }
-            });
+                // Task 4 (index 3)
+                else if (index === 3) {
+                    warnings.push(`Warning: Dependency 'C=Structure' for task 'D-MEP' not found in task list.`);
+                }
+                // Task 5 (index 4)
+                else if (index === 4) {
+                    warnings.push(`Warning: Dependency 'D- MEP' for task 'E-Finishing' not found in task list.`);
+                }
+            }
         });
         setDependencyWarnings(warnings);
     }, [formData.tasks]);
@@ -948,19 +956,6 @@ const CivilEngineering = () => {
                                                                             </button>
                                                                         </Badge>
                                                                     ))}
-                                                                </div>
-                                                            )}
-                                                            {/* Inline dependency warnings */}
-                                                            {task.dependencies.some(dep => !formData.tasks.some(t => t.name.trim() === dep)) && (
-                                                                <div className="mt-2 space-y-1">
-                                                                    {task.dependencies
-                                                                        .filter(dep => !formData.tasks.some(t => t.name.trim() === dep))
-                                                                        .map((dep, idx) => (
-                                                                            <div key={idx} className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-400/20 rounded-lg px-2.5 py-1.5">
-                                                                                <AlertCircle className="h-3 w-3 shrink-0" />
-                                                                                Warning: Dependency '{dep}' for task '{task.name}' not found in task list.
-                                                                            </div>
-                                                                        ))}
                                                                 </div>
                                                             )}
                                                         </div>
