@@ -258,61 +258,374 @@ const CivilEngineering = () => {
         }
     }, [searchTerm, projectHistory]);
 
-    // Download Gantt Chart
+    // Download / Print Professional Schedule
     const downloadGanttChart = (project: Project) => {
-        const ganttContent = `
-╔════════════════════════════════════════════╗
-║        PROJECT SCHEDULE - ${project.createdAt}      ║
-╚════════════════════════════════════════════╝
+        const criticalCount = project.tasks.filter(t => t.critical).length;
+        const nonCriticalCount = project.tasks.length - criticalCount;
 
-Project Details:
-  Name: ${project.projectName || "N/A"}
-  ID: ${project.projectId || "N/A"}
-  Description: ${project.projectDescription || "N/A"}
-  Start Date: ${project.startDate || "N/A"}
-  End Date: ${project.endDate || "N/A"}
-  Status: ${project.status || "N/A"}
-  Total Duration: ${project.totalDuration || "0"} days
+        const printHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Project Schedule - ${project.projectName}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+            background: #fff;
+            line-height: 1.5;
+            font-size: 11px;
+        }
 
--------------------------------------------
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #0f172a;
+            margin-bottom: 16px;
+        }
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.5px;
+        }
+        .header-left .subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .header-right {
+            text-align: right;
+            font-size: 10px;
+            color: #64748b;
+        }
+        .header-right .project-id {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+        }
 
-CRITICAL PATH:
-  ${project.criticalPath.join(" → ")}
-  
--------------------------------------------
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .info-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        .info-box .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .info-box .value {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 2px;
+        }
+        .info-box .value.critical-text { color: #dc2626; }
+        .info-box .value.duration-text { color: #059669; }
 
-TASK SCHEDULE:
+        /* Critical Path Banner */
+        .critical-banner {
+            background: linear-gradient(135deg, #fef2f2, #fff1f2);
+            border: 1px solid #fecaca;
+            border-left: 4px solid #dc2626;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+        .critical-banner .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #dc2626;
+            font-weight: 700;
+        }
+        .critical-banner .path {
+            font-size: 12px;
+            font-weight: 600;
+            color: #991b1b;
+            margin-top: 4px;
+        }
 
-${project.tasks.map(task => `
-╔════════════════════════════════════════════╗
-  Task: ${task.name}
-  Duration: ${task.duration} days
-  Dependencies: ${task.dependencies.join(", ") || "None"}
-  
-  Early Start (ES): Day ${task.es || 0}
-  Early Finish (EF): Day ${task.ef || 0}
-  Late Start (LS): Day ${task.ls || 0}
-  Late Finish (LF): Day ${task.lf || 0}
-  Slack: ${task.slack || 0} days
-  ${task.critical ? "★ CRITICAL TASK" : ""}
-╚════════════════════════════════════════════╝
-`).join('')}
+        /* Table */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            font-size: 10px;
+        }
+        .schedule-table thead th {
+            background: #0f172a;
+            color: #fff;
+            padding: 8px 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .schedule-table thead th:first-child { text-align: left; border-radius: 6px 0 0 0; }
+        .schedule-table thead th:last-child { border-radius: 0 6px 0 0; }
+        .schedule-table tbody tr { border-bottom: 1px solid #e2e8f0; }
+        .schedule-table tbody tr:nth-child(even) { background: #f8fafc; }
+        .schedule-table tbody tr.critical-row { background: #fef2f2; }
+        .schedule-table tbody td {
+            padding: 7px 10px;
+            text-align: center;
+            color: #334155;
+        }
+        .schedule-table tbody td:first-child { text-align: left; font-weight: 600; color: #0f172a; }
+        .schedule-table .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 8px;
+            font-weight: 700;
+        }
+        .badge-critical { background: #fecaca; color: #991b1b; }
+        .badge-flexible { background: #d1fae5; color: #065f46; }
+        .slack-zero { color: #dc2626; font-weight: 700; }
+        .slack-positive { color: #059669; font-weight: 600; }
 
--------------------------------------------
+        /* Gantt Chart */
+        .gantt-section { margin-bottom: 16px; }
+        .gantt-section h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .gantt-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .gantt-label {
+            width: 130px;
+            font-size: 9px;
+            font-weight: 600;
+            color: #334155;
+            text-align: right;
+            padding-right: 10px;
+            flex-shrink: 0;
+        }
+        .gantt-track {
+            flex: 1;
+            height: 18px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            position: relative;
+            border: 1px solid #e2e8f0;
+        }
+        .gantt-bar {
+            position: absolute;
+            height: 100%;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .gantt-bar.critical { background: #dc2626; }
+        .gantt-bar.normal { background: #0891b2; }
+        .gantt-slack {
+            position: absolute;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                #e2e8f0 2px,
+                #e2e8f0 4px
+            );
+            border-radius: 2px;
+            opacity: 0.6;
+        }
+        .gantt-timeline {
+            display: flex;
+            margin-top: 4px;
+        }
+        .gantt-timeline-spacer { width: 130px; flex-shrink: 0; }
+        .gantt-timeline-bar {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #94a3b8;
+        }
 
-Generated by Civil Engineering Automation Platform
-Powered by Advanced CPM Engine ⚙️
-    `.trim();
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 2px solid #0f172a;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #94a3b8;
+        }
+        .footer strong { color: #0f172a; }
 
-        const blob = new Blob([ganttContent], { type: "text/plain" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `project_schedule_${project.projectName.replace(/\s+/g, "_")}_${Date.now()}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        /* Description */
+        .description {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            font-size: 10px;
+            color: #475569;
+        }
+        .description .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <h1>${project.projectName || "Untitled Project"}</h1>
+            <div class="subtitle">Critical Path Method (CPM) Schedule Report</div>
+        </div>
+        <div class="header-right">
+            <div class="project-id">${project.projectId || ""}</div>
+            <div>Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            <div>Status: <strong>${project.status || "N/A"}</strong></div>
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+        <div class="info-box">
+            <div class="label">Start Date</div>
+            <div class="value">${project.startDate || "N/A"}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">End Date</div>
+            <div class="value">${project.endDate || "N/A"}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Total Duration</div>
+            <div class="value duration-text">${project.totalDuration || 0} Days</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Tasks</div>
+            <div class="value">${project.tasks.length} Total <span style="color:#dc2626;font-size:10px;">(${criticalCount} Critical)</span></div>
+        </div>
+    </div>
+
+    ${project.projectDescription ? `
+    <div class="description">
+        <div class="label">Project Description</div>
+        ${project.projectDescription}
+    </div>` : ''}
+
+    <!-- Critical Path -->
+    <div class="critical-banner">
+        <div class="label">Critical Path (Longest Sequence - Zero Slack)</div>
+        <div class="path">${project.criticalPath.join("  &#8594;  ")}</div>
+    </div>
+
+    <!-- CPM Schedule Table -->
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th>Task Name</th>
+                <th>Duration</th>
+                <th>Dependencies</th>
+                <th>ES</th>
+                <th>EF</th>
+                <th>LS</th>
+                <th>LF</th>
+                <th>Slack</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${project.tasks.map(task => `
+            <tr class="${task.critical ? 'critical-row' : ''}">
+                <td>${task.name}</td>
+                <td>${task.duration} days</td>
+                <td>${task.dependencies?.length ? task.dependencies.join(', ') : '—'}</td>
+                <td>Day ${task.es ?? 0}</td>
+                <td>Day ${task.ef ?? 0}</td>
+                <td>Day ${task.ls ?? 0}</td>
+                <td>Day ${task.lf ?? 0}</td>
+                <td class="${(task.slack ?? 0) === 0 ? 'slack-zero' : 'slack-positive'}">${task.slack ?? 0}d</td>
+                <td><span class="badge ${task.critical ? 'badge-critical' : 'badge-flexible'}">${task.critical ? 'CRITICAL' : 'Flexible'}</span></td>
+            </tr>`).join('')}
+        </tbody>
+    </table>
+
+    <!-- Gantt Chart -->
+    <div class="gantt-section">
+        <h3>Gantt Chart</h3>
+        ${project.tasks.map(task => `
+        <div class="gantt-row">
+            <div class="gantt-label">${task.name}</div>
+            <div class="gantt-track">
+                <div class="gantt-bar ${task.critical ? 'critical' : 'normal'}"
+                    style="left:${((task.es ?? 0) / (project.totalDuration || 1)) * 100}%;width:${Math.max((task.duration / (project.totalDuration || 1)) * 100, 2)}%;">
+                    ${task.duration}d
+                </div>
+                ${!task.critical && (task.slack ?? 0) > 0 ? `<div class="gantt-slack" style="left:${((task.ef ?? 0) / (project.totalDuration || 1)) * 100}%;width:${((task.slack ?? 0) / (project.totalDuration || 1)) * 100}%;"></div>` : ''}
+            </div>
+        </div>`).join('')}
+        <div class="gantt-timeline">
+            <div class="gantt-timeline-spacer"></div>
+            <div class="gantt-timeline-bar">
+                <span>Day 0</span>
+                <span>Day ${Math.round((project.totalDuration || 0) / 4)}</span>
+                <span>Day ${Math.round((project.totalDuration || 0) / 2)}</span>
+                <span>Day ${Math.round((project.totalDuration || 0) * 3 / 4)}</span>
+                <span>Day ${project.totalDuration || 0}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div><strong>Civil Engineering Automation Platform</strong> &mdash; CPM Schedule Report</div>
+        <div>Page 1 of 1 &nbsp;|&nbsp; ${new Date().toLocaleString()}</div>
+    </div>
+</body>
+</html>`.trim();
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printHTML);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.print(); }, 300);
+        }
     };
 
     const handleBackToDashboard = () => {
@@ -692,122 +1005,161 @@ Powered by Advanced CPM Engine ⚙️
                                                 </div>
 
                                                 {/* CPM Table */}
-                                                <div className="mb-8 overflow-x-auto">
+                                                <div className="mb-8 overflow-x-auto text-left">
                                                     <div className="mb-4 flex justify-between items-center">
-                                                        <div className="text-blue-300 text-sm">
-                                                            Showing {calculatedResults.tasks.length} of {calculatedResults.tasks.length} entries
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-blue-300 text-sm">Search:</span>
-                                                            <Input
-                                                                placeholder="Search tasks..."
-                                                                className="bg-white/5 border-blue-400/30 w-40 text-white"
-                                                            />
+                                                        <div className="text-cyan-300/80 text-sm font-medium">
+                                                            {calculatedResults.tasks.length} Tasks Analyzed
                                                         </div>
                                                     </div>
 
-                                                    <Table className="backdrop-blur-xl bg-white/5 border border-blue-400/20 rounded-2xl">
-                                                        <TableHeader>
-                                                            <TableRow className="border-b border-blue-400/30">
-                                                                <TableHead className="text-white font-bold">Task</TableHead>
-                                                                <TableHead className="text-white font-bold">Duration</TableHead>
-                                                                <TableHead className="text-white font-bold">ES</TableHead>
-                                                                <TableHead className="text-white font-bold">EF</TableHead>
-                                                                <TableHead className="text-white font-bold">LS</TableHead>
-                                                                <TableHead className="text-white font-bold">LF</TableHead>
-                                                                <TableHead className="text-white font-bold">Slack</TableHead>
-                                                                <TableHead className="text-white font-bold">Critical</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {calculatedResults.tasks.map((task) => (
-                                                                <TableRow
-                                                                    key={task.id}
-                                                                    className={`${task.critical ? "bg-red-500/10" : ""} hover:bg-white/5`}
-                                                                >
-                                                                    <TableCell className="font-bold text-white">
-                                                                        {task.name}
-                                                                        {task.critical && (
-                                                                            <Badge className="ml-2 bg-red-500/20 text-red-300 border-red-400/30 text-xs">
-                                                                                Critical
-                                                                            </Badge>
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell className="text-white">{task.duration} days</TableCell>
-                                                                    <TableCell className="text-white font-medium">Day {task.es}</TableCell>
-                                                                    <TableCell className="text-white font-medium">Day {task.ef}</TableCell>
-                                                                    <TableCell className="text-purple-300 font-medium">Day {task.ls}</TableCell>
-                                                                    <TableCell className="text-purple-300 font-medium">Day {task.lf}</TableCell>
-                                                                    <TableCell className={task.slack === 0 ? "text-red-400 font-bold" : "text-green-400 font-medium"}>
-                                                                        {task.slack} days
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {task.critical ? (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-red-400 font-bold">*</span>
-                                                                                <span className="text-red-300">Critical</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <span className="text-green-400">-</span>
-                                                                        )}
-                                                                    </TableCell>
+                                                    <div className="rounded-2xl overflow-hidden border border-blue-400/30">
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow className="bg-slate-800/80 border-b border-blue-400/30">
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide">Task</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">Duration</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">ES</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">EF</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">LS</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">LF</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">Slack</TableHead>
+                                                                    <TableHead className="text-cyan-300 font-bold text-sm tracking-wide text-center">Status</TableHead>
                                                                 </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {calculatedResults.tasks.map((task, index) => (
+                                                                    <TableRow
+                                                                        key={task.id}
+                                                                        className={`border-b border-blue-400/10 transition-colors ${task.critical ? "bg-red-500/10 hover:bg-red-500/15" : index % 2 === 0 ? "bg-slate-800/40 hover:bg-slate-700/40" : "bg-slate-800/20 hover:bg-slate-700/30"}`}
+                                                                    >
+                                                                        <TableCell className="font-semibold text-white text-sm">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className={`w-1.5 h-8 rounded-full ${task.critical ? 'bg-red-400' : 'bg-cyan-400/40'}`} />
+                                                                                {task.name}
+                                                                            </div>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-blue-100 text-sm text-center font-medium">{task.duration}d</TableCell>
+                                                                        <TableCell className="text-emerald-300 text-sm text-center font-medium">{task.es}</TableCell>
+                                                                        <TableCell className="text-emerald-300 text-sm text-center font-medium">{task.ef}</TableCell>
+                                                                        <TableCell className="text-violet-300 text-sm text-center font-medium">{task.ls}</TableCell>
+                                                                        <TableCell className="text-violet-300 text-sm text-center font-medium">{task.lf}</TableCell>
+                                                                        <TableCell className="text-center">
+                                                                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${task.slack === 0 ? 'bg-red-500/20 text-red-300 border border-red-400/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'}`}>
+                                                                                {task.slack}d
+                                                                            </span>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-center">
+                                                                            {task.critical ? (
+                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500/25 text-red-300 border border-red-400/40">
+                                                                                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                                                                                    Critical
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-300/80 border border-emerald-400/20">
+                                                                                    Flexible
+                                                                                </span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </div>
 
-                                                    <div className="mt-4 text-sm text-blue-300/70">
-                                                        <div className="flex justify-between items-center">
-                                                            <span>Showing 1 to {calculatedResults.tasks.length} of {calculatedResults.tasks.length} entries</span>
-                                                            <div className="flex items-center gap-2">
-                                                                <Button variant="outline" size="sm" className="border-blue-400/30 text-white">Previous</Button>
-                                                                <Button variant="outline" size="sm" className="border-blue-400/30 bg-blue-500/20 text-white">1</Button>
-                                                                <Button variant="outline" size="sm" className="border-blue-400/30 text-white">Next</Button>
-                                                            </div>
+                                                    {/* Legend */}
+                                                    <div className="mt-4 flex items-center gap-6 text-xs text-blue-300/60">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-emerald-300">ES/EF</span> = Early Start / Early Finish
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-violet-300">LS/LF</span> = Late Start / Late Finish
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-1.5 h-1.5 bg-red-400 rounded-full" /> = Critical (0 slack)
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Gantt Chart Preview */}
-                                                <div className="mb-8 p-6 bg-white/5 rounded-2xl border border-blue-400/20">
-                                                    <h3 className="text-lg font-bold text-blue-200 mb-4 flex items-center gap-2">
+                                                <div className="mb-8 p-6 bg-slate-800/50 rounded-2xl border border-blue-400/20">
+                                                    <h3 className="text-lg font-bold text-cyan-300 mb-6 flex items-center gap-2">
                                                         <BarChart3 className="h-5 w-5 text-cyan-400" />
                                                         Gantt Chart Preview
                                                     </h3>
-                                                    <div className="space-y-4">
+
+                                                    {/* Timeline header */}
+                                                    <div className="mb-2 flex">
+                                                        <div className="w-40 shrink-0" />
+                                                        <div className="flex-1 flex justify-between text-xs text-blue-300/50 px-1">
+                                                            <span>Day 0</span>
+                                                            <span>Day {Math.round(calculatedResults.totalDuration / 4)}</span>
+                                                            <span>Day {Math.round(calculatedResults.totalDuration / 2)}</span>
+                                                            <span>Day {Math.round(calculatedResults.totalDuration * 3 / 4)}</span>
+                                                            <span>Day {calculatedResults.totalDuration}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
                                                         {calculatedResults.tasks.map((task) => (
-                                                            <div key={task.id} className="space-y-2">
-                                                                <div className="flex justify-between text-sm">
-                                                                    <span className={`font-medium ${task.critical ? 'text-red-300' : 'text-blue-300'}`}>
+                                                            <div key={task.id} className="flex items-center gap-3">
+                                                                {/* Task label */}
+                                                                <div className="w-40 shrink-0 text-right pr-2">
+                                                                    <span className={`text-sm font-medium ${task.critical ? 'text-red-300' : 'text-blue-200'}`}>
                                                                         {task.name}
                                                                     </span>
-                                                                    <span className="text-blue-400/70">
-                                                                        {task.duration} days (ES: {task.es}, EF: {task.ef})
-                                                                    </span>
+                                                                    <div className="text-[10px] text-blue-400/50">
+                                                                        {task.duration}d
+                                                                    </div>
                                                                 </div>
-                                                                <div className="relative h-4 bg-blue-900/30 rounded-full overflow-hidden">
+
+                                                                {/* Bar area */}
+                                                                <div className="flex-1 relative h-8 bg-slate-900/40 rounded-lg overflow-hidden border border-blue-400/10">
+                                                                    {/* Grid lines */}
+                                                                    <div className="absolute inset-0 flex">
+                                                                        {[25, 50, 75].map(pct => (
+                                                                            <div key={pct} className="absolute h-full border-l border-blue-400/5" style={{ left: `${pct}%` }} />
+                                                                        ))}
+                                                                    </div>
+
+                                                                    {/* Task bar */}
                                                                     <div
-                                                                        className={`absolute h-full rounded-full ${task.critical ? 'bg-gradient-to-r from-slate-400 to-slate-500' : 'bg-gradient-to-r from-sky-400 to-sky-500'}`}
+                                                                        className={`absolute h-full rounded-md flex items-center justify-center text-[10px] font-bold text-white/90 shadow-lg transition-all ${task.critical ? 'bg-gradient-to-r from-red-500 to-rose-500 shadow-red-500/30' : 'bg-gradient-to-r from-cyan-500 to-blue-500 shadow-cyan-500/30'}`}
                                                                         style={{
                                                                             left: `${(task.es || 0) / calculatedResults.totalDuration * 100}%`,
-                                                                            width: `${task.duration / calculatedResults.totalDuration * 100}%`
+                                                                            width: `${Math.max(task.duration / calculatedResults.totalDuration * 100, 3)}%`
                                                                         }}
-                                                                    ></div>
-                                                                    {!task.critical && (
+                                                                    >
+                                                                        {task.duration >= calculatedResults.totalDuration * 0.08 && `${task.duration}d`}
+                                                                    </div>
+
+                                                                    {/* Slack indicator for non-critical tasks */}
+                                                                    {!task.critical && task.slack > 0 && (
                                                                         <div
-                                                                            className="absolute h-full bg-gradient-to-r from-slate-500/30 to-slate-600/30 rounded-full border border-dashed border-slate-400/50"
+                                                                            className="absolute h-full rounded-md bg-cyan-400/10 border border-dashed border-cyan-400/20"
                                                                             style={{
-                                                                                left: `${(task.ls || 0) / calculatedResults.totalDuration * 100}%`,
-                                                                                width: `${task.duration / calculatedResults.totalDuration * 100}%`
+                                                                                left: `${(task.ef || 0) / calculatedResults.totalDuration * 100}%`,
+                                                                                width: `${task.slack / calculatedResults.totalDuration * 100}%`
                                                                             }}
-                                                                        ></div>
+                                                                        />
                                                                     )}
                                                                 </div>
                                                             </div>
                                                         ))}
-                                                        <div className="flex justify-between text-xs text-blue-400/60 mt-2">
-                                                            <span>Day 0</span>
-                                                            <span>Day {calculatedResults.totalDuration}</span>
+                                                    </div>
+
+                                                    {/* Gantt Legend */}
+                                                    <div className="mt-5 pt-4 border-t border-blue-400/10 flex items-center gap-6 text-xs text-blue-300/60">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-4 h-2.5 rounded-sm bg-gradient-to-r from-red-500 to-rose-500" />
+                                                            Critical Path
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-4 h-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-500" />
+                                                            Non-Critical
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-4 h-2.5 rounded-sm border border-dashed border-cyan-400/30 bg-cyan-400/10" />
+                                                            Float / Slack
                                                         </div>
                                                     </div>
                                                 </div>
