@@ -258,6 +258,20 @@ const CivilEngineering = () => {
         }
     }, [searchTerm, projectHistory]);
 
+    // Real-time dependency validation
+    useEffect(() => {
+        const taskNames = formData.tasks.map(t => t.name.trim()).filter(Boolean);
+        const warnings: string[] = [];
+        formData.tasks.forEach(task => {
+            task.dependencies.forEach(dep => {
+                if (!taskNames.includes(dep)) {
+                    warnings.push(`Warning: Dependency '${dep}' for task '${task.name}' not found in task list.`);
+                }
+            });
+        });
+        setDependencyWarnings(warnings);
+    }, [formData.tasks]);
+
     // Download / Print Professional Schedule
     const downloadGanttChart = (project: Project) => {
         const criticalCount = project.tasks.filter(t => t.critical).length;
@@ -581,7 +595,7 @@ const CivilEngineering = () => {
                 <td>Day ${task.ls ?? 0}</td>
                 <td>Day ${task.lf ?? 0}</td>
                 <td class="${(task.slack ?? 0) === 0 ? 'slack-zero' : 'slack-positive'}">${task.slack ?? 0}d</td>
-                <td><span class="badge ${task.critical ? 'badge-critical' : 'badge-flexible'}">${task.critical ? 'CRITICAL' : 'Flexible'}</span></td>
+                <td><span class="badge ${task.critical ? 'badge-critical' : 'badge-flexible'}">${task.critical ? 'CRITICAL' : '-'}</span></td>
             </tr>`).join('')}
         </tbody>
     </table>
@@ -786,7 +800,7 @@ const CivilEngineering = () => {
                                             type="date"
                                             value={formData.startDate}
                                             onChange={(e) => handleInputChange("startDate", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12"
+                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
 
@@ -800,7 +814,7 @@ const CivilEngineering = () => {
                                             type="date"
                                             value={formData.endDate}
                                             onChange={(e) => handleInputChange("endDate", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12"
+                                            className="bg-white/5 backdrop-blur-xl text-white border border-blue-400/30 rounded-xl h-12 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
 
@@ -936,6 +950,19 @@ const CivilEngineering = () => {
                                                                     ))}
                                                                 </div>
                                                             )}
+                                                            {/* Inline dependency warnings */}
+                                                            {task.dependencies.some(dep => !formData.tasks.some(t => t.name.trim() === dep)) && (
+                                                                <div className="mt-2 space-y-1">
+                                                                    {task.dependencies
+                                                                        .filter(dep => !formData.tasks.some(t => t.name.trim() === dep))
+                                                                        .map((dep, idx) => (
+                                                                            <div key={idx} className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-400/20 rounded-lg px-2.5 py-1.5">
+                                                                                <AlertCircle className="h-3 w-3 shrink-0" />
+                                                                                Warning: Dependency '{dep}' for task '{task.name}' not found in task list.
+                                                                            </div>
+                                                                        ))}
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         <div className="flex items-end gap-2">
@@ -1056,7 +1083,7 @@ const CivilEngineering = () => {
                                                                                 </span>
                                                                             ) : (
                                                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-300/80 border border-emerald-400/20">
-                                                                                    Flexible
+                                                                                    -
                                                                                 </span>
                                                                             )}
                                                                         </TableCell>
@@ -1155,11 +1182,11 @@ const CivilEngineering = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-4 h-2.5 rounded-sm bg-gradient-to-r from-cyan-500 to-blue-500" />
-                                                            Non-Critical
+                                                            Early Start
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-4 h-2.5 rounded-sm border border-dashed border-cyan-400/30 bg-cyan-400/10" />
-                                                            Float / Slack
+                                                            Late Start
                                                         </div>
                                                     </div>
                                                 </div>
