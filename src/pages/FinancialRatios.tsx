@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
@@ -315,96 +316,72 @@ Powered by Advanced Ratio Engine ✨
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Static primary gradient */}
-        <div
-          className="absolute w-[800px] h-[800px] bg-gradient-to-r from-blue-500/10 via-cyan-500/5 to-indigo-500/10 rounded-full blur-3xl"
-          style={{
-            top: -400,
-            left: -400,
-          }}
-        />
+    <div className="liquid-page module-ink min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-
-        {/* Floating particles */}
-        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-40 left-60 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-60 right-20 w-2 h-2 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
-      </div>
-
-      {/* Header */}
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
             onClick={handleBackToDashboard}
-            className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+            className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div
-              className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 transition-transform duration-300"
-            >
-              <TrendingUp className="h-8 w-8 text-blue-400" />
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <TrendingUp className="h-8 w-8 text-slate-900" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                Financial Ratios Analyzer
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
+                Financial Ratios Studio
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">Calculate and analyze key financial metrics</p>
+              <p className="mt-1 text-slate-600">Liquidity, solvency, and profitability at a glance</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-2 backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-2xl p-1">
+          <TabsList className="grid w-full grid-cols-2 rounded-[24px] border border-white/55 bg-white/42 p-1 shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
             <TabsTrigger
               value="calculator"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+              className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
             >
               <Calculator className="h-4 w-4" />
-              Ratio Calculator
+              Calculator
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+              className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
             >
               <FileText className="h-4 w-4" />
-              Analysis History
+              History
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calculator">
-            <Card
-              className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500"
-            >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
+            <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500">
+              <div className="absolute left-1/2 top-0 h-32 w-96 -translate-x-1/2 bg-gradient-to-b from-sky-200/60 to-transparent blur-2xl" />
 
               <CardHeader className="relative">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-3xl font-black text-blue-100 flex items-center gap-3">
-                      <BarChart3 className="h-7 w-7 text-cyan-400 transition-transform duration-300" />
-                      Financial Ratios Calculator
+                    <CardTitle className="flex items-center gap-3 text-3xl font-semibold tracking-tight text-slate-950">
+                      <BarChart3 className="h-7 w-7 text-sky-700 transition-transform duration-300" />
+                      Ratio Calculator
                     </CardTitle>
-                    <CardDescription className="text-blue-200/70 mt-2 text-base">
-                      Enter financial data to calculate key performance ratios
+                    <CardDescription className="mt-2 text-base text-slate-600">
+                      Enter financial data to calculate performance ratios and save the result.
                     </CardDescription>
                   </div>
-                  <div className="hidden sm:block px-4 py-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl backdrop-blur-md border border-blue-400/30">
+                  <div className="hidden rounded-full border border-white/60 bg-white/60 px-4 py-2 shadow-sm backdrop-blur-xl sm:block">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-sm text-blue-200 font-semibold">Live Analysis</span>
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                      <span className="text-sm font-semibold text-slate-700">Live Analysis</span>
                     </div>
                   </div>
                 </div>
@@ -439,7 +416,7 @@ Powered by Advanced Ratio Engine ✨
                           placeholder="0.00"
                           value={formData[field.id as keyof FormData]}
                           onChange={(e) => handleInputChange(field.id as keyof FormData, e.target.value)}
-                          className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12 placeholder:text-blue-300/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 transition-all duration-300 hover:bg-white/10"
+                          className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                         />
                         <VoiceButton
                           onTranscript={(text) => handleInputChange(field.id as keyof FormData, text)}
@@ -454,19 +431,17 @@ Powered by Advanced Ratio Engine ✨
                 <div className="flex gap-4 pt-4">
                   <Button
                     onClick={calculateRatios}
-                    className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl shadow-blue-500/50 transition-all duration-300 hover:scale-[1.02] border border-blue-400/30"
+                    className="h-14 flex-1 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
                   >
                     <Calculator className="mr-2 h-5 w-5" />
-                    Calculate Ratios & Add to History
+                    Calculate Ratios
                   </Button>
                 </div>
 
                 {/* Display Results */}
                 {showResult && calculatedRatios && (
-                  <Card
-                    className="backdrop-blur-2xl bg-gradient-to-br from-slate-800/90 via-blue-900/80 to-indigo-900/90 border-2 border-cyan-400/60 shadow-2xl shadow-cyan-500/60 rounded-3xl overflow-hidden animate-in fade-in duration-700 relative"
-                  >
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse" />
+                  <Card className="liquid-panel relative overflow-hidden rounded-[36px] border-white/55 animate-in fade-in duration-700">
+                    <div className="absolute left-0 right-0 top-0 h-1 animate-pulse bg-gradient-to-r from-transparent via-sky-400 to-transparent" />
 
                     <div className="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-yellow-400/30 to-amber-400/30 rounded-full backdrop-blur-md border border-yellow-400/50 flex items-center gap-1 shadow-lg shadow-yellow-400/30">
                       <Sparkles className="h-3 w-3 text-yellow-300" />

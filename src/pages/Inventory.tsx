@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { VoiceButton } from "@/components/ui/VoiceButton";
@@ -215,9 +216,9 @@ const Inventory = () => {
         const taxPct = item.taxPercent || 0;
         const priceWithTax = item.priceWithTax || false;
 
-        let baseAmount = qty * price;
-        let discountAmount = (baseAmount * discountPct) / 100;
-        let afterDiscount = baseAmount - discountAmount;
+        const baseAmount = qty * price;
+        const discountAmount = (baseAmount * discountPct) / 100;
+        const afterDiscount = baseAmount - discountAmount;
 
         const isInterState = isInterStatePurchase();
 
@@ -960,53 +961,48 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white overflow-hidden relative">
-            {/* Background elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-                <div className="absolute top-20 left-20 w-2 h-2 bg-violet-400 rounded-full animate-ping" />
-                <div className="absolute bottom-40 right-40 w-2 h-2 bg-purple-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-            </div>
+        <div className="liquid-page module-ink min-h-screen overflow-hidden text-slate-950">
+            <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
             {/* Header */}
-            <header className="relative backdrop-blur-xl bg-white/5 border-b border-violet-400/20 shadow-2xl">
-                <div className="max-w-7xl mx-auto px-6 py-6">
+            <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+                <div className="mx-auto max-w-7xl px-6 py-6">
                     <Button
                         variant="ghost"
                         onClick={handleBackToDashboard}
-                        className="mb-4 text-violet-200 hover:text-violet-100 hover:bg-white/10"
+                        className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Dashboard
                     </Button>
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-violet-500/20 to-purple-500/20 rounded-2xl border border-violet-400/30">
-                            <Package className="h-8 w-8 text-violet-400" />
+                        <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+                            <Package className="h-8 w-8 text-slate-900" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+                            <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
                                 Inventory Management
                             </h1>
-                            <p className="text-violet-200/80 font-medium mt-1">Track stock, manage items, and monitor assets</p>
+                            <p className="mt-1 text-slate-600">Track stock, manage items, and monitor assets</p>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+            <main className="relative z-10 mx-auto max-w-7xl px-6 py-12">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="grid w-full grid-cols-4 backdrop-blur-2xl bg-white/10 border border-violet-400/20 rounded-2xl p-1">
-                        <TabsTrigger value="items" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
+                    <TabsList className="grid w-full grid-cols-4 rounded-[24px] border border-white/55 bg-white/42 p-1 shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+                        <TabsTrigger value="items" className="rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white">
                             <Archive className="h-4 w-4 mr-2" /> Items
                         </TabsTrigger>
-                        <TabsTrigger value="add" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
+                        <TabsTrigger value="add" className="rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white">
                             <Plus className="h-4 w-4 mr-2" /> Add Item
                         </TabsTrigger>
-                        <TabsTrigger value="purchase" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white rounded-xl">
+                        <TabsTrigger value="purchase" className="rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white">
                             <ShoppingCart className="h-4 w-4 mr-2" /> Purchase
                         </TabsTrigger>
-                        <TabsTrigger value="voice" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white rounded-xl">
+                        <TabsTrigger value="voice" className="rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white">
                             <Mic className="h-4 w-4 mr-2" /> Voice
                         </TabsTrigger>
                     </TabsList>

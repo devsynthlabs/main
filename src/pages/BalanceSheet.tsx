@@ -308,75 +308,61 @@ const BalanceSheet = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-      {/* Animated Background Effects */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-
-      {/* Static gradient circles instead of mouse-following orb */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Floating particles */}
-      <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-      <div className="absolute top-40 right-40 w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-      <div className="absolute bottom-32 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
+    <div className="liquid-page min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl shadow-blue-500/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
             onClick={handleBackToDashboard}
-            className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 transition-all duration-300 group backdrop-blur-xl"
+            className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
           >
-            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div
-              className="p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 shadow-2xl shadow-blue-500/40"
-            >
-              <Scale className="h-8 w-8 text-blue-300" />
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <Scale className="h-8 w-8 text-slate-900" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
                 Balance Sheet Generator
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">Create comprehensive financial statements with real-time validation</p>
+              <p className="mt-1 text-slate-600 font-medium">Create comprehensive financial statements with real-time validation</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Card */}
-          <Card
-            className="backdrop-blur-2xl bg-white/10 border border-blue-400/30 shadow-2xl shadow-blue-500/40 rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500 bg-white/40">
+            <div className="absolute left-1/2 top-0 h-32 w-96 -translate-x-1/2 bg-gradient-to-b from-sky-200/60 to-transparent blur-2xl" />
 
             <CardHeader className="relative">
               <div className="absolute top-4 right-4 flex gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
-              <CardTitle className="text-2xl font-bold text-white">Enter Balance Sheet Data</CardTitle>
-              <CardDescription className="text-blue-300">Input your financial values below</CardDescription>
+              <CardTitle className="text-2xl font-bold text-slate-950">Enter Balance Sheet Data</CardTitle>
+              <CardDescription className="text-slate-600 mt-1">Input your financial values below</CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6 relative">
               {/* Assets Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/50">
-                    <Building className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <Building className="h-4 w-4 text-sky-700" />
                   </div>
                   Assets
                 </h3>
 
                 {/* Current Assets Sub-items */}
-                <p className="text-blue-300 text-sm font-semibold uppercase tracking-wider">Current Assets</p>
+                <p className="text-sky-800 text-xs font-bold uppercase tracking-wider pl-1">Current Assets</p>
                 {[
                   { id: "cashInHand", label: "Cash in Hand (₹)", placeholder: "e.g., 150000.00" },
                   { id: "tradeReceivable", label: "Trade Receivable (₹)", placeholder: "e.g., 100000.00" },
@@ -384,7 +370,7 @@ const BalanceSheet = () => {
                   { id: "currentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
                 ].map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
-                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         id={id}
@@ -392,7 +378,7 @@ const BalanceSheet = () => {
                         placeholder={placeholder}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(id, text)}
@@ -403,7 +389,7 @@ const BalanceSheet = () => {
                 ))}
 
                 {/* Non-Current Assets Sub-items */}
-                <p className="text-blue-300 text-sm font-semibold uppercase tracking-wider mt-4">Non-Current Assets</p>
+                <p className="text-sky-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Assets</p>
                 {[
                   { id: "fixedAssets", label: "Fixed Assets (₹)", placeholder: "e.g., 500000.00" },
                   { id: "machinery", label: "Machinery (₹)", placeholder: "e.g., 300000.00" },
@@ -411,7 +397,7 @@ const BalanceSheet = () => {
                   { id: "nonCurrentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
                 ].map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
-                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         id={id}
@@ -419,7 +405,7 @@ const BalanceSheet = () => {
                         placeholder={placeholder}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(id, text)}
@@ -431,16 +417,16 @@ const BalanceSheet = () => {
               </div>
 
               {/* Liabilities Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/50">
-                    <TrendingUp className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-orange-50/60 border border-orange-100 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <TrendingUp className="h-4 w-4 text-orange-700" />
                   </div>
                   Liabilities
                 </h3>
 
                 {/* Current Liabilities Sub-items */}
-                <p className="text-orange-300 text-sm font-semibold uppercase tracking-wider">Current Liabilities</p>
+                <p className="text-orange-800 text-xs font-bold uppercase tracking-wider pl-1">Current Liabilities</p>
                 {[
                   { id: "currentTradePayable", label: "Trade Payable (₹)", subLabel: "Short term / Less than 1 year", placeholder: "e.g., 100000.00" },
                   { id: "currentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
@@ -449,8 +435,8 @@ const BalanceSheet = () => {
                 ].map(({ id, label, subLabel, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <div className="flex flex-col gap-0.5">
-                      <Label htmlFor={id} className="text-white font-medium">{label}</Label>
-                      {subLabel && <span className="text-xs text-orange-300/70 font-normal">{subLabel}</span>}
+                      <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                      {subLabel && <span className="text-xs text-slate-500 font-normal pl-0.5">{subLabel}</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <Input
@@ -459,7 +445,7 @@ const BalanceSheet = () => {
                         placeholder={placeholder}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(id, text)}
@@ -470,7 +456,7 @@ const BalanceSheet = () => {
                 ))}
 
                 {/* Non-Current Liabilities Sub-items */}
-                <p className="text-orange-300 text-sm font-semibold uppercase tracking-wider mt-4">Non-Current Liabilities</p>
+                <p className="text-orange-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Liabilities</p>
                 {[
                   { id: "nonCurrentTradePayable", label: "Trade Payable (₹)", subLabel: "Long term / More than 1 year", placeholder: "e.g., 400000.00" },
                   { id: "nonCurrentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
@@ -479,8 +465,8 @@ const BalanceSheet = () => {
                 ].map(({ id, label, subLabel, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <div className="flex flex-col gap-0.5">
-                      <Label htmlFor={id} className="text-white font-medium">{label}</Label>
-                      {subLabel && <span className="text-xs text-orange-300/70 font-normal">{subLabel}</span>}
+                      <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                      {subLabel && <span className="text-xs text-slate-500 font-normal pl-0.5">{subLabel}</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <Input
@@ -489,7 +475,7 @@ const BalanceSheet = () => {
                         placeholder={placeholder}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(id, text)}
@@ -501,10 +487,10 @@ const BalanceSheet = () => {
               </div>
 
               {/* Equity Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/50">
-                    <Calculator className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-emerald-50/60 border border-emerald-100 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <Calculator className="h-4 w-4 text-emerald-700" />
                   </div>
                   Equity
                 </h3>
@@ -514,7 +500,7 @@ const BalanceSheet = () => {
                   { id: "equityOthers", label: "Others (₹)", placeholder: "e.g., 100000.00" },
                 ].map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
-                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         id={id}
@@ -522,7 +508,7 @@ const BalanceSheet = () => {
                         placeholder={placeholder}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(id, text)}
@@ -535,9 +521,9 @@ const BalanceSheet = () => {
 
               <Button
                 onClick={generateBalanceSheet}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
+                className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
               >
-                <Calculator className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+                <Calculator className="mr-2 h-5 w-5" />
                 Generate Balance Sheet
               </Button>
             </CardContent>
@@ -546,93 +532,93 @@ const BalanceSheet = () => {
           {/* Results Card */}
           {balanceSheet && (
             <Card
-              className={`backdrop-blur-2xl ${balanceSheet.balanced ? 'bg-slate-800/90 border-emerald-400/60 shadow-emerald-500/60' : 'bg-slate-800/90 border-red-400/60 shadow-red-500/60'} border-2 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500 animate-in fade-in slide-in-from-right`}
+              className={`liquid-panel relative overflow-hidden rounded-[36px] border-white/55 bg-white/40 shadow-xl border-2 transition-all duration-500 animate-in fade-in duration-700`}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${balanceSheet.balanced ? 'from-emerald-500/10 via-transparent to-cyan-500/10' : 'from-red-500/10 via-transparent to-orange-500/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-sky-400 to-transparent" />
 
               {/* Status Badge */}
               <div className="absolute top-6 right-6 z-10">
-                <div className={`px-4 py-2 rounded-full backdrop-blur-xl ${balanceSheet.balanced ? 'bg-emerald-500/30 border border-emerald-400/50' : 'bg-red-500/30 border border-red-400/50'} flex items-center gap-2 shadow-lg`}>
+                <div className={`px-4 py-2 rounded-full backdrop-blur-xl shadow-md border ${balanceSheet.balanced ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'} flex items-center gap-2`}>
                   {balanceSheet.balanced ? (
                     <>
-                      <CheckCircle className="h-4 w-4 text-emerald-300" />
-                      <span className="text-emerald-100 font-bold text-sm">Balanced</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-700" />
+                      <span className="font-bold text-sm">Balanced</span>
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="h-4 w-4 text-red-300" />
-                      <span className="text-red-100 font-bold text-sm">Unbalanced</span>
+                      <AlertCircle className="h-4 w-4 text-rose-700" />
+                      <span className="font-bold text-sm">Unbalanced</span>
                     </>
                   )}
                 </div>
               </div>
 
               <CardHeader className="relative pt-8">
-                <CardTitle className="text-2xl font-bold text-white">Balance Sheet Report</CardTitle>
-                <CardDescription className={balanceSheet.balanced ? "text-emerald-200" : "text-red-200"}>
+                <CardTitle className="text-2xl font-bold text-slate-950">Balance Sheet Report</CardTitle>
+                <CardDescription className={balanceSheet.balanced ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}>
                   {balanceSheet.balanced ? "Balance sheet is balanced ✓" : "Balance sheet is NOT balanced"}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6 relative">
                 {/* Assets Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Assets</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Assets</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Current Assets</span>
-                      <span className="font-bold text-cyan-300">₹{balanceSheet.currentAssets.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.currentAssets.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Non-Current Assets</span>
-                      <span className="font-bold text-cyan-300">₹{balanceSheet.nonCurrentAssets.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentAssets.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-blue-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Assets</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]">₹{balanceSheet.totalAssets.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Assets</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalAssets.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Liabilities Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Liabilities</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Liabilities</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Current Liabilities</span>
-                      <span className="font-bold text-orange-300">₹{balanceSheet.currentLiabilities.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.currentLiabilities.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Non-Current Liabilities</span>
-                      <span className="font-bold text-orange-300">₹{balanceSheet.nonCurrentLiabilities.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentLiabilities.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-orange-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Liabilities</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.8)]">₹{balanceSheet.totalLiabilities.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Liabilities</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilities.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Equity Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Equity</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Equity</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Equity</span>
-                      <span className="font-bold text-emerald-300">₹{balanceSheet.equity.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.equity.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-green-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Liabilities + Equity</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]">₹{balanceSheet.totalLiabilitiesEquity.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Liabilities + Equity</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilitiesEquity.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 <Button
                   onClick={downloadReport}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
+                  className="group rounded-full bg-slate-950 font-semibold text-white px-8 py-4 w-full shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
                 >
-                  <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform" />
+                  <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
                   Download Report
                 </Button>
               </CardContent>

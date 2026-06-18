@@ -330,55 +330,54 @@ const ProfitLoss = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white relative">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="liquid-page min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
             onClick={handleBackToDashboard}
-            className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+            className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30">
-              <BarChart3 className="h-8 w-8 text-blue-400" />
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <BarChart3 className="h-8 w-8 text-slate-900" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
                 Profit & Loss Statement
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">Generate, analyze with AI, and download P&L reports</p>
+              <p className="mt-1 text-slate-600 font-medium">Generate, analyze with AI, and download P&L reports</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Card */}
-          <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40 hover:-translate-y-2">
+          <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500 bg-white/40">
+            <div className="absolute left-1/2 top-0 h-32 w-96 -translate-x-1/2 bg-gradient-to-b from-sky-200/60 to-transparent blur-2xl" />
+
             <CardHeader className="relative">
-              <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
-                <DollarSign className="h-6 w-6 text-cyan-400" />
+              <CardTitle className="text-2xl font-bold text-slate-950 flex items-center gap-3">
+                <DollarSign className="h-6 w-6 text-sky-700" />
                 Enter P&L Data
               </CardTitle>
-              <CardDescription className="text-blue-200/70">
+              <CardDescription className="text-slate-600 mt-1">
                 Input your company's financial details
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Revenue Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-blue-100 border-b border-blue-400/30 pb-2">💰 Revenue</h3>
+              <div className="space-y-4 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+                <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">💰 Revenue</h3>
                 {[
                   { field: "sales", label: "Sales", icon: "📊" },
                   { field: "serviceIncome", label: "Service Income", icon: "🔧" },
@@ -386,7 +385,7 @@ const ProfitLoss = () => {
                   { field: "otherIncome", label: "Other Income", icon: "💰" },
                 ].map(({ field, label, icon }) => (
                   <div key={field} className="space-y-2">
-                    <Label htmlFor={field} className="text-blue-100 font-bold flex items-center gap-2">
+                    <Label htmlFor={field} className="text-slate-700 font-semibold flex items-center gap-2">
                       <span>{icon}</span> {label} (₹)
                     </Label>
                     <div className="flex items-center gap-2">
@@ -396,7 +395,7 @@ const ProfitLoss = () => {
                         placeholder="0.00"
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(field, text)}
@@ -407,9 +406,9 @@ const ProfitLoss = () => {
                 ))}
               </div>
 
-              {/* Expenses Section - UPDATED with 8 fields */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-blue-100 border-b border-blue-400/30 pb-2">💸 Expenses</h3>
+              {/* Expenses Section */}
+              <div className="space-y-4 p-6 rounded-[28px] bg-orange-50/60 border border-orange-100 shadow-sm backdrop-blur-xl">
+                <h3 className="text-lg font-bold text-slate-900 border-b border-orange-100/30 pb-2">💸 Expenses</h3>
                 {[
                   { field: "costOfMaterials", label: "Cost of Materials", icon: "📦" },
                   { field: "salaries", label: "Salaries", icon: "👥" },
@@ -421,7 +420,7 @@ const ProfitLoss = () => {
                   { field: "otherExpenses", label: "Other Expenses", icon: "📝" },
                 ].map(({ field, label, icon }) => (
                   <div key={field} className="space-y-2">
-                    <Label htmlFor={field} className="text-blue-100 font-bold flex items-center gap-2">
+                    <Label htmlFor={field} className="text-slate-700 font-semibold flex items-center gap-2">
                       <span>{icon}</span> {label} (₹)
                     </Label>
                     <div className="flex items-center gap-2">
@@ -431,7 +430,7 @@ const ProfitLoss = () => {
                         placeholder="0.00"
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                       />
                       <VoiceButton
                         onTranscript={(text) => handleInputChange(field, text)}
@@ -445,7 +444,7 @@ const ProfitLoss = () => {
               <Button
                 onClick={generateStatement}
                 disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-lg rounded-xl shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 <Calculator className="mr-2 h-5 w-5" />
                 {isLoading ? "Generating..." : "Generate P&L Statement with AI"}
@@ -455,38 +454,38 @@ const ProfitLoss = () => {
 
           {/* Result Card */}
           {showResult && statement && (
-            <Card className={`backdrop-blur-2xl bg-white/10 border-2 shadow-2xl rounded-3xl overflow-hidden transition-all duration-700 animate-in fade-in ${statement.profitable ? 'border-emerald-400/60 shadow-emerald-500/60' : 'border-red-400/60 shadow-red-500/60'}`}>
+            <Card className={`liquid-panel relative overflow-hidden rounded-[36px] border-white/55 bg-white/40 shadow-xl border-2 transition-all duration-500 animate-in fade-in duration-700 ${statement.profitable ? 'border-emerald-300' : 'border-rose-300'}`}>
               <CardHeader className="relative">
-                <CardTitle className="text-2xl font-black flex items-center gap-3 text-white">
-                  {statement.profitable ? <TrendingUp className="h-6 w-6 text-emerald-400" /> : <TrendingDown className="h-6 w-6 text-red-400" />}
+                <CardTitle className="text-2xl font-bold flex items-center gap-3 text-slate-950">
+                  {statement.profitable ? <TrendingUp className="h-6 w-6 text-emerald-600" /> : <TrendingDown className="h-6 w-6 text-rose-600" />}
                   Financial Summary
                 </CardTitle>
-                <CardDescription className={statement.profitable ? 'text-emerald-200/80' : 'text-red-200/80'}>
+                <CardDescription className={statement.profitable ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}>
                   Detailed profit & loss breakdown with AI insights
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/20 space-y-3">
-                  <h4 className="text-lg font-bold text-cyan-300 flex items-center gap-2 mb-3">💰 Revenue</h4>
+                <div className="p-5 rounded-2xl bg-white/70 border border-slate-200 space-y-3">
+                  <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-3">💰 Revenue</h4>
                   {[
                     { label: "Sales", value: statement.sales },
                     { label: "Service Income", value: statement.serviceIncome },
                     { label: "Interest Income", value: statement.interestIncome },
                     { label: "Other Income", value: statement.otherIncome },
                   ].map(({ label, value }, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-cyan-400/10">
-                      <span className="text-blue-200 font-medium">{label}</span>
-                      <span className="font-bold text-cyan-300">₹{value.toFixed(2)}</span>
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/50 border border-slate-200">
+                      <span className="text-slate-700 font-medium">{label}</span>
+                      <span className="font-bold text-slate-900">₹{value.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-cyan-500/20 border border-cyan-400/40 mt-1">
-                    <span className="font-bold text-white text-base">Total Revenue</span>
-                    <span className="font-bold text-cyan-200 text-lg drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]">₹{statement.totalRevenue.toFixed(2)}</span>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-300 mt-1">
+                    <span className="font-bold text-emerald-900 text-base">Total Revenue</span>
+                    <span className="font-bold text-emerald-800 text-lg">₹{statement.totalRevenue.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-400/20 space-y-3">
-                  <h4 className="text-lg font-bold text-orange-300 flex items-center gap-2 mb-3">💸 Expenses</h4>
+                <div className="p-5 rounded-2xl bg-white/70 border border-slate-200 space-y-3">
+                  <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-3">💸 Expenses</h4>
                   {[
                     { label: "Cost of Materials", value: statement.costOfMaterials },
                     { label: "Salaries", value: statement.salaries },
@@ -497,75 +496,75 @@ const ProfitLoss = () => {
                     { label: "Amortization", value: statement.amortization },
                     { label: "Other Expenses", value: statement.otherExpenses },
                   ].map(({ label, value }, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-orange-400/10">
-                      <span className="text-blue-200 font-medium">{label}</span>
-                      <span className="font-bold text-orange-300">₹{value.toFixed(2)}</span>
+                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/50 border border-slate-200">
+                      <span className="text-slate-700 font-medium">{label}</span>
+                      <span className="font-bold text-slate-900">₹{value.toFixed(2)}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-red-500/20 border border-red-400/40 mt-1">
-                    <span className="font-bold text-white text-base">Total Expenses</span>
-                    <span className="font-bold text-red-300 text-lg drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">₹{statement.totalExpenses.toFixed(2)}</span>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-rose-500/10 border border-rose-300 mt-1">
+                    <span className="font-bold text-rose-900 text-base">Total Expenses</span>
+                    <span className="font-bold text-rose-800 text-lg">₹{statement.totalExpenses.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div className={`flex justify-between items-center p-5 rounded-2xl border-2 mt-4 ${statement.profitable ? 'bg-emerald-600/20 border-emerald-400/60' : 'bg-red-600/20 border-red-400/60'}`}>
-                  <span className="text-xl font-black text-white">Net {statement.profitable ? 'Profit' : 'Loss'}</span>
-                  <span className={`text-3xl font-black drop-shadow-[0_0_20px_rgba(16,185,129,0.8)] ${statement.profitable ? 'text-emerald-300' : 'text-red-300'}`}>₹{statement.netProfit.toFixed(2)}</span>
+                <div className={`flex justify-between items-center p-5 rounded-2xl border-2 mt-4 ${statement.profitable ? 'bg-emerald-500/10 border-emerald-300 text-emerald-900' : 'bg-rose-500/10 border-rose-300 text-rose-900'}`}>
+                  <span className="text-xl font-black">Net {statement.profitable ? 'Profit' : 'Loss'}</span>
+                  <span className="text-3xl font-black">₹{statement.netProfit.toFixed(2)}</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 rounded-xl bg-indigo-500/20 border border-indigo-400/30">
-                  <span className="font-bold text-white">Profit Margin</span>
-                  <span className="font-bold text-yellow-300 text-lg">{statement.profitMargin.toFixed(2)}%</span>
+                <div className="flex justify-between items-center p-3 rounded-xl bg-slate-950 text-white border border-slate-900 shadow-lg">
+                  <span className="font-bold">Profit Margin</span>
+                  <span className="font-bold text-sky-300 text-lg">{statement.profitMargin.toFixed(2)}%</span>
                 </div>
 
-                {/* AI Insights Section - NEW */}
+                {/* AI Insights Section */}
                 {aiInsights && (
-                  <>
-                    <div className="space-y-3 mt-4">
-                      <h4 className="text-lg font-bold text-yellow-300 flex items-center gap-2">
-                        <Sparkles className="h-5 w-5" />
+                  <div className="space-y-4">
+                    <div className="space-y-2 mt-4">
+                      <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-yellow-600" />
                         🤖 AI CFO Insights
                       </h4>
                       {aiInsights.insights.map((insight, i) => (
-                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-400/30">
-                          <span className="text-yellow-300">📌</span>
-                          <span className="text-white/90">{insight}</span>
+                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-yellow-500/5 border border-yellow-300/50">
+                          <span className="text-yellow-600">📌</span>
+                          <span className="text-slate-800 text-sm font-medium">{insight}</span>
                         </div>
                       ))}
                     </div>
 
-                    <div className="space-y-3">
-                      <h4 className="text-lg font-bold text-cyan-300 flex items-center gap-2">
-                        <Lightbulb className="h-5 w-5" />
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Lightbulb className="h-5 w-5 text-sky-600" />
                         💡 Recommendations
                       </h4>
                       {aiInsights.recommendations.map((rec, i) => (
-                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-cyan-500/10 border border-cyan-400/30">
-                          <span className="text-cyan-300">•</span>
-                          <span className="text-white/90">{rec}</span>
+                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-sky-500/5 border border-sky-300/50">
+                          <span className="text-sky-600">•</span>
+                          <span className="text-slate-800 text-sm font-medium">{rec}</span>
                         </div>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
 
                 <Button
-                  className={`w-full h-14 text-white font-bold text-lg rounded-2xl shadow-2xl transition-all duration-300 mt-6 ${statement.profitable ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-red-600 hover:bg-red-500'}`}
+                  className="group rounded-full bg-slate-950 font-semibold text-white px-8 py-4 w-full shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800 mt-6"
                   onClick={downloadPDF}
                 >
-                  <Download className="mr-2 h-5 w-5" />
-                  Download P&L Statement with AI Insights
+                  <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
+                  Download P&L Statement
                 </Button>
               </CardContent>
             </Card>
           )}
 
           {!showResult && (
-            <Card className="backdrop-blur-2xl bg-white/5 border border-blue-400/10 shadow-xl rounded-3xl overflow-hidden flex items-center justify-center min-h-[600px]">
+            <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 bg-white/40 flex items-center justify-center min-h-[600px]">
               <div className="text-center p-8">
-                <BarChart3 className="h-12 w-12 text-blue-400 mx-auto mb-6 animate-pulse" />
-                <h3 className="text-2xl font-bold text-blue-200 mb-3">Ready to Analyze</h3>
-                <p className="text-blue-300/60">Enter your financial data to generate a statement with AI insights</p>
+                <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-6 animate-pulse" />
+                <h3 className="text-2xl font-bold text-slate-800 mb-3">Ready to Analyze</h3>
+                <p className="text-slate-500">Enter your financial data to generate a statement with AI insights</p>
               </div>
             </Card>
           )}
