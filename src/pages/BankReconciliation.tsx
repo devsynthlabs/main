@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
@@ -359,61 +360,54 @@ Match Score: ${result.matchScore}%
         navigate("/dashboard");
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-cyan-950 to-teal-950 text-white overflow-hidden relative">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-                <div className="absolute top-20 left-20 w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
-                <div className="absolute top-40 right-40 w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-                <div className="absolute bottom-40 left-60 w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-            </div>
+  return (
+    <div className="liquid-page module-ink min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
-            <header className="relative backdrop-blur-xl bg-white/5 border-b border-cyan-400/20 shadow-2xl">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <Button
-                        variant="ghost"
-                        onClick={handleBackToDashboard}
-                        className="mb-4 text-cyan-200 hover:text-cyan-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
-                    >
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            onClick={handleBackToDashboard}
+            className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
+          >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Dashboard
                     </Button>
                     <div className="flex items-center gap-4">
-                        <div
-                            className="p-3 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 rounded-2xl backdrop-blur-xl border border-cyan-400/30 hover:rotate-12 transition-transform duration-300"
-                        >
-                            <BanknoteIcon className="h-8 w-8 text-cyan-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-4xl font-black bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(6,182,212,0.8)]">
-                                Bank Reconciliation
-                            </h1>
-                            <p className="text-cyan-200/80 font-medium mt-1">Match ledger entries with bank statements automatically</p>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <BanknoteIcon className="h-8 w-8 text-slate-900" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
+                Bank Reconciliation
+              </h1>
+              <p className="mt-1 text-slate-600">Match ledger entries with bank statements automatically</p>
+            </div>
+          </div>
+        </div>
+      </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-cyan-400/20 rounded-2xl p-1">
-                        <TabsTrigger
-                            value="reconcile"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
-                        >
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="grid w-full grid-cols-3 rounded-[24px] border border-white/55 bg-white/42 p-1 shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+            <TabsTrigger
+              value="reconcile"
+              className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
+            >
                             <RefreshCw className="h-4 w-4" />
                             Reconcile
                         </TabsTrigger>
                         <TabsTrigger
                             value="results"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+              className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <FileText className="h-4 w-4" />
                             Results
                         </TabsTrigger>
                         <TabsTrigger
                             value="add"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+              className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <Upload className="h-4 w-4" />
                             Add Entries
@@ -421,18 +415,16 @@ Match Score: ${result.matchScore}%
                     </TabsList>
 
                     <TabsContent value="reconcile">
-                        <Card
-                            className="backdrop-blur-2xl bg-white/10 border border-cyan-400/20 shadow-2xl shadow-cyan-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-cyan-500/40 hover:-translate-y-2"
-                        >
-                            <CardHeader>
-                                <CardTitle className="text-2xl font-bold text-cyan-100 flex items-center gap-2">
-                                    <RefreshCw className="h-5 w-5 text-teal-400" />
-                                    Bank Reconciliation
-                                </CardTitle>
-                                <CardDescription className="text-cyan-300/70">
-                                    Upload ledger and bank statements to automatically match transactions
-                                </CardDescription>
-                            </CardHeader>
+            <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
+                  <RefreshCw className="h-5 w-5 text-sky-700" />
+                  Bank Reconciliation
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  Upload ledger and bank statements to automatically match transactions
+                </CardDescription>
+              </CardHeader>
 
                             <CardContent className="space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

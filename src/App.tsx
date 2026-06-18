@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import ProfileSettings from "./pages/ProfileSettings";
 import Payroll from "./pages/Payroll";
 import TaxGST from "./pages/TaxGST";
 
@@ -52,6 +53,11 @@ const App = () => {
             <Route
               path="/dashboard"
               element={isMaintenanceMode ? <ServerIssues /> : <Dashboard />}
+            />
+
+            <Route
+              path="/profile"
+              element={isMaintenanceMode ? <ServerIssues /> : <ProfileSettings />}
             />
 
             <Route path="/payroll" element={isMaintenanceMode ? <ServerIssues /> : <Payroll />} />
