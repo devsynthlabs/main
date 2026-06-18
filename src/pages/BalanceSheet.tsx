@@ -7,16 +7,37 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Calculator, Download, TrendingUp, AlertCircle, CheckCircle, Building, Scale } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const BalanceSheet = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    currentAssets: "",
-    nonCurrentAssets: "",
-    currentLiabilities: "",
-    nonCurrentLiabilities: "",
-    equity: "",
+    // Current Assets sub-items
+    cashInHand: "",
+    tradeReceivable: "",
+    inventory: "",
+    currentAssetsOthers: "",
+    // Non-Current Assets sub-items
+    fixedAssets: "",
+    machinery: "",
+    laptops: "",
+    nonCurrentAssetsOthers: "",
+    // Current Liabilities sub-items
+    currentTradePayable: "",
+    currentGstPayable: "",
+    currentBankLoan: "",
+    currentLiabilitiesOthers: "",
+    // Non-Current Liabilities sub-items
+    nonCurrentTradePayable: "",
+    nonCurrentGstPayable: "",
+    nonCurrentBankLoan: "",
+    nonCurrentLiabilitiesOthers: "",
+    // Equity sub-items
+    shareCapital: "",
+    reservesSurplus: "",
+    equityOthers: "",
   });
   const [balanceSheet, setBalanceSheet] = useState(null);
 
@@ -26,11 +47,35 @@ const BalanceSheet = () => {
   };
 
   const generateBalanceSheet = async () => {
-    const currentAssets = parseFloat(formData.currentAssets) || 0;
-    const nonCurrentAssets = parseFloat(formData.nonCurrentAssets) || 0;
-    const currentLiabilities = parseFloat(formData.currentLiabilities) || 0;
-    const nonCurrentLiabilities = parseFloat(formData.nonCurrentLiabilities) || 0;
-    const equity = parseFloat(formData.equity) || 0;
+    // Sum sub-items for each section (matching Python requirement logic)
+    const currentAssets =
+      (parseFloat(formData.cashInHand) || 0) +
+      (parseFloat(formData.tradeReceivable) || 0) +
+      (parseFloat(formData.inventory) || 0) +
+      (parseFloat(formData.currentAssetsOthers) || 0);
+
+    const nonCurrentAssets =
+      (parseFloat(formData.fixedAssets) || 0) +
+      (parseFloat(formData.machinery) || 0) +
+      (parseFloat(formData.laptops) || 0) +
+      (parseFloat(formData.nonCurrentAssetsOthers) || 0);
+
+    const currentLiabilities =
+      (parseFloat(formData.currentTradePayable) || 0) +
+      (parseFloat(formData.currentGstPayable) || 0) +
+      (parseFloat(formData.currentBankLoan) || 0) +
+      (parseFloat(formData.currentLiabilitiesOthers) || 0);
+
+    const nonCurrentLiabilities =
+      (parseFloat(formData.nonCurrentTradePayable) || 0) +
+      (parseFloat(formData.nonCurrentGstPayable) || 0) +
+      (parseFloat(formData.nonCurrentBankLoan) || 0) +
+      (parseFloat(formData.nonCurrentLiabilitiesOthers) || 0);
+
+    const equity =
+      (parseFloat(formData.shareCapital) || 0) +
+      (parseFloat(formData.reservesSurplus) || 0) +
+      (parseFloat(formData.equityOthers) || 0);
 
     // Calculate totals like Python file
     const totalAssets = currentAssets + nonCurrentAssets;
@@ -69,51 +114,194 @@ const BalanceSheet = () => {
   const downloadReport = () => {
     if (!balanceSheet) return;
 
-    const content = `
-╔═══════════════════════════════════════════════╗
-║       BALANCE SHEET - ${new Date().toLocaleDateString()}           ║
-╚═══════════════════════════════════════════════╝
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-ASSETS
-────────────────────────────────────────────────
-Current Assets:             ₹${balanceSheet.currentAssets.toFixed(2)}
-Non-Current Assets:         ₹${balanceSheet.nonCurrentAssets.toFixed(2)}
-────────────────────────────────────────────────
-Total Assets:               ₹${balanceSheet.totalAssets.toFixed(2)}
+    // 1. Blue Header Banner
+    doc.setFillColor(26, 54, 164);
+    doc.rect(0, 0, pageWidth, 38, "F");
 
-LIABILITIES
-────────────────────────────────────────────────
-Current Liabilities:        ₹${balanceSheet.currentLiabilities.toFixed(2)}
-Non-Current Liabilities:    ₹${balanceSheet.nonCurrentLiabilities.toFixed(2)}
-────────────────────────────────────────────────
-Total Liabilities:          ₹${balanceSheet.totalLiabilities.toFixed(2)}
+    // Company Name (white, small uppercase, centered)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text("SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED", pageWidth / 2, 14, { align: "center" });
 
-EQUITY
-────────────────────────────────────────────────
-Equity:                     ₹${balanceSheet.equity.toFixed(2)}
+    // Main Title
+    doc.setFontSize(18);
+    doc.text("BALANCE SHEET", pageWidth / 2, 26, { align: "center" });
 
-════════════════════════════════════════════════
-Total Liabilities + Equity: ₹${balanceSheet.totalLiabilitiesEquity.toFixed(2)}
-════════════════════════════════════════════════
+    // 2. Subtitle Date
+    const day = new Date().getDate();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const month = monthNames[new Date().getMonth()];
+    const year = new Date().getFullYear();
+    const formattedDate = `As of ${day} ${month} ${year}`;
 
-STATUS: ${balanceSheet.balanced ? '✓ BALANCED' : '✗ UNBALANCED'}
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(formattedDate, pageWidth / 2, 48, { align: "center" });
 
-${balanceSheet.balanced ? 'Balance sheet is balanced' : 'Balance sheet is NOT balanced'}
+    // Format Currency Helper
+    const formatCurrency = (val) => `Rs. ${(parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-Generated by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
-Powered by Advanced Financial Analytics Engine ✨
-    `.trim();
+    const startX = 15;
+    const contentWidth = pageWidth - 30; // 180mm
 
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Balance_Sheet_${Date.now()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // --- ASSETS SECTION ---
+    let y = 56;
+    doc.setFillColor(239, 246, 255); // Very light blue
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(29, 78, 216); // Blue text
+    doc.text("ASSETS", startX + 3, y + 5.5);
+
+    // Current Assets row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(50, 50, 50);
+    doc.text("Current Assets", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.currentAssets), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.setDrawColor(240, 240, 240);
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Non-Current Assets row
+    y += 7;
+    doc.text("Non-Current Assets", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.nonCurrentAssets), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Assets row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Assets", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.totalAssets), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- LIABILITIES SECTION ---
+    y += 18;
+    doc.setFillColor(255, 247, 237); // Very light orange
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(194, 65, 12); // Orange text
+    doc.text("LIABILITIES", startX + 3, y + 5.5);
+
+    // Current Liabilities row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text("Current Liabilities", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.currentLiabilities), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Non-Current Liabilities row
+    y += 7;
+    doc.text("Non-Current Liabilities", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.nonCurrentLiabilities), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Liabilities row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Liabilities", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.totalLiabilities), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- EQUITY SECTION ---
+    y += 18;
+    doc.setFillColor(240, 253, 244); // Very light green
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(22, 163, 74); // Green text
+    doc.text("EQUITY", startX + 3, y + 5.5);
+
+    // Equity row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text("Equity", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Equity row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Equity", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- TOTAL LIABILITIES + EQUITY ROW ---
+    y += 16;
+    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.rect(startX, y, contentWidth, 12, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("Total Liabilities + Equity", startX + 5, y + 7.5);
+    doc.setTextColor(147, 197, 253); // Light blue
+    doc.text(formatCurrency(balanceSheet.totalLiabilitiesEquity), startX + contentWidth - 5, y + 7.5, { align: "right" });
+
+    // --- BALANCED/UNBALANCED BOX ---
+    y += 20;
+    const isBalanced = balanceSheet.balanced;
+    if (isBalanced) {
+      doc.setFillColor(240, 253, 244); // Light green
+      doc.setDrawColor(34, 197, 94); // Green border
+    } else {
+      doc.setFillColor(254, 242, 242); // Light red
+      doc.setDrawColor(239, 68, 68); // Red border
+    }
+    
+    // Draw rounded rect
+    doc.roundedRect(startX, y, contentWidth, 18, 2, 2, "FD");
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    if (isBalanced) {
+      doc.setTextColor(22, 163, 74);
+      doc.text("BALANCED", pageWidth / 2, y + 6.5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(75, 85, 99);
+      doc.text("The balance sheet is in balance. Assets equal Liabilities + Equity.", pageWidth / 2, y + 12.5, { align: "center" });
+    } else {
+      doc.setTextColor(220, 38, 38);
+      doc.text("UNBALANCED", pageWidth / 2, y + 6.5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(75, 85, 99);
+      const diff = Math.abs(balanceSheet.totalAssets - balanceSheet.totalLiabilitiesEquity);
+      doc.text(`The balance sheet is unbalanced. Difference: ${formatCurrency(diff)}`, pageWidth / 2, y + 12.5, { align: "center" });
+    }
+
+    // --- FOOTER ---
+    y += 28;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(startX, y, startX + contentWidth, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(156, 163, 175);
+    doc.text("Generated by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED  |  Powered by Advanced Financial Analytics Engine", pageWidth / 2, y + 5, { align: "center" });
+
+    // Save PDF
+    doc.save(`Balance_Sheet_${Date.now()}.pdf`);
   };
+
 
   const handleBackToDashboard = () => {
     navigate("/dashboard");
@@ -186,40 +374,60 @@ Powered by Advanced Financial Analytics Engine ✨
                   </div>
                   Assets
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="currentAssets" className="text-white font-medium">Current Assets (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="currentAssets"
-                      type="number"
-                      placeholder="e.g., 150000.00"
-                      value={formData.currentAssets}
-                      onChange={(e) => handleInputChange("currentAssets", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("currentAssets", text)}
-                      onClear={() => handleInputChange("currentAssets", "")}
-                    />
+
+                {/* Current Assets Sub-items */}
+                <p className="text-blue-300 text-sm font-semibold uppercase tracking-wider">Current Assets</p>
+                {[
+                  { id: "cashInHand", label: "Cash in Hand (₹)", placeholder: "e.g., 150000.00" },
+                  { id: "tradeReceivable", label: "Trade Receivable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "inventory", label: "Inventory (₹)", placeholder: "e.g., 200000.00" },
+                  { id: "currentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nonCurrentAssets" className="text-white font-medium">Non-Current Assets (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="nonCurrentAssets"
-                      type="number"
-                      placeholder="e.g., 450000.00"
-                      value={formData.nonCurrentAssets}
-                      onChange={(e) => handleInputChange("nonCurrentAssets", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("nonCurrentAssets", text)}
-                      onClear={() => handleInputChange("nonCurrentAssets", "")}
-                    />
+                ))}
+
+                {/* Non-Current Assets Sub-items */}
+                <p className="text-blue-300 text-sm font-semibold uppercase tracking-wider mt-4">Non-Current Assets</p>
+                {[
+                  { id: "fixedAssets", label: "Fixed Assets (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "machinery", label: "Machinery (₹)", placeholder: "e.g., 300000.00" },
+                  { id: "laptops", label: "Laptops (₹)", placeholder: "e.g., 150000.00" },
+                  { id: "nonCurrentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               {/* Liabilities Section */}
@@ -230,40 +438,66 @@ Powered by Advanced Financial Analytics Engine ✨
                   </div>
                   Liabilities
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="currentLiabilities" className="text-white font-medium">Current Liabilities (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="currentLiabilities"
-                      type="number"
-                      placeholder="e.g., 60000.00"
-                      value={formData.currentLiabilities}
-                      onChange={(e) => handleInputChange("currentLiabilities", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("currentLiabilities", text)}
-                      onClear={() => handleInputChange("currentLiabilities", "")}
-                    />
+
+                {/* Current Liabilities Sub-items */}
+                <p className="text-orange-300 text-sm font-semibold uppercase tracking-wider">Current Liabilities</p>
+                {[
+                  { id: "currentTradePayable", label: "Trade Payable (₹)", subLabel: "Short term / Less than 1 year", placeholder: "e.g., 100000.00" },
+                  { id: "currentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "currentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "currentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, subLabel, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                      {subLabel && <span className="text-xs text-orange-300/70 font-normal">{subLabel}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nonCurrentLiabilities" className="text-white font-medium">Non-Current Liabilities (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="nonCurrentLiabilities"
-                      type="number"
-                      placeholder="e.g., 140000.00"
-                      value={formData.nonCurrentLiabilities}
-                      onChange={(e) => handleInputChange("nonCurrentLiabilities", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("nonCurrentLiabilities", text)}
-                      onClear={() => handleInputChange("nonCurrentLiabilities", "")}
-                    />
+                ))}
+
+                {/* Non-Current Liabilities Sub-items */}
+                <p className="text-orange-300 text-sm font-semibold uppercase tracking-wider mt-4">Non-Current Liabilities</p>
+                {[
+                  { id: "nonCurrentTradePayable", label: "Trade Payable (₹)", subLabel: "Long term / More than 1 year", placeholder: "e.g., 400000.00" },
+                  { id: "nonCurrentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "nonCurrentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "nonCurrentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, subLabel, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                      {subLabel && <span className="text-xs text-orange-300/70 font-normal">{subLabel}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               {/* Equity Section */}
@@ -274,23 +508,29 @@ Powered by Advanced Financial Analytics Engine ✨
                   </div>
                   Equity
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="equity" className="text-white font-medium">Equity (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="equity"
-                      type="number"
-                      placeholder="e.g., 400000.00"
-                      value={formData.equity}
-                      onChange={(e) => handleInputChange("equity", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("equity", text)}
-                      onClear={() => handleInputChange("equity", "")}
-                    />
+                {[
+                  { id: "shareCapital", label: "Share Capital (₹)", placeholder: "e.g., 1000000.00" },
+                  { id: "reservesSurplus", label: "Reserves & Surplus (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "equityOthers", label: "Others (₹)", placeholder: "e.g., 100000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-white font-medium">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <Button
