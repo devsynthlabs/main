@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
@@ -655,53 +656,48 @@ const CivilEngineering = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-            </div>
+        <div className="liquid-page module-ink min-h-screen overflow-hidden text-slate-950">
+            <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
             {/* Header */}
-            <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+                <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                     <Button
                         variant="ghost"
                         onClick={handleBackToDashboard}
-                        className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+                        className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Dashboard
                     </Button>
                     <div className="flex items-center gap-4">
-                        <div
-                            className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 transition-transform duration-300"
-                        >
-                            <Building2 className="h-8 w-8 text-blue-400" />
+                        <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+                            <Building2 className="h-8 w-8 text-slate-900" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                                Civil Engineering Scheduler
+                            <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
+                                Civil Engineering Planner
                             </h1>
-                            <p className="text-blue-200/80 font-medium mt-1">Critical Path Method (CPM) Project Scheduling</p>
+                            <p className="mt-1 text-slate-600">Critical path scheduling with project clarity</p>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+            <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="grid w-full grid-cols-2 backdrop-blur-2xl bg-white/10 border border-blue-400/20 rounded-2xl p-1">
+                    <TabsList className="grid w-full grid-cols-2 rounded-[24px] border border-white/55 bg-white/42 p-1 shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
                         <TabsTrigger
                             value="calculator"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+                            className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <Network className="h-4 w-4" />
                             CPM Calculator
                         </TabsTrigger>
                         <TabsTrigger
                             value="history"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+                            className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <FileText className="h-4 w-4" />
                             Project History
@@ -709,26 +705,24 @@ const CivilEngineering = () => {
                     </TabsList>
 
                     <TabsContent value="calculator">
-                        <Card
-                            className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl shadow-blue-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-blue-500/40"
-                        >
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-gradient-to-b from-blue-500/20 to-transparent blur-2xl" />
+                        <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500">
+                            <div className="absolute left-1/2 top-0 h-32 w-96 -translate-x-1/2 bg-gradient-to-b from-sky-200/60 to-transparent blur-2xl" />
 
                             <CardHeader className="relative">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <CardTitle className="text-3xl font-black text-blue-100 flex items-center gap-3">
-                                            <Network className="h-7 w-7 text-cyan-400 transition-transform duration-300" />
+                                        <CardTitle className="flex items-center gap-3 text-3xl font-semibold tracking-tight text-slate-950">
+                                            <Network className="h-7 w-7 text-sky-700 transition-transform duration-300" />
                                             CPM Project Scheduler
                                         </CardTitle>
-                                        <CardDescription className="text-blue-200/70 mt-2 text-base">
+                                        <CardDescription className="mt-2 text-base text-slate-600">
                                             Enter project details and tasks to calculate Critical Path
                                         </CardDescription>
                                     </div>
-                                    <div className="hidden sm:block px-4 py-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl backdrop-blur-md border border-blue-400/30">
+                                    <div className="hidden rounded-full border border-white/60 bg-white/60 px-4 py-2 shadow-sm backdrop-blur-xl sm:block">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                            <span className="text-sm text-blue-200 font-semibold">Live CPM Engine</span>
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="text-sm font-semibold text-slate-700">Live CPM Engine</span>
                                         </div>
                                     </div>
                                 </div>

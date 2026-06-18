@@ -1,69 +1,144 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_ENDPOINTS } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 import {
-  Users,
+  ArrowRight,
+  BanknoteIcon,
+  BarChart3,
+  Building2,
+  Calculator,
+  ChevronDown,
+  FileSpreadsheet,
   FileText,
   FolderArchive,
-  BarChart3,
-  TrendingUp,
   LogOut,
-  Building2,
-  Sparkles,
-  ArrowRight,
-  Zap,
-  Shield,
-  Clock,
-  Star,
-  Rocket,
-  Activity,
-  LineChart,
-  Calculator,
-  FileSpreadsheet,
   Package,
-  BanknoteIcon
+  PanelLeft,
+  PanelRight,
+  Search,
+  Settings,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { API_ENDPOINTS } from "@/lib/api";
+import { isTrialExpired } from "@/lib/trial";
+
+type UserProfile = {
+  id: string;
+  email: string;
+  name?: string;
+  subscriptionStatus?: "pending" | "active";
+  subscriptionPlan?: "trial" | "monthly" | "annual" | "lifetime";
+  subscriptionAmount?: number;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
+  trialEndDate?: string;
+};
+
+type DashboardModule = {
+  title: string;
+  description: string;
+  output: string;
+  icon: typeof Users;
+  path: string;
+};
+
+const dashboardModules: DashboardModule[] = [
+  { title: "Payroll Automation", description: "Manage employee salaries, deductions, and salary slips.", output: "", icon: Users, path: "/payroll" },
+  { title: "Tax & GST Management", description: "Calculate and manage GST, CGST, SGST, and IGST.", output: "", icon: FileText, path: "/tax-gst" },
+  { title: "Balance Sheet", description: "Generate balance sheets with assets, liabilities, and equity.", output: "", icon: BarChart3, path: "/balance-sheet" },
+  { title: "Profit & Loss Statement", description: "Create P&L statements with income and expense analysis.", output: "", icon: TrendingUp, path: "/profit-loss" },
+  { title: "Cash Flow Prediction", description: "AI-powered forecasting for next 6 months.", output: "", icon: FileSpreadsheet, path: "/cashflow" },
+  { title: "Cash Flow Statement", description: "Trace inflows, outflows, and net movement.", output: "", icon: BarChart3, path: "/cashflow-statement" },
+  { title: "Financial Ratios", description: "Calculate liquidity, profitability, and solvency metrics.", output: "", icon: Calculator, path: "/financial-ratios" },
+  { title: "Bookkeeping", description: "Record income, expenses, and categorized entries.", output: "", icon: FileText, path: "/bookkeeping" },
+  { title: "Inventory Management", description: "Track inventory with automated reorder alerts.", output: "", icon: Package, path: "/inventory" },
+  { title: "Bank Reconciliation", description: "Match ledger entries with bank statements.", output: "", icon: BanknoteIcon, path: "/bank-reconciliation" },
+  { title: "Fraud Detection", description: "Detect and prevent fraudulent transactions.", output: "", icon: Shield, path: "/fraud-detection" },
+  { title: "Civil Engineering", description: "Plan schedules, structures, and project delivery.", output: "", icon: Building2, path: "/civil-engineering" },
+  { title: "Invoice Automation", description: "OCR scanning, voice input, and smart processing.", output: "", icon: FolderArchive, path: "/invoice" },
+];
+
+type Mode = "assistant" | "automation";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userEmail, setUserEmail] = useState("");
-
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [mode, setMode] = useState<Mode>("assistant");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/auth");
-    } else {
-      fetch(API_ENDPOINTS.USER, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch user");
-          return res.json();
-        })
-        .then((data) => {
-          setUserEmail(data.email);
-
-          if (data.subscriptionStatus !== "active") {
-            toast({
-              variant: "destructive",
-              title: "Subscription Required",
-              description: "Please complete your subscription to access the dashboard.",
-            });
-            localStorage.removeItem("token");
-            navigate("/auth");
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching user:", error);
-          localStorage.removeItem("token");
-          navigate("/auth");
-        });
+      return;
     }
+
+    fetch(API_ENDPOINTS.USER, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch user");
+        return res.json();
+      })
+      .then((data: UserProfile) => {
+        setUser(data);
+        if (data.subscriptionStatus !== "active" || isTrialExpired(data)) {
+          toast({
+            variant: "destructive",
+            title: "Free trial ended",
+            description: "Your trial is over. Please choose a paid plan to continue.",
+          });
+          localStorage.removeItem("token");
+          navigate("/auth?tab=signup&plan=monthly");
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching user:", error);
+        localStorage.removeItem("token");
+        navigate("/auth");
+      })
+      .finally(() => setLoading(false));
   }, [navigate, toast]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const timer = window.setInterval(() => {
+      if (isTrialExpired(user)) {
+        toast({
+          variant: "destructive",
+          title: "Free trial ended",
+          description: "Your trial session has expired. Please choose a paid plan to continue.",
+        });
+        localStorage.removeItem("token");
+        navigate("/auth?tab=signup&plan=monthly");
+      }
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, [navigate, toast, user]);
+
+  const profileName = useMemo(() => {
+    if (!user?.email) return "User";
+    return user.name?.trim() || user.email.split("@")[0];
+  }, [user]);
+
+  const selectedPlanLabel = user?.subscriptionPlan
+    ? { trial: "Trial", monthly: "Monthly", annual: "Annual", lifetime: "Lifetime" }[user.subscriptionPlan]
+    : "Pending";
+
+  const profileInitial = profileName.charAt(0).toUpperCase();
 
   const handleSignOut = () => {
     localStorage.removeItem("token");
@@ -74,336 +149,239 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
-  const modules = [
-    {
-      title: "Payroll Automation",
-      description: "Manage employee salaries, deductions, and generate salary slips automatically.",
-      icon: Users,
-      path: "/payroll",
-      color: "from-blue-500 to-blue-600",
-      badge: "Most Popular",
-      stats: "5K+ Users",
-    },
-    {
-      title: "Tax & GST Management",
-      description: "Calculate and manage GST, CGST, SGST, and IGST with automatic computations.",
-      icon: FileText,
-      path: "/tax-gst",
-      color: "from-cyan-500 to-blue-600",
-      badge: "Real-time",
-      stats: "99.9% Accurate",
-    },
-    {
-      title: "Balance Sheet",
-      description: "Generate balance sheets with assets, liabilities, and equity tracking.",
-      icon: BarChart3,
-      path: "/balance-sheet",
-      color: "from-indigo-500 to-blue-700",
-      badge: "Live Data",
-      stats: "24/7 Tracking",
-    },
-    {
-      title: "Civil Engineering Scheduler",
-      description: "Project scheduling with Critical Path Method (CPM) analysis for construction projects.",
-      icon: Building2,
-      path: "/civil-engineering",
-      color: "from-amber-500 to-orange-600",
-      badge: "CPM Engine",
-      stats: "Smart Planning",
-    },
-    {
-      title: "Profit & Loss Statement",
-      description: "Create P&L statements with income and expense analysis.",
-      icon: TrendingUp,
-      path: "/profit-loss",
-      color: "from-sky-400 to-blue-600",
-      badge: "AI-Powered",
-      stats: "Smart Insights",
-    },
-    {
-      title: "Cash Flow Prediction",
-      description: "AI-powered forecasting for next 6 months with linear regression analysis.",
-      icon: LineChart,
-      path: "/cashflow",
-      color: "from-purple-500 to-indigo-600",
-      badge: "AI Prediction",
-      stats: "Future Ready",
-    },
-    {
-      title: "Cash Flow Statement",
-      description: "Track cash inflows and outflows with detailed statement analysis and reporting.",
-      icon: FileSpreadsheet,
-      path: "/cashflow-statement",
-      color: "from-pink-500 to-rose-600",
-      badge: "New Feature",
-      stats: "Real-time Analysis",
-    },
-    {
-      title: "Financial Ratios",
-      description: "Calculate and analyze key financial ratios including liquidity, profitability, and solvency metrics.",
-      icon: Calculator,
-      path: "/financial-ratios",
-      color: "from-emerald-500 to-green-600",
-      badge: "Analytics",
-      stats: "15+Ratios",
-    },
-    {
-      title: "Office Bookkeeping",
-      description: "Track income, expenses, and manage financial records with analytics dashboard.",
-      icon: Calculator,
-      path: "/bookkeeping",
-      color: "from-emerald-500 to-teal-600",
-      badge: "Finance Engine",
-      stats: "Live Tracking",
-    },
-    {
-      title: "Inventory Management",
-      description: "Track, manage, and analyze inventory with automated reorder alerts.",
-      icon: Package,
-      path: "/inventory",
-      color: "from-purple-500 to-violet-600",
-      badge: "Inventory AI",
-      stats: "Live Tracking",
-    },
-    {
-      title: "Bank Reconciliation",
-      description: "Automatically match ledger entries with bank statements using AI-powered reconciliation.",
-      icon: BanknoteIcon,
-      path: "/bank-reconciliation",
-      color: "from-cyan-500 to-teal-600",
-      badge: "AI Matching",
-      stats: "Auto-Reconcile",
-    },
-    {
-      title: "Fraud Detection",
-      description: "Automatically detect and prevent fraudulent transactions using AI-powered analysis.",
-      icon: Shield,
-      path: "/fraud-detection",
-      color: "from-amber-500 to-orange-600",
-      badge: "AI Detection",
-      stats: "Smart Prevention",
-    },
-    {
-      title: "Invoice Automation",
-      description: "AI-powered invoice automation with OCR scanning, voice input, and smart processing.",
-      icon: FileText,
-      path: "/invoice",
-      color: "from-amber-500 to-orange-600",
-      badge: "Invoice AI",
-      stats: "Live Tracking",
-    }
-  ];
+  const handleSubmit = () => {
+    if (!inputValue.trim()) return;
+    toast({
+      title: mode === "assistant" ? "AI Assistant ready" : "Automation ready",
+      description: inputValue.trim(),
+    });
+    setInputValue("");
+  };
 
-  const features = [
-    { icon: Zap, text: "Lightning Fast", color: "text-yellow-400" },
-    { icon: Shield, text: "Bank-Grade Security", color: "text-green-400" },
-    { icon: Clock, text: "Save 10+ Hours/Week", color: "text-blue-400" },
-  ];
+  const sidebarWidth = sidebarOpen ? "xl:w-[320px]" : "xl:w-[88px]";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white relative overflow-hidden">
-      {/* Animated gradient mesh background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px]"
-          style={{
-            top: -400,
-            left: -400,
-          }}
-        ></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/3 right-10 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+    <div className="dashboard-light min-h-screen overflow-hidden text-slate-900">
+      {mobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm xl:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
 
-        {/* Floating particles */}
-        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
-        <div className="absolute top-40 right-40 w-2 h-2 bg-cyan-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-        <div className="absolute bottom-40 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-      </div>
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1900px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setSidebarOpen((open) => !open)}
+              className="hidden h-10 w-10 rounded-full border border-slate-200 bg-white p-0 text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 xl:flex"
+              aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {sidebarOpen ? <PanelLeft className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
+            </Button>
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none"></div>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="flex h-10 w-10 rounded-full border border-slate-200 bg-white p-0 text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 xl:hidden"
+              aria-label="Open sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
 
-      {/* Header */}
-      <header
-        className="bg-white/5 border-b border-blue-400/20 shadow-2xl backdrop-blur-2xl relative z-10 sticky top-0"
-      >
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <div className="flex items-center space-x-4 group">
-            <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transition-all duration-500">
-                <Building2 className="h-6 w-6 text-white" />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="dashboard-light-logo flex h-10 w-10 items-center justify-center rounded-[14px]">
+                <Building2 className="h-5 w-5 text-slate-700" />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur-xl opacity-50 transition-opacity duration-500"></div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-white drop-shadow-2xl tracking-tight leading-tight">
-                SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Activity className="h-3 w-3 text-green-400 animate-pulse" />
-                <p className="text-blue-300/80 text-xs font-medium">{userEmail}</p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900">SHREE ANDAL AI</h1>
+                  <ChevronDown className="h-4 w-4 text-slate-500" />
+                </div>
+                <p className="truncate text-xs text-slate-500">SHREE ANDAL AI SOFTWARE SOLUTIONS</p>
               </div>
             </div>
           </div>
 
-          <Button
-            onClick={handleSignOut}
-            className="border-2 border-blue-400/40 bg-white/5 text-blue-200 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-700 hover:text-white hover:border-blue-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 backdrop-blur-xl font-semibold px-6 group"
-          >
-            <LogOut className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform duration-300" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/profile")}
+              className="hidden h-10 rounded-full border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 sm:flex"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Profile
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="h-10 w-10 rounded-full border-slate-200 bg-white p-0 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Main Dashboard */}
-      <main className="max-w-7xl mx-auto px-6 py-16 relative z-10">
-        {/* Hero Section */}
-        <div className="text-center mb-20 relative">
-          <div
-            className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-cyan-500/20 backdrop-blur-xl rounded-full border border-blue-400/30 shadow-2xl transition-all duration-300 group cursor-pointer"
-          >
-            <Sparkles className="h-5 w-5 text-blue-300 animate-pulse" />
-            <span className="text-blue-100 text-sm font-bold tracking-wide">AI-POWERED AUTOMATION PLATFORM</span>
-            <Rocket className="h-5 w-5 text-cyan-300 group-hover:translate-x-1 transition-transform duration-300" />
-          </div>
-
-          <h2 className="text-6xl md:text-7xl font-black text-white mb-6 drop-shadow-[0_0_30px_rgba(59,130,246,0.8)] animate-in fade-in duration-1000 leading-tight">
-            Welcome to Your
-            <span className="block bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400 bg-clip-text text-transparent animate-pulse">
-              Command Center
-            </span>
-          </h2>
-          <p className="text-xl md:text-2xl text-blue-100/90 max-w-3xl mx-auto leading-relaxed font-light mb-10">
-            Manage payroll, taxes, and reports with intelligent automation that works while you focus on growth
-          </p>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {features.map((feature, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-3 bg-white/10 backdrop-blur-xl px-6 py-3 rounded-full border border-blue-400/30 shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 group cursor-pointer"
-              >
-                <feature.icon className={`h-5 w-5 ${feature.color} transition-transform duration-300`} />
-                <span className="text-sm font-bold text-white">{feature.text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Stats Bar */}
-          <div className="flex flex-wrap justify-center gap-8 mb-12">
-            <div className="text-center">
-              <div className="text-4xl font-black text-blue-300 mb-1">15K+</div>
-              <div className="text-sm text-blue-200/70 font-medium">Active Users</div>
-            </div>
-            <div className="w-px bg-blue-400/30"></div>
-            <div className="text-center">
-              <div className="text-4xl font-black text-cyan-300 mb-1">99.9%</div>
-              <div className="text-sm text-blue-200/70 font-medium">Accuracy</div>
-            </div>
-            <div className="w-px bg-blue-400/30"></div>
-            <div className="text-center">
-              <div className="text-4xl font-black text-indigo-300 mb-1">24/7</div>
-              <div className="text-sm text-blue-200/70 font-medium">Support</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Modules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {modules.map((module, index) => (
-            <div
-              key={module.path}
-              onClick={() => navigate(module.path)}
-              className="group cursor-pointer bg-gradient-to-br from-white/10 to-white/5 border border-blue-400/20 rounded-3xl p-8 shadow-2xl transition-all duration-500 backdrop-blur-2xl hover:bg-gradient-to-br hover:from-white/15 hover:to-white/10 hover:border-blue-400/40 relative overflow-hidden"
-              style={{ animationDelay: `${index * 100}ms` }}
+      <main className="mx-auto grid max-w-[1900px] grid-cols-1 xl:flex">
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-300 xl:sticky xl:top-[57px] xl:h-[calc(100vh-57px)] xl:shrink-0 xl:translate-x-0 ${
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } ${sidebarWidth}`}
+        >
+          <div className="border-b border-slate-200 p-3">
+            <Button
+              type="button"
+              className="dashboard-light-newchat flex h-12 w-full items-center justify-start gap-3 rounded-[18px] px-4 text-left text-slate-900 hover:bg-slate-100"
             >
-              {/* Animated gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-indigo-500/0 group-hover:from-blue-500/10 group-hover:to-indigo-500/10 transition-all duration-500 rounded-3xl"></div>
+              <Sparkles className="h-5 w-5" />
+              {sidebarOpen && <span className="text-sm font-medium">New chat</span>}
+            </Button>
+          </div>
 
-              {/* Badge */}
-              <div className="absolute top-4 right-4 flex items-center gap-1 bg-blue-500/20 backdrop-blur-xl px-3 py-1 rounded-full border border-blue-400/30">
-                <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                <span className="text-xs font-bold text-blue-200">{module.badge}</span>
+          <ScrollArea className="flex-1">
+            <div className="p-3">
+              <p className={`px-2 text-sm font-semibold text-slate-900 ${sidebarOpen ? "block" : "hidden xl:block"}`}>Modules</p>
+              <div className="mt-2 space-y-1">
+                {dashboardModules.map((module) => {
+                  const Icon = module.icon;
+                  return (
+                    <button
+                      key={module.path}
+                      type="button"
+                      onClick={() => {
+                        navigate(module.path);
+                        setMobileSidebarOpen(false);
+                      }}
+                      className="dashboard-light-module group flex w-full items-start gap-3 rounded-[20px] border border-transparent px-3 py-3 text-left transition-all duration-300 hover:border-slate-200 hover:bg-white hover:shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-slate-900 text-white shadow-[0_10px_24px_rgba(15,23,42,0.12)] transition-transform duration-300 group-hover:scale-105">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      {sidebarOpen && (
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-[15px] font-medium text-slate-800">{module.title}</p>
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{module.description}</p>
+                            </div>
+                            <span className="mt-0.5 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              {module.output}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-
-              {/* Icon with mega glow effect */}
-              <div className="relative mb-6 inline-block">
-                <div className={`w-20 h-20 bg-gradient-to-br ${module.color} rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:rotate-12 relative z-10`}>
-                  <module.icon className="h-10 w-10 text-white" />
-                </div>
-                <div className={`absolute inset-0 bg-gradient-to-br ${module.color} rounded-2xl blur-2xl opacity-40 group-hover:opacity-70 transition-all duration-500`}></div>
-              </div>
-
-              {/* Content */}
-              <div className="relative z-10">
-                <h3 className="text-2xl font-black text-white mb-3 group-hover:text-blue-300 transition-colors duration-300 leading-tight">
-                  {module.title}
-                </h3>
-                <p className="text-blue-100/80 mb-4 leading-relaxed group-hover:text-blue-100 transition-colors duration-300 text-sm">
-                  {module.description}
-                </p>
-
-                {/* Stats */}
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-bold text-green-400">{module.stats}</span>
-                </div>
-
-                {/* Action button */}
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-xl shadow-blue-600/40 hover:shadow-2xl hover:shadow-blue-500/60 transition-all duration-300 group/btn border-none py-6 rounded-xl"
-                >
-                  <span>Open Module</span>
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover/btn:translate-x-2 transition-transform duration-300" />
-                </Button>
-              </div>
-
-              {/* Decorative corner glow */}
-              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
-          ))}
-        </div>
+          </ScrollArea>
 
-        {/* CTA Section */}
-        <div className="mt-20 relative">
-          <div
-            className="bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-cyan-600/20 backdrop-blur-2xl rounded-3xl p-12 border border-blue-400/30 shadow-2xl text-center relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 animate-pulse"></div>
-            <div className="relative z-10">
-              <h3 className="text-4xl font-black text-white mb-4">
-                Ready to Transform Your Business?
-              </h3>
-              <p className="text-blue-100/80 text-lg mb-8 max-w-2xl mx-auto">
-                Join thousands of businesses already saving time and scaling faster with AI-powered automation
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Button
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold px-10 py-6 text-lg rounded-xl shadow-2xl shadow-blue-600/50 hover:shadow-blue-500/70 hover:scale-105 transition-all duration-300 border-none"
+          <div className="border-t border-slate-200 p-3">
+            <Button
+              type="button"
+              onClick={() => navigate("/profile")}
+              className="dashboard-light-profile flex h-auto w-full items-center gap-3 rounded-[20px] p-3 text-left hover:bg-slate-50"
+            >
+              <div className="dashboard-light-profile-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-slate-700">
+                {profileInitial}
+              </div>
+              {sidebarOpen && (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-900">{profileName}</p>
+                  <p className="truncate text-xs text-slate-500">{loading ? "Loading..." : user?.email}</p>
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    {selectedPlanLabel}
+                  </p>
+                </div>
+              )}
+            </Button>
+          </div>
+        </aside>
+
+        <section className="relative min-h-[calc(100vh-57px)] bg-white xl:min-w-0 xl:flex-1">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="dashboard-light-orb dashboard-light-orb-a" />
+            <div className="dashboard-light-orb dashboard-light-orb-b" />
+          </div>
+
+          <div className="relative mx-auto flex min-h-[calc(100vh-57px)] w-full max-w-[1120px] items-center justify-center px-5 py-8 sm:px-8">
+            <div className="w-full max-w-[980px]">
+              {/* Elegant brand text above search box */}
+              <div className="text-center mb-8">
+                <div className="inline-block">
+                  <h2 className="text-3xl md:text-4xl font-light tracking-wide text-slate-800">
+                    SHREE ANDAL AI
+                  </h2>
+                  <p className="text-sm text-slate-400 tracking-[0.3em] uppercase mt-1 font-light">
+                    SOFTWARE SOLUTIONS
+                  </p>
+                  <div className="w-16 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent mx-auto mt-4"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-4 text-sm font-medium">
+                <button
+                  type="button"
+                  onClick={() => setMode("assistant")}
+                  className={`border-b-2 px-0 py-1 transition-colors ${
+                    mode === "assistant"
+                      ? "border-slate-900 text-slate-900"
+                      : "border-transparent text-slate-500 hover:text-slate-900"
+                  }`}
                 >
-                  Get Started Now
-                  <Rocket className="ml-2 h-5 w-5" />
-                </Button>
+                  AI Assistant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("automation")}
+                  className={`border-b-2 px-0 py-1 transition-colors ${
+                    mode === "automation"
+                      ? "border-slate-900 text-slate-900"
+                      : "border-transparent text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  Automation
+                </button>
+              </div>
+
+              <div className="mt-8 rounded-[36px] border border-slate-200 bg-white/90 p-4 shadow-[0_20px_48px_rgba(15,23,42,0.08)] backdrop-blur-2xl sm:p-5">
+                <div className="flex items-center gap-3 rounded-[30px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                  <Search className="h-5 w-5 text-slate-400" />
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                    placeholder={mode === "assistant" ? "Ask anything" : "Describe the automation you want"}
+                    className="h-11 flex-1 border-none bg-transparent px-0 text-[18px] text-slate-900 placeholder:text-slate-400 focus-visible:ring-0"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="h-11 w-11 rounded-full bg-slate-900 p-0 text-white hover:bg-slate-700"
+                    aria-label="Submit"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </main>
-
-      {/* Footer */}
-      <footer
-        className="border-t border-blue-400/20 bg-white/5 text-center py-10 mt-24 backdrop-blur-2xl relative z-10"
-      >
-        <p className="text-blue-200/70 text-sm font-medium mb-2">
-          © 2025 SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED. All rights reserved.
-        </p>
-        <p className="text-blue-300/50 text-xs">
-          Powered by AI-driven intelligent solutions • Built with ❤️ for modern businesses
-        </p>
-      </footer>
     </div>
   );
 };
