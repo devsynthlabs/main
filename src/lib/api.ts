@@ -16,8 +16,10 @@ export const API_BASE_URL = getApiUrl();
 export const API_ENDPOINTS = {
   // Auth endpoints
   SIGNUP: `${API_BASE_URL}/signup`,
+  SIGNUP_TRIAL: `${API_BASE_URL}/signup-trial`,
   SIGNIN: `${API_BASE_URL}/signin`,
   USER: `${API_BASE_URL}/user`,
+  UPDATE_PROFILE: `${API_BASE_URL}/user`,
 
   // Payment endpoints
   CREATE_ORDER: `${API_BASE_URL}/create-order`,
@@ -70,7 +72,24 @@ export const apiRequest = async (
     },
   };
 
-  return fetch(endpoint, config);
+  const endpoints = [
+    endpoint,
+    endpoint.replace("http://localhost:5000/api", "http://localhost:5001/api"),
+    endpoint.replace("http://localhost:5001/api", "http://localhost:5000/api"),
+  ].filter((value, index, list) => list.indexOf(value) === index);
+
+  let lastError: unknown;
+
+  for (const requestEndpoint of endpoints) {
+    try {
+      return await fetch(requestEndpoint, config);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  console.error("API request failed:", lastError);
+  throw new Error("API server is not reachable. Please start the backend and try again.");
 };
 
 // Log current API configuration (for debugging)

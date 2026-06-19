@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { useNavigate } from "react-router-dom";
@@ -247,18 +248,16 @@ const CashFlow = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white overflow-hidden relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="liquid-page module-ink min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
               onClick={handleBackToDashboard}
-              className="text-blue-200 hover:text-blue-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+              className="rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
@@ -266,44 +265,44 @@ const CashFlow = () => {
 
             <Button
               onClick={downloadReport}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-2xl transition-all duration-300 hover:scale-105 border border-green-400/30 group"
+              className="group rounded-full bg-slate-950 font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
             >
               <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
               Download Report
             </Button>
           </div>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30">
-              <BarChart3 className="h-8 w-8 text-blue-400" />
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <BarChart3 className="h-8 w-8 text-slate-900" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                Cash Flow Prediction
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
+                Cash Flow Forecast
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">AI-powered financial forecasting for the next 6 months</p>
+              <p className="mt-1 text-slate-600">Forecast inflow and outflow with six-month clarity</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="backdrop-blur-2xl bg-white/10 border border-blue-400/20 shadow-2xl rounded-3xl overflow-hidden">
+          <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55">
             <CardHeader>
-              <CardTitle className="text-2xl font-black text-blue-100 flex items-center gap-3">
-                <LineChartIcon className="h-6 w-6 text-cyan-400" />
-                Add Cash Flow Entry
+              <CardTitle className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-950">
+                <LineChartIcon className="h-6 w-6 text-sky-700" />
+                Cash Flow Entry
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">Year</Label>
+                <Label className="font-semibold text-slate-700">Year</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="e.g., 2025"
                     value={formData.year}
                     onChange={(e) => handleInputChange("year", e.target.value)}
-                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:ring-0"
                   />
                   <VoiceButton
                     onTranscript={(text) => handleInputChange("year", text)}
@@ -313,13 +312,13 @@ const CashFlow = () => {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">Month</Label>
+                <Label className="font-semibold text-slate-700">Month</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="e.g., Jan,Feb,Mar"
                     value={formData.month}
                     onChange={(e) => handleInputChange("month", e.target.value)}
-                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:ring-0"
                   />
                   <VoiceButton
                     onTranscript={(text) => handleInputChange("month", text)}
@@ -329,13 +328,13 @@ const CashFlow = () => {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">Cash Inflow (₹)</Label>
+                <Label className="font-semibold text-slate-700">Cash Inflow (₹)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="e.g., 5000,4800,5100"
                     value={formData.cashInflow}
                     onChange={(e) => handleInputChange("cashInflow", e.target.value)}
-                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:ring-0"
                   />
                   <VoiceButton
                     onTranscript={(text) => handleInputChange("cashInflow", text)}
@@ -345,13 +344,13 @@ const CashFlow = () => {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-blue-100 font-bold">Cash Outflow (₹)</Label>
+                <Label className="font-semibold text-slate-700">Cash Outflow (₹)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder="e.g., 7000,6500,5900"
                     value={formData.cashOutflow}
                     onChange={(e) => handleInputChange("cashOutflow", e.target.value)}
-                    className="bg-white/5 backdrop-blur-xl text-blue-100 border border-blue-400/30 rounded-xl h-12"
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:ring-0"
                   />
                   <VoiceButton
                     onTranscript={(text) => handleInputChange("cashOutflow", text)}

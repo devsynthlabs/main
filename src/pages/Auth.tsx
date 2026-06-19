@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, CreditCard, Lock, Mail, Shield, CheckCircle2, Sparkles, ArrowRight, Crown, Infinity, Zap } from "lucide-react";
+import { Loader2, Building2, CreditCard, Lock, Mail, Shield, CheckCircle2, Sparkles, ArrowRight, Crown, Infinity as InfinityIcon, Zap, BarChart3 } from "lucide-react";
 import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS, apiRequest } from "@/lib/api";
+import { isTrialExpired } from "@/lib/trial";
+import { motion } from "framer-motion";
+
 
 interface RazorpayResponse {
   razorpay_order_id: string;
@@ -50,7 +53,42 @@ declare global {
 }
 
 // Subscription Plans Configuration
+type SubscriptionPlan = {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  gst: number;
+  totalAmount: number;
+  duration: string;
+  description: string;
+  features: string[];
+  icon: typeof Zap;
+  popular: boolean;
+  savings?: string;
+  trialDays?: number;
+};
+
 const subscriptionPlans = {
+  trial: {
+    id: "trial",
+    name: "30-Day Free Trial",
+    price: 0,
+    gst: 0,
+    totalAmount: 0,
+    duration: "30 days",
+    description: "Start now and explore the platform free for 30 days",
+    features: [
+      "All core dashboard features",
+      "Database-backed trial access",
+      "Auto-logout after 30 days",
+      "Upgrade to paid plan anytime",
+    ],
+    icon: Sparkles,
+    popular: false,
+    savings: "Free for 30 days",
+    trialDays: 30,
+  },
   monthly: {
     id: "monthly",
     name: "Monthly Subscription",
@@ -107,20 +145,23 @@ const subscriptionPlans = {
       "Unlimited employees",
       "Free updates forever"
     ],
-    icon: Infinity,
+    icon: InfinityIcon,
     popular: false,
     savings: "Best long-term value"
   }
-};
+} satisfies Record<string, SubscriptionPlan>;
+
+type PlanKey = keyof typeof subscriptionPlans;
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
 
-  const [selectedPlan, setSelectedPlan] = useState<keyof typeof subscriptionPlans>("monthly");
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("monthly");
 
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -131,6 +172,23 @@ const Auth = () => {
 
 
   // Load Razorpay script
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    const plan = params.get("plan") as PlanKey | null;
+
+    if (tab === "signup" || tab === "signin") {
+      setActiveTab(tab);
+    }
+
+    if (plan && plan in subscriptionPlans) {
+      setSelectedPlan(plan);
+      if (plan === "trial") {
+        setActiveTab("signup");
+      }
+    }
+  }, [location.search]);
+
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -152,6 +210,17 @@ const Auth = () => {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
+
+      if (isTrialExpired(data.user)) {
+        toast({
+          variant: "destructive",
+          title: "Free trial ended",
+          description: "Your trial is over. Please choose a paid plan to continue.",
+        });
+        setActiveTab("signup");
+        setSelectedPlan("monthly");
+        return;
+      }
 
       localStorage.setItem("token", data.token);
       toast({
@@ -188,6 +257,31 @@ const Auth = () => {
     setPaymentLoading(true);
 
     try {
+      if (selectedPlan === "trial") {
+        setLoading(true);
+        const trialRes = await apiRequest(API_ENDPOINTS.SIGNUP_TRIAL, {
+          method: "POST",
+          body: JSON.stringify({
+            email: signUpEmail,
+            password: signUpPassword,
+            name: signUpName || signUpEmail.split("@")[0],
+          }),
+        });
+
+        const trialData = await trialRes.json();
+        if (!trialRes.ok) throw new Error(trialData.message);
+
+        localStorage.setItem("token", trialData.token);
+        setLoading(false);
+        setPaymentLoading(false);
+        toast({
+          title: "Free trial started",
+          description: "Your 30-day trial is active. Redirecting to dashboard...",
+        });
+        setTimeout(() => navigate("/dashboard"), 1500);
+        return;
+      }
+
       const orderRes = await apiRequest(API_ENDPOINTS.CREATE_ORDER, {
         method: "POST",
         body: JSON.stringify({
@@ -325,340 +419,421 @@ const Auth = () => {
     setActiveTab(value);
   };
 
+  const planEntries = Object.entries(subscriptionPlans) as Array<[PlanKey, SubscriptionPlan]>;
+  const selectedPlanData = subscriptionPlans[selectedPlan];
   const features = [
-    { icon: Shield, text: "Bank-level security" },
+    { icon: Shield, text: "Bank-grade security" },
     { icon: CheckCircle2, text: "Instant activation" },
-    { icon: Sparkles, text: "All features included" },
-    { icon: Shield, text: "Bank-level encryption" } // Added new security feature
+    { icon: Sparkles, text: "Premium onboarding" },
+    { icon: BarChart3, text: "Live finance intelligence" },
+  ];
+  const trustCards = [
+    { label: "Protected sessions", value: "256-bit" },
+    { label: "Support response", value: "24/7" },
+    { label: "Activation speed", value: "< 2 min" },
+  ];
+
+  const floatingSignals = [
+    { label: "Status", value: "Secure", className: "top-24 left-8 hidden xl:flex" },
+    { label: "Latency", value: "Fast", className: "bottom-28 left-14 hidden xl:flex" },
+    { label: "Access", value: "Managed", className: "top-36 right-10 hidden xl:flex" },
+    { label: "Invoice AI", value: "Auto-matched", className: "top-56 left-20 hidden 2xl:flex" },
+    { label: "GST Status", value: "Ready to file", className: "top-52 right-24 hidden 2xl:flex" },
+    { label: "Tax Alert", value: "No issues", className: "bottom-44 right-8 hidden xl:flex" },
+    { label: "Plan Sync", value: "Active", className: "bottom-16 left-32 hidden 2xl:flex" },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 p-4 relative overflow-hidden">
-      <style>{`
-        @keyframes tabSwitch {
-          0% {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+    <div className="auth-page relative min-h-screen overflow-hidden text-slate-950">
+      <div className="auth-orb auth-orb-a pointer-events-none" />
+      <div className="auth-orb auth-orb-b pointer-events-none" />
+      <div className="auth-grid-overlay pointer-events-none" />
 
-        .tab-switch-animation {
-          animation: tabSwitch 0.3s ease-out forwards;
-        }
-      `}</style>
-
-      {/* Animated background elements with glow effects */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] opacity-50 animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] opacity-50 animate-pulse" style={{ animationDelay: '1s' }}></div>
-
-      {/* Mouse-responsive background */}
-      <div
-        className="absolute w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-3xl transition-all duration-1000 pointer-events-none"
-        style={{
-          top: -400,
-          left: -400,
-        }}
-      ></div>
-
-      {/* Decorative shapes with ping animation */}
-      <div className="absolute top-20 right-20 w-20 h-20 border-4 border-blue-400/30 rounded-lg rotate-45 opacity-60 animate-ping" style={{ animationDuration: '3s' }}></div>
-      <div className="absolute bottom-40 left-20 w-16 h-16 border-4 border-cyan-300/30 rounded-full opacity-60 animate-ping" style={{ animationDuration: '4s' }}></div>
-
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {/* Left Side - Branding & Info */}
-        <div className="hidden md:block space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
+      {floatingSignals.map((signal, index) => (
+        <motion.div
+          key={signal.label}
+          initial={{ opacity: 0, scale: 0.94, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+          transition={{
+            opacity: { delay: 0.3 + index * 0.08, duration: 0.35 },
+            scale: { delay: 0.3 + index * 0.08, duration: 0.35 },
+            y: { delay: index * 0.25, duration: 4, repeat: Infinity, ease: "easeInOut" },
+          }}
+          className={`auth-floating-chip fixed z-[1] hidden items-center gap-3 rounded-[24px] px-4 py-3 xl:flex ${signal.className}`}
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.6)]" />
           <div>
-            <div
-              className="flex items-center space-x-3 mb-6 animate-in fade-in slide-in-from-left-4 duration-500"
-            >
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transform hover:scale-110 hover:rotate-12 transition-all duration-300">
-                <Building2 className="h-8 w-8 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
-                  SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
-                </h1>
-                <p className="text-blue-200 text-sm">Powered by AI Technology</p>
-              </div>
-            </div>
-
-            <h2 className="text-4xl font-bold text-white mb-4 animate-in fade-in slide-in-from-left-6 duration-700 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">
-              Transform Your <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Financial Management</span>
-            </h2>
-            <p className="text-blue-100 text-lg leading-relaxed animate-in fade-in slide-in-from-left-8 duration-900">
-              Automate payroll, tax calculations, and financial reporting with our intelligent platform. Save time, reduce errors, and focus on growing your business.
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{signal.label}</p>
+            <p className="text-sm font-semibold text-slate-950">{signal.value}</p>
           </div>
+        </motion.div>
+      ))}
 
-          {/* Features List with glass morphism */}
-          <div className="space-y-4">
-            {features.map((feature, i) => (
-              <div
-                key={i}
-                className="flex items-center space-x-3 bg-white/5 backdrop-blur-xl rounded-xl p-4 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 border border-blue-400/20 animate-in fade-in slide-in-from-left duration-500 group"
-                style={{ animationDelay: `${(i + 1) * 100}ms` }}
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.4)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] group-hover:rotate-12 transition-all duration-300">
-                  <feature.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-blue-100 font-medium">{feature.text}</span>
-              </div>
-            ))}
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 pb-6 pt-5 sm:px-6">
+        <div className="flex items-center gap-3">
+          <div className="auth-logo flex h-12 w-12 items-center justify-center rounded-[18px]">
+            <Building2 className="h-6 w-6 text-white" />
           </div>
-
-          {/* Trust Indicators with gradient glow */}
-          <div
-            className="bg-gradient-to-r from-indigo-500 to-blue-700 rounded-2xl p-6 text-white animate-in fade-in slide-in-from-left-4 duration-700 shadow-2xl shadow-blue-500/40 backdrop-blur-xl hover:-translate-y-2 transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">10,000+</span>
-              <span className="text-2xl font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">99.9%</span>
-            </div>
-            <div className="flex items-center justify-between text-blue-100 text-sm">
-              <span>Active Users</span>
-              <span>Uptime</span>
-            </div>
+          <div>
+            <h1 className="text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
+              SHREE ANDAL AI SOFTWARE SOLUTIONS
+            </h1>
+            <p className="text-xs font-medium text-slate-600">Secure finance access and subscription management</p>
           </div>
         </div>
 
-        {/* Right Side - Auth Form with glass morphism */}
-        <Card
-          className="w-full bg-white/10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(59,130,246,0.4)] border border-blue-400/30 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-right-8 duration-700 hover:shadow-[0_20px_80px_rgba(59,130,246,0.6)] transition-all duration-500"
+        <div className="hidden items-center gap-3 rounded-full border border-white/70 bg-white/55 px-3 py-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl md:flex">
+          <Shield className="h-4 w-4 text-sky-700" />
+          <span className="text-xs font-semibold text-slate-700">Enterprise-grade authentication</span>
+        </div>
+      </header>
+
+      <main className="relative z-10 mx-auto grid max-w-7xl gap-8 px-5 pb-14 pt-2 sm:px-6 lg:grid-cols-[1fr_0.95fr] lg:items-start lg:gap-10">
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55 }}
+          className="space-y-8 pt-6 lg:pt-12"
         >
-          <CardHeader className="text-center space-y-4 pt-10 pb-6 bg-gradient-to-br from-white/5 to-transparent animate-in fade-in zoom-in-95 duration-500">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/60 transform hover:scale-110 hover:rotate-12 transition-all duration-300">
-              <Building2 className="h-10 w-10 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
+          <div className="max-w-2xl">
+            <div className="auth-pill inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+              <Sparkles className="h-4 w-4 text-sky-700" />
+              Andal-inspired access experience
             </div>
-            <div>
-              <CardTitle className="text-3xl font-bold text-white drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">
-                Welcome Back
-              </CardTitle>
-              <CardDescription className="text-blue-200 text-base mt-2">
-                Sign in to access your dashboard
-              </CardDescription>
-            </div>
-          </CardHeader>
+            <h2 className="mt-6 text-5xl font-semibold tracking-tight text-slate-950 md:text-6xl lg:text-7xl">
+              Calm, premium access for modern finance teams.
+            </h2>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+              Sign in or create an account with a design that feels clean, refined, and intentionally simple.
+              Pricing is handled through distinct glass cards so each plan feels clear and separate.
+            </p>
+          </div>
 
-          <CardContent className="px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList
-                className="grid w-full grid-cols-2 mb-8 bg-white/5 backdrop-blur-xl rounded-xl p-1.5 border border-blue-400/20"
+          <div className="grid max-w-2xl gap-4 sm:grid-cols-3">
+            {trustCards.map((card, index) => (
+              <motion.div
+                key={card.label}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.08 + 0.12 }}
+                className="auth-metric rounded-[28px] p-5"
               >
-                <TabsTrigger
-                  value="signin"
-                  className="text-blue-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg font-semibold transition-all data-[state=active]:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 duration-300"
-                >
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger
-                  value="signup"
-                  className="text-blue-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-lg font-semibold transition-all data-[state=active]:shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 duration-300"
-                >
-                  Sign Up
-                </TabsTrigger>
-              </TabsList>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{card.label}</p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{card.value}</p>
+              </motion.div>
+            ))}
+          </div>
 
-              {/* Sign In Form */}
-              <TabsContent value="signin" className="tab-switch-animation">
-                <form onSubmit={handleSignIn} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label className="text-blue-100 font-semibold flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-cyan-300" />
-                      Email Address
-                    </Label>
-                    <div className="flex items-center gap-2">
+          <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.text}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 + index * 0.06 }}
+                className="auth-feature flex items-center gap-3 rounded-[24px] p-4"
+              >
+                <div className="auth-feature-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px]">
+                  <feature.icon className="h-5 w-5 text-slate-900" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700">{feature.text}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.1 }}
+          className="lg:pt-6"
+        >
+          <Card className="auth-panel overflow-hidden rounded-[36px] border-white/70 bg-white/78 shadow-[0_35px_90px_rgba(15,23,42,0.14)] backdrop-blur-2xl">
+            <CardHeader className="space-y-3 border-b border-slate-200/70 bg-white/35 px-8 py-8">
+              <div className="flex items-center gap-3">
+                <div className="auth-logo flex h-12 w-12 items-center justify-center rounded-[18px]">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-semibold tracking-tight text-slate-950">
+                    Access your account
+                  </CardTitle>
+                  <CardDescription className="mt-1 text-sm text-slate-600">
+                    Sign in or create a subscription in a single clean surface.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="px-8 py-8">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="grid h-12 w-full grid-cols-2 rounded-full bg-slate-100 p-1">
+                  <TabsTrigger
+                    value="signin"
+                    className="rounded-full text-sm font-semibold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+                  >
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="signup"
+                    className="rounded-full text-sm font-semibold text-slate-600 transition-all data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+                  >
+                    Sign Up
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="signin" className="mt-8 space-y-6">
+                  <form onSubmit={handleSignIn} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Mail className="h-4 w-4 text-sky-700" />
+                        Email Address
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          value={signInEmail}
+                          onChange={(e) => setSignInEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="h-12 rounded-[16px] border-slate-200 bg-white/90 text-slate-950 placeholder:text-slate-400 focus-visible:ring-sky-500"
+                          required
+                        />
+                        <VoiceButton
+                          onTranscript={(text) => setSignInEmail(text)}
+                          onClear={() => setSignInEmail("")}
+                          language="en-US"
+                          size="md"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Lock className="h-4 w-4 text-sky-700" />
+                        Password
+                      </Label>
                       <Input
-                        type="email"
-                        value={signInEmail}
-                        onChange={(e) => setSignInEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
+                        type="password"
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className="h-12 rounded-[16px] border-slate-200 bg-white/90 text-slate-950 placeholder:text-slate-400 focus-visible:ring-sky-500"
                         required
                       />
-                      <VoiceButton
-                        onTranscript={(text) => setSignInEmail(text)}
-                        onClear={() => setSignInEmail("")}
-                        language="en-US"
-                        size="md"
-                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="h-12 w-full rounded-full bg-slate-950 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-0.5 hover:bg-slate-800"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing In
+                        </>
+                      ) : (
+                        <>
+                          Sign In
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="signup" className="mt-8 space-y-6">
+                  <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Free trial</p>
+                        <p className="mt-1 text-base font-semibold text-slate-950">Start 30 days free, then upgrade when ready.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-full border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                        onClick={() => setSelectedPlan("trial")}
+                      >
+                        Use Trial
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-blue-100 font-semibold flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-cyan-300" />
-                      Password
-                    </Label>
-                    <Input
-                      type="password"
-                      value={signInPassword}
-                      onChange={(e) => setSignInPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-6 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Signing In...
-                      </>
-                    ) : (
-                      <>
-                        Sign In
-                        <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              {/* Sign Up Form */}
-              <TabsContent value="signup" className="tab-switch-animation">
-                <form onSubmit={handleSignUp} className="space-y-6">
-                  {/* Subscription Plans Selection */}
-                  <div className="space-y-4">
-                    <Label className="text-blue-100 font-semibold">Choose Your Plan</Label>
-                    <div className="grid gap-3">
-                      {(Object.entries(subscriptionPlans) as Array<[keyof typeof subscriptionPlans, typeof subscriptionPlans[keyof typeof subscriptionPlans]]>).map(([key, plan]) => {
-                        const PlanIcon = plan.icon;
-                        return (
-                          <div
-                            key={key}
-                            className={`relative p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer hover:scale-[1.02] ${selectedPlan === key
-                              ? 'border-cyan-400 bg-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.3)]'
-                              : 'border-blue-400/30 bg-white/5 hover:border-blue-400/60'
-                              }`}
-                            onClick={() => setSelectedPlan(key)}
-                          >
-                            {plan.popular && (
-                              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
-                                  Most Popular
-                                </span>
-                              </div>
-                            )}
-                            {(plan as any).savings && (
-                              <div className="absolute -top-2 right-4">
-                                <span className="bg-gradient-to-r from-green-400 to-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                                  {(plan as any).savings}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedPlan === key
-                                  ? 'bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]'
-                                  : 'bg-blue-500/30'
-                                  }`}>
-                                  <PlanIcon className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold text-white">{plan.name}</h3>
-                                  <p className="text-blue-200 text-sm">{plan.description}</p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-2xl font-bold text-white">₹{plan.totalAmount.toLocaleString()}</div>
-                                <div className="text-blue-200 text-sm">
-                                  {plan.duration === 'lifetime' ? 'One-time' : `per ${plan.duration}`}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="text-xs text-blue-200 mt-2">
-                              ₹{plan.price.toLocaleString()} + ₹{plan.gst.toLocaleString()} GST
-                            </div>
-                          </div>
-                        );
-                      })}
+                  <div className="auth-selected-plan rounded-[26px] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                          Selected plan
+                        </p>
+                        <p className="mt-1 text-lg font-semibold text-slate-950">{selectedPlanData.name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-semibold text-slate-950">₹{selectedPlanData.totalAmount.toLocaleString()}</p>
+                        <p className="text-xs text-slate-500">
+                          {selectedPlanData.duration === "lifetime" ? "One-time" : `per ${selectedPlanData.duration}`}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-blue-100 font-semibold flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-cyan-300" />
-                      Email Address
-                    </Label>
-                    <div className="flex items-center gap-2">
+                  <form onSubmit={handleSignUp} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Mail className="h-4 w-4 text-sky-700" />
+                        Email Address
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          value={signUpEmail}
+                          onChange={(e) => setSignUpEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="h-12 rounded-[16px] border-slate-200 bg-white/90 text-slate-950 placeholder:text-slate-400 focus-visible:ring-sky-500"
+                          required
+                        />
+                        <VoiceButton
+                          onTranscript={(text) => setSignUpEmail(text)}
+                          onClear={() => setSignUpEmail("")}
+                          language="en-US"
+                          size="md"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Lock className="h-4 w-4 text-sky-700" />
+                        Password
+                      </Label>
                       <Input
-                        type="email"
-                        value={signUpEmail}
-                        onChange={(e) => setSignUpEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
+                        type="password"
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
+                        placeholder="Create a strong password"
+                        className="h-12 rounded-[16px] border-slate-200 bg-white/90 text-slate-950 placeholder:text-slate-400 focus-visible:ring-sky-500"
                         required
                       />
-                      <VoiceButton
-                        onTranscript={(text) => setSignUpEmail(text)}
-                        onClear={() => setSignUpEmail("")}
-                        language="en-US"
-                        size="md"
-                      />
                     </div>
+
+                    <Button
+                      type="submit"
+                      className="h-12 w-full rounded-full bg-slate-950 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-0.5 hover:bg-slate-800"
+                      disabled={loading || paymentLoading}
+                    >
+                      {paymentLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing Payment
+                        </>
+                      ) : loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Account
+                        </>
+                      ) : selectedPlan === "trial" ? (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Start 30-Day Free Trial
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Pay ₹{selectedPlanData.totalAmount.toLocaleString()} & Create Account
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.section>
+      </main>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-14 sm:px-6">
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Pricing</p>
+            <h3 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+              Choose a plan that feels as clear as the interface.
+            </h3>
+          </div>
+          <p className="hidden max-w-md text-sm text-slate-600 md:block">
+            Each plan is shown as its own card so pricing stays readable, distinct, and easy to compare.
+          </p>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-4">
+          {planEntries.map(([key, plan], index) => {
+            const PlanIcon = plan.icon;
+            const active = selectedPlan === key;
+
+            return (
+              <motion.button
+                key={key}
+                type="button"
+                onClick={() => setSelectedPlan(key)}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{
+                  opacity: 1,
+                  y: active ? -6 : 0,
+                  scale: active ? 1.015 : 1,
+                  boxShadow: active
+                    ? "0 0 0 1px rgba(14,165,233,0.35), 0 24px 64px rgba(14,165,233,0.26), 0 0 36px rgba(56,189,248,0.22)"
+                    : "0 18px 50px rgba(15,23,42,0.08)",
+                }}
+                transition={{ delay: index * 0.08 }}
+                whileHover={{ y: active ? -8 : -4, scale: active ? 1.02 : 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className={`auth-pricing-card text-left ${active ? "auth-pricing-card-active" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className={`auth-plan-icon ${active ? "auth-plan-icon-active" : ""}`}>
+                    <PlanIcon className="h-5 w-5 text-white" />
                   </div>
+                  {plan.popular && <span className="auth-plan-badge">Most Popular</span>}
+                </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-blue-100 font-semibold flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-cyan-300" />
-                      Password
-                    </Label>
-                    <Input
-                      type="password"
-                      value={signUpPassword}
-                      onChange={(e) => setSignUpPassword(e.target.value)}
-                      placeholder="Create a strong password"
-                      className="bg-white/10 backdrop-blur-xl text-white placeholder-blue-300 border-2 border-blue-400/30 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 rounded-xl h-12 px-4 transition-all"
-                      required
-                    />
+                {active && <div className="auth-pricing-glow" aria-hidden="true" />}
+
+                <div className="mt-6 flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="text-xl font-semibold tracking-tight text-slate-950">{plan.name}</h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{plan.description}</p>
                   </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-semibold tracking-tight text-slate-950">₹{plan.totalAmount.toLocaleString()}</p>
+                    <p className="text-xs text-slate-500">{plan.duration === "lifetime" ? "One-time" : `per ${plan.duration}`}</p>
+                  </div>
+                </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-6 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1"
-                    disabled={loading || paymentLoading}
-                  >
-                    {paymentLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing Payment...
-                      </>
-                    ) : loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Creating Account...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="mr-2 h-5 w-5" />
-                        Pay ₹{subscriptionPlans[selectedPlan].totalAmount.toLocaleString()} & Create Account
-                      </>
-                    )}
-                  </Button>
+                <div className="mt-5 rounded-[22px] bg-slate-950 px-4 py-3 text-sm font-medium text-white">
+                  ₹{plan.price.toLocaleString()} + ₹{plan.gst.toLocaleString()} GST
+                </div>
 
-                  <p className="text-center text-xs text-blue-300">
-                    By signing up, you agree to our{" "}
-                    <a href="#" className="text-cyan-300 hover:underline">Terms of Service</a>
-                    {" "}and{" "}
-                    <a href="#" className="text-cyan-300 hover:underline">Privacy Policy</a>
-                  </p>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+                <ul className="mt-5 space-y-2">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3 text-sm text-slate-700">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-700" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {plan.savings ?? "Flexible access"}
+                  </span>
+                  <span className="text-xs font-semibold text-sky-700">
+                    {active ? "Selected" : "Select plan"}
+                  </span>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 };
