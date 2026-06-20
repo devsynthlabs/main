@@ -10,6 +10,7 @@ import { API_BASE_URL } from "@/lib/api";
 interface PurchaseItem {
     itemName: string;
     itemCode?: string;
+    codeType?: "HSN" | "SAC";
     hsnCode?: string;
     quantity: number;
     unit: string;
@@ -28,11 +29,18 @@ interface PurchaseItem {
 
 interface PurchaseInvoiceData {
     _id: string;
+    customerType?: "B2B" | "B2C";
+    customerName?: string;
+    customerPhone?: string;
+    customerGstin?: string;
     supplierName: string;
     phone: string;
     gstin: string;
     billNo: string;
     billDate: string;
+    paymentMethod?: "Cash" | "Credit" | "G Pay" | "Net Banking";
+    invoiceSize?: "A4" | "A5";
+    invoiceFormat?: "Supermarket" | "Hotel" | "Stationery Shop";
     stateOfSupply: string;
     businessState: string;
     items: PurchaseItem[];
@@ -106,14 +114,19 @@ const PublicPurchaseInvoiceView = () => {
         );
     }
 
+    const invoiceSize = invoice.invoiceSize || "A4";
+    const invoiceFormat = invoice.invoiceFormat || "Supermarket";
+    const invoicePaperClass = invoiceSize === "A5" ? "max-w-[720px]" : "max-w-5xl";
+
     return (
         <>
             <style>{`
                 @media print {
                     body * { visibility: hidden; }
                     #purchase-invoice-print, #purchase-invoice-print * { visibility: visible; }
-                    #purchase-invoice-print { position: absolute; left: 0; top: 0; width: 100%; }
+                    #purchase-invoice-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border-radius: 0 !important; }
                     .no-print { display: none !important; }
+                    @page { size: ${invoiceSize}; margin: 12mm; }
                 }
             `}</style>
             <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-500/30">
@@ -123,7 +136,7 @@ const PublicPurchaseInvoiceView = () => {
                     <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] rounded-full -translate-x-1/2 translate-y-1/2" />
                 </div>
 
-                <div className="relative z-10 max-w-4xl mx-auto px-4 py-12 lg:py-20">
+                <div className={`relative z-10 ${invoicePaperClass} mx-auto px-4 py-12 lg:py-20`}>
                     {/* Top Actions */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 no-print">
                         <div className="flex items-center gap-3">
@@ -148,10 +161,23 @@ const PublicPurchaseInvoiceView = () => {
                     </div>
 
                     {/* Invoice Card */}
-                    <div id="purchase-invoice-print" className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden">
+                    <div id="purchase-invoice-print" className="backdrop-blur-2xl bg-white/[0.04] border border-white/10 rounded-[28px] shadow-2xl overflow-hidden">
                         {/* Header Section */}
-                        <div className="p-8 lg:p-12 border-b border-white/10 bg-gradient-to-br from-amber-600/10 to-transparent">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div className="p-8 lg:p-10 border-b border-white/10 bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent">
+                            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-300">{invoiceFormat}</p>
+                                    <h2 className="mt-2 text-4xl font-black tracking-tight text-white">Tax Invoice</h2>
+                                    <p className="mt-2 text-sm text-slate-400">Inventory Management - Purchase Invoice</p>
+                                </div>
+                                <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-right">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Bill No</p>
+                                    <p className="text-xl font-black text-white">{invoice.billNo}</p>
+                                    <p className="mt-1 text-sm text-slate-300">{invoice.billDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-6">
                                     <div>
                                         <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-4">Supplier</h2>
@@ -161,26 +187,35 @@ const PublicPurchaseInvoiceView = () => {
                                             {invoice.gstin && <p className="text-slate-400">GSTIN: {invoice.gstin}</p>}
                                         </div>
                                     </div>
+                                </div>
 
+                                <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-4">State of Supply</h2>
-                                        <p className="text-white font-medium">{invoice.stateOfSupply}</p>
+                                        <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-400 mb-4">Bill To</h2>
+                                        <div className="space-y-1">
+                                            <p className="text-xl font-bold text-white">{invoice.customerName || "Walk-in Customer"}</p>
+                                            <p className="text-slate-400">Type: {invoice.customerType || "B2C"}</p>
+                                            {invoice.customerPhone && <p className="text-slate-400">Phone: {invoice.customerPhone}</p>}
+                                            {invoice.customerType === "B2B" && invoice.customerGstin && (
+                                                <p className="text-slate-400">GSTIN: {invoice.customerGstin}</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-6 md:text-right flex flex-col md:items-end">
-                                    <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                        Purchase Invoice
-                                    </div>
-
-                                    <div className="grid grid-cols-2 md:grid-cols-1 gap-6 md:gap-4 md:w-full">
+                                    <div className="grid grid-cols-2 gap-4 md:w-full">
                                         <div>
-                                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Bill No</h2>
-                                            <p className="text-white font-medium">{invoice.billNo}</p>
+                                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Payment</h2>
+                                            <p className="text-white font-medium">{invoice.paymentMethod || "Cash"}</p>
                                         </div>
                                         <div>
-                                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Bill Date</h2>
-                                            <p className="text-white font-medium">{invoice.billDate}</p>
+                                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Size</h2>
+                                            <p className="text-white font-medium">{invoiceSize}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">State of Supply</h2>
+                                            <p className="text-white font-medium">{invoice.stateOfSupply}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -206,7 +241,7 @@ const PublicPurchaseInvoiceView = () => {
                                             <tr key={idx} className="group">
                                                 <td className="py-6 pr-4">
                                                     <p className="text-white font-semibold transition-colors group-hover:text-amber-400">{item.itemName}</p>
-                                                    {item.hsnCode && <p className="text-slate-500 text-xs mt-1">HSN: {item.hsnCode}</p>}
+                                                    {item.hsnCode && <p className="text-slate-500 text-xs mt-1">{item.codeType || "HSN"}: {item.hsnCode}</p>}
                                                 </td>
                                                 <td className="py-6 text-center text-slate-300 font-medium">{item.quantity}</td>
                                                 <td className="py-6 text-center text-slate-300 font-medium">{item.unit}</td>
