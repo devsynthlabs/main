@@ -10,6 +10,7 @@ const router = express.Router();
 const cashFlowStatementSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, default: "Cash Flow Statement" },
+  companyName: { type: String },
   period: { type: String, required: true },
   inflowItems: [{
     description: { type: String, required: true },
@@ -32,6 +33,7 @@ const cashFlowStatementSchema = new mongoose.Schema({
 // ✅ Simple Mode Schema (Requirement style - with textarea)
 const simpleCashFlowStatementSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  companyName: { type: String },
   period: { type: String, required: true },
   inflowText: { type: String, required: true },
   outflowText: { type: String, required: true },
@@ -71,7 +73,7 @@ const verifyToken = (req, res, next) => {
 // ✅ POST - Create dynamic cash flow statement
 router.post("/create", verifyToken, async (req, res) => {
   try {
-    const { period, inflowItems, outflowItems } = req.body;
+    const { companyName, period, inflowItems, outflowItems } = req.body;
 
     if (!period || !inflowItems || !outflowItems) {
       return res.status(400).json({ message: "Period, inflow items, and outflow items are required" });
@@ -89,6 +91,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
     const newStatement = new CashFlowStatement({
       userId: req.user.id,
+      companyName,
       period,
       inflowItems,
       outflowItems,
@@ -205,7 +208,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
 // ✅ POST - Create simple cash flow statement (textarea mode)
 router.post("/simple/create", verifyToken, async (req, res) => {
   try {
-    const { period, inflowText, outflowText, totalInflow, totalOutflow, netCashFlow, status } = req.body;
+    const { companyName, period, inflowText, outflowText, totalInflow, totalOutflow, netCashFlow, status } = req.body;
 
     if (!period || !inflowText || !outflowText) {
       return res.status(400).json({ message: "Period, inflow text, and outflow text are required" });
@@ -213,6 +216,7 @@ router.post("/simple/create", verifyToken, async (req, res) => {
 
     const newStatement = new SimpleCashFlowStatement({
       userId: req.user.id,
+      companyName,
       period,
       inflowText,
       outflowText,

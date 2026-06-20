@@ -28,6 +28,11 @@ const invoiceSchema = new mongoose.Schema({
   items: [{
     productName: { type: String, required: true },
     description: { type: String },
+    codeType: { type: String, enum: ['HSN', 'SAC'], default: 'HSN' },
+    hsnCode: { type: String },
+    sacCode: { type: String },
+    unit: { type: String },
+    priceWithTax: { type: Boolean, default: false },
     quantity: { type: Number, required: true },
     unitPrice: { type: Number, required: true },
     taxRate: { type: Number, default: 0 },
@@ -50,7 +55,7 @@ const invoiceSchema = new mongoose.Schema({
   // Payment Details
   paymentMethod: {
     type: String,
-    enum: ['cash', 'credit_card', 'bank_transfer', 'upi', 'gpay', 'netbanking', 'cheque', 'paypal', 'stripe', 'other'],
+    enum: ['cash', 'credit', 'credit_card', 'bank_transfer', 'upi', 'gpay', 'netbanking', 'cheque', 'paypal', 'stripe', 'other'],
     default: 'bank_transfer'
   },
   paymentStatus: {
@@ -69,6 +74,26 @@ const invoiceSchema = new mongoose.Schema({
     enum: ['proforma', 'tax', 'commercial', 'retail'],
     default: 'tax'
   },
+  sourceInvoiceType: {
+    type: String,
+    enum: ['sales', 'purchase'],
+    default: 'sales'
+  },
+  transactionType: {
+    type: String,
+    enum: ['B2B', 'B2C'],
+    default: 'B2C'
+  },
+  invoiceSize: {
+    type: String,
+    enum: ['A4', 'QUARTER_A4'],
+    default: 'A4'
+  },
+  dueReminderDays: { type: Number, default: 0 },
+  dueReminderDate: { type: Date },
+  eWayBillNo: { type: String },
+  stateOfSupply: { type: String },
+  gstPortalJson: { type: mongoose.Schema.Types.Mixed },
 
   // System Fields
   status: {
@@ -210,6 +235,74 @@ router.get("/all", async (req, res) => {
     console.error("Error fetching invoices:", error);
     res.status(500).json({
       message: "Error fetching invoices",
+      error: error.message
+    });
+  }
+});
+
+// ✅ Search Invoices - keep before "/:id" so Express does not treat "search" as an invoice id
+router.get("/search", async (req, res) => {
+  try {
+    const {
+      query,
+      field = 'all',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        message: "Search query is required"
+      });
+    }
+
+    const searchQuery = { isDeleted: false };
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    if (field === 'all') {
+      searchQuery.$or = [
+        { invoiceNumber: { $regex: query, $options: 'i' } },
+        { customerName: { $regex: query, $options: 'i' } },
+        { customerEmail: { $regex: query, $options: 'i' } },
+        { customerPhone: { $regex: query, $options: 'i' } },
+        { customerGSTIN: { $regex: query, $options: 'i' } },
+        { businessName: { $regex: query, $options: 'i' } },
+        { businessGSTIN: { $regex: query, $options: 'i' } },
+        { 'items.productName': { $regex: query, $options: 'i' } }
+      ];
+    } else if (field === 'customer') {
+      searchQuery.$or = [
+        { customerName: { $regex: query, $options: 'i' } },
+        { customerEmail: { $regex: query, $options: 'i' } },
+        { customerPhone: { $regex: query, $options: 'i' } },
+        { customerGSTIN: { $regex: query, $options: 'i' } }
+      ];
+    } else if (field === 'invoice') {
+      searchQuery.invoiceNumber = { $regex: query, $options: 'i' };
+    } else if (field === 'product') {
+      searchQuery['items.productName'] = { $regex: query, $options: 'i' };
+    }
+
+    const invoices = await Invoice.find(searchQuery)
+      .sort({ invoiceDate: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Invoice.countDocuments(searchQuery);
+
+    res.json({
+      invoices,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error("Error searching invoices:", error);
+    res.status(500).json({
+      message: "Error searching invoices",
       error: error.message
     });
   }
@@ -432,63 +525,6 @@ router.patch("/:id/payment", async (req, res) => {
     console.error("Error updating payment status:", error);
     res.status(500).json({
       message: "Error updating payment status",
-      error: error.message
-    });
-  }
-});
-
-// ✅ 9. Search Invoices
-router.get("/search", async (req, res) => {
-  try {
-    const {
-      query,
-      field = 'all',
-      page = 1,
-      limit = 20
-    } = req.query;
-
-    if (!query) {
-      return res.status(400).json({
-        message: "Search query is required"
-      });
-    }
-
-    const searchQuery = { isDeleted: false };
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Build search based on field
-    if (field === 'all' || field === 'customer') {
-      searchQuery.$or = [
-        { customerName: { $regex: query, $options: 'i' } },
-        { customerEmail: { $regex: query, $options: 'i' } },
-        { customerPhone: { $regex: query, $options: 'i' } }
-      ];
-    } else if (field === 'invoice') {
-      searchQuery.invoiceNumber = { $regex: query, $options: 'i' };
-    } else if (field === 'product') {
-      searchQuery['items.productName'] = { $regex: query, $options: 'i' };
-    }
-
-    const invoices = await Invoice.find(searchQuery)
-      .sort({ invoiceDate: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Invoice.countDocuments(searchQuery);
-
-    res.json({
-      invoices,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    });
-  } catch (error) {
-    console.error("Error searching invoices:", error);
-    res.status(500).json({
-      message: "Error searching invoices",
       error: error.message
     });
   }
