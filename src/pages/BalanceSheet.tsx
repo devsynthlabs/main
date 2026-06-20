@@ -7,16 +7,37 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Calculator, Download, TrendingUp, AlertCircle, CheckCircle, Building, Scale } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const BalanceSheet = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    currentAssets: "",
-    nonCurrentAssets: "",
-    currentLiabilities: "",
-    nonCurrentLiabilities: "",
-    equity: "",
+    // Current Assets sub-items
+    cashInHand: "",
+    tradeReceivable: "",
+    inventory: "",
+    currentAssetsOthers: "",
+    // Non-Current Assets sub-items
+    fixedAssets: "",
+    machinery: "",
+    laptops: "",
+    nonCurrentAssetsOthers: "",
+    // Current Liabilities sub-items
+    currentTradePayable: "",
+    currentGstPayable: "",
+    currentBankLoan: "",
+    currentLiabilitiesOthers: "",
+    // Non-Current Liabilities sub-items
+    nonCurrentTradePayable: "",
+    nonCurrentGstPayable: "",
+    nonCurrentBankLoan: "",
+    nonCurrentLiabilitiesOthers: "",
+    // Equity sub-items
+    shareCapital: "",
+    reservesSurplus: "",
+    equityOthers: "",
   });
   const [balanceSheet, setBalanceSheet] = useState(null);
 
@@ -26,11 +47,35 @@ const BalanceSheet = () => {
   };
 
   const generateBalanceSheet = async () => {
-    const currentAssets = parseFloat(formData.currentAssets) || 0;
-    const nonCurrentAssets = parseFloat(formData.nonCurrentAssets) || 0;
-    const currentLiabilities = parseFloat(formData.currentLiabilities) || 0;
-    const nonCurrentLiabilities = parseFloat(formData.nonCurrentLiabilities) || 0;
-    const equity = parseFloat(formData.equity) || 0;
+    // Sum sub-items for each section (matching Python requirement logic)
+    const currentAssets =
+      (parseFloat(formData.cashInHand) || 0) +
+      (parseFloat(formData.tradeReceivable) || 0) +
+      (parseFloat(formData.inventory) || 0) +
+      (parseFloat(formData.currentAssetsOthers) || 0);
+
+    const nonCurrentAssets =
+      (parseFloat(formData.fixedAssets) || 0) +
+      (parseFloat(formData.machinery) || 0) +
+      (parseFloat(formData.laptops) || 0) +
+      (parseFloat(formData.nonCurrentAssetsOthers) || 0);
+
+    const currentLiabilities =
+      (parseFloat(formData.currentTradePayable) || 0) +
+      (parseFloat(formData.currentGstPayable) || 0) +
+      (parseFloat(formData.currentBankLoan) || 0) +
+      (parseFloat(formData.currentLiabilitiesOthers) || 0);
+
+    const nonCurrentLiabilities =
+      (parseFloat(formData.nonCurrentTradePayable) || 0) +
+      (parseFloat(formData.nonCurrentGstPayable) || 0) +
+      (parseFloat(formData.nonCurrentBankLoan) || 0) +
+      (parseFloat(formData.nonCurrentLiabilitiesOthers) || 0);
+
+    const equity =
+      (parseFloat(formData.shareCapital) || 0) +
+      (parseFloat(formData.reservesSurplus) || 0) +
+      (parseFloat(formData.equityOthers) || 0);
 
     // Calculate totals like Python file
     const totalAssets = currentAssets + nonCurrentAssets;
@@ -69,235 +114,416 @@ const BalanceSheet = () => {
   const downloadReport = () => {
     if (!balanceSheet) return;
 
-    const content = `
-╔═══════════════════════════════════════════════╗
-║       BALANCE SHEET - ${new Date().toLocaleDateString()}           ║
-╚═══════════════════════════════════════════════╝
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-ASSETS
-────────────────────────────────────────────────
-Current Assets:             ₹${balanceSheet.currentAssets.toFixed(2)}
-Non-Current Assets:         ₹${balanceSheet.nonCurrentAssets.toFixed(2)}
-────────────────────────────────────────────────
-Total Assets:               ₹${balanceSheet.totalAssets.toFixed(2)}
+    // 1. Blue Header Banner
+    doc.setFillColor(26, 54, 164);
+    doc.rect(0, 0, pageWidth, 38, "F");
 
-LIABILITIES
-────────────────────────────────────────────────
-Current Liabilities:        ₹${balanceSheet.currentLiabilities.toFixed(2)}
-Non-Current Liabilities:    ₹${balanceSheet.nonCurrentLiabilities.toFixed(2)}
-────────────────────────────────────────────────
-Total Liabilities:          ₹${balanceSheet.totalLiabilities.toFixed(2)}
+    // Company Name (white, small uppercase, centered)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text("SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED", pageWidth / 2, 14, { align: "center" });
 
-EQUITY
-────────────────────────────────────────────────
-Equity:                     ₹${balanceSheet.equity.toFixed(2)}
+    // Main Title
+    doc.setFontSize(18);
+    doc.text("BALANCE SHEET", pageWidth / 2, 26, { align: "center" });
 
-════════════════════════════════════════════════
-Total Liabilities + Equity: ₹${balanceSheet.totalLiabilitiesEquity.toFixed(2)}
-════════════════════════════════════════════════
+    // 2. Subtitle Date
+    const day = new Date().getDate();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const month = monthNames[new Date().getMonth()];
+    const year = new Date().getFullYear();
+    const formattedDate = `As of ${day} ${month} ${year}`;
 
-STATUS: ${balanceSheet.balanced ? '✓ BALANCED' : '✗ UNBALANCED'}
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(formattedDate, pageWidth / 2, 48, { align: "center" });
 
-${balanceSheet.balanced ? 'Balance sheet is balanced' : 'Balance sheet is NOT balanced'}
+    // Format Currency Helper
+    const formatCurrency = (val) => `Rs. ${(parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-Generated by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED
-Powered by Advanced Financial Analytics Engine ✨
-    `.trim();
+    const startX = 15;
+    const contentWidth = pageWidth - 30; // 180mm
 
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Balance_Sheet_${Date.now()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // --- ASSETS SECTION ---
+    let y = 56;
+    doc.setFillColor(239, 246, 255); // Very light blue
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(29, 78, 216); // Blue text
+    doc.text("ASSETS", startX + 3, y + 5.5);
+
+    // Current Assets row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(50, 50, 50);
+    doc.text("Current Assets", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.currentAssets), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.setDrawColor(240, 240, 240);
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Non-Current Assets row
+    y += 7;
+    doc.text("Non-Current Assets", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.nonCurrentAssets), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Assets row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Assets", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.totalAssets), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- LIABILITIES SECTION ---
+    y += 18;
+    doc.setFillColor(255, 247, 237); // Very light orange
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(194, 65, 12); // Orange text
+    doc.text("LIABILITIES", startX + 3, y + 5.5);
+
+    // Current Liabilities row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text("Current Liabilities", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.currentLiabilities), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Non-Current Liabilities row
+    y += 7;
+    doc.text("Non-Current Liabilities", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.nonCurrentLiabilities), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Liabilities row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Liabilities", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.totalLiabilities), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- EQUITY SECTION ---
+    y += 18;
+    doc.setFillColor(240, 253, 244); // Very light green
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(22, 163, 74); // Green text
+    doc.text("EQUITY", startX + 3, y + 5.5);
+
+    // Equity row
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+    doc.text("Equity", startX + 3, y);
+    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y, { align: "right" });
+    // Line
+    y += 3;
+    doc.line(startX, y, startX + contentWidth, y);
+
+    // Total Equity row
+    y += 2;
+    doc.setFillColor(248, 250, 252); // Light grey
+    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Equity", startX + 3, y + 5.5);
+    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y + 5.5, { align: "right" });
+
+    // --- TOTAL LIABILITIES + EQUITY ROW ---
+    y += 16;
+    doc.setFillColor(15, 23, 42); // Slate 900
+    doc.rect(startX, y, contentWidth, 12, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("Total Liabilities + Equity", startX + 5, y + 7.5);
+    doc.setTextColor(147, 197, 253); // Light blue
+    doc.text(formatCurrency(balanceSheet.totalLiabilitiesEquity), startX + contentWidth - 5, y + 7.5, { align: "right" });
+
+    // --- BALANCED/UNBALANCED BOX ---
+    y += 20;
+    const isBalanced = balanceSheet.balanced;
+    if (isBalanced) {
+      doc.setFillColor(240, 253, 244); // Light green
+      doc.setDrawColor(34, 197, 94); // Green border
+    } else {
+      doc.setFillColor(254, 242, 242); // Light red
+      doc.setDrawColor(239, 68, 68); // Red border
+    }
+    
+    // Draw rounded rect
+    doc.roundedRect(startX, y, contentWidth, 18, 2, 2, "FD");
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    if (isBalanced) {
+      doc.setTextColor(22, 163, 74);
+      doc.text("BALANCED", pageWidth / 2, y + 6.5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(75, 85, 99);
+      doc.text("The balance sheet is in balance. Assets equal Liabilities + Equity.", pageWidth / 2, y + 12.5, { align: "center" });
+    } else {
+      doc.setTextColor(220, 38, 38);
+      doc.text("UNBALANCED", pageWidth / 2, y + 6.5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(75, 85, 99);
+      const diff = Math.abs(balanceSheet.totalAssets - balanceSheet.totalLiabilitiesEquity);
+      doc.text(`The balance sheet is unbalanced. Difference: ${formatCurrency(diff)}`, pageWidth / 2, y + 12.5, { align: "center" });
+    }
+
+    // --- FOOTER ---
+    y += 28;
+    doc.setDrawColor(220, 220, 220);
+    doc.line(startX, y, startX + contentWidth, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(156, 163, 175);
+    doc.text("Generated by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED  |  Powered by Advanced Financial Analytics Engine", pageWidth / 2, y + 5, { align: "center" });
+
+    // Save PDF
+    doc.save(`Balance_Sheet_${Date.now()}.pdf`);
   };
+
 
   const handleBackToDashboard = () => {
     navigate("/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 relative overflow-hidden">
-      {/* Animated Background Effects */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-
-      {/* Static gradient circles instead of mouse-following orb */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Floating particles */}
-      <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-      <div className="absolute top-40 right-40 w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-      <div className="absolute bottom-32 left-1/3 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
+    <div className="liquid-page min-h-screen overflow-hidden text-slate-950">
+      <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
       {/* Header */}
-      <header className="relative backdrop-blur-xl bg-white/5 border-b border-blue-400/20 shadow-2xl shadow-blue-500/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
             onClick={handleBackToDashboard}
-            className="mb-4 text-blue-200 hover:text-blue-100 hover:bg-white/10 transition-all duration-300 group backdrop-blur-xl"
+            className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
           >
-            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
           <div className="flex items-center gap-4">
-            <div
-              className="p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-xl border border-blue-400/30 shadow-2xl shadow-blue-500/40"
-            >
-              <Scale className="h-8 w-8 text-blue-300" />
+            <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+              <Scale className="h-8 w-8 text-slate-900" />
             </div>
             <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
                 Balance Sheet Generator
               </h1>
-              <p className="text-blue-200/80 font-medium mt-1">Create comprehensive financial statements with real-time validation</p>
+              <p className="mt-1 text-slate-600 font-medium">Create comprehensive financial statements with real-time validation</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Card */}
-          <Card
-            className="backdrop-blur-2xl bg-white/10 border border-blue-400/30 shadow-2xl shadow-blue-500/40 rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500 bg-white/40">
+            <div className="absolute left-1/2 top-0 h-32 w-96 -translate-x-1/2 bg-gradient-to-b from-sky-200/60 to-transparent blur-2xl" />
 
             <CardHeader className="relative">
               <div className="absolute top-4 right-4 flex gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-sky-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
-              <CardTitle className="text-2xl font-bold text-white">Enter Balance Sheet Data</CardTitle>
-              <CardDescription className="text-blue-300">Input your financial values below</CardDescription>
+              <CardTitle className="text-2xl font-bold text-slate-950">Enter Balance Sheet Data</CardTitle>
+              <CardDescription className="text-slate-600 mt-1">Input your financial values below</CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-6 relative">
               {/* Assets Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border border-blue-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/50">
-                    <Building className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <Building className="h-4 w-4 text-sky-700" />
                   </div>
                   Assets
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="currentAssets" className="text-white font-medium">Current Assets (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="currentAssets"
-                      type="number"
-                      placeholder="e.g., 150000.00"
-                      value={formData.currentAssets}
-                      onChange={(e) => handleInputChange("currentAssets", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("currentAssets", text)}
-                      onClear={() => handleInputChange("currentAssets", "")}
-                    />
+
+                {/* Current Assets Sub-items */}
+                <p className="text-sky-800 text-xs font-bold uppercase tracking-wider pl-1">Current Assets</p>
+                {[
+                  { id: "cashInHand", label: "Cash in Hand (₹)", placeholder: "e.g., 150000.00" },
+                  { id: "tradeReceivable", label: "Trade Receivable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "inventory", label: "Inventory (₹)", placeholder: "e.g., 200000.00" },
+                  { id: "currentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nonCurrentAssets" className="text-white font-medium">Non-Current Assets (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="nonCurrentAssets"
-                      type="number"
-                      placeholder="e.g., 450000.00"
-                      value={formData.nonCurrentAssets}
-                      onChange={(e) => handleInputChange("nonCurrentAssets", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("nonCurrentAssets", text)}
-                      onClear={() => handleInputChange("nonCurrentAssets", "")}
-                    />
+                ))}
+
+                {/* Non-Current Assets Sub-items */}
+                <p className="text-sky-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Assets</p>
+                {[
+                  { id: "fixedAssets", label: "Fixed Assets (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "machinery", label: "Machinery (₹)", placeholder: "e.g., 300000.00" },
+                  { id: "laptops", label: "Laptops (₹)", placeholder: "e.g., 150000.00" },
+                  { id: "nonCurrentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               {/* Liabilities Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-orange-500/5 to-red-500/5 border border-orange-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/50">
-                    <TrendingUp className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-orange-50/60 border border-orange-100 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <TrendingUp className="h-4 w-4 text-orange-700" />
                   </div>
                   Liabilities
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="currentLiabilities" className="text-white font-medium">Current Liabilities (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="currentLiabilities"
-                      type="number"
-                      placeholder="e.g., 60000.00"
-                      value={formData.currentLiabilities}
-                      onChange={(e) => handleInputChange("currentLiabilities", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("currentLiabilities", text)}
-                      onClear={() => handleInputChange("currentLiabilities", "")}
-                    />
+
+                {/* Current Liabilities Sub-items */}
+                <p className="text-orange-800 text-xs font-bold uppercase tracking-wider pl-1">Current Liabilities</p>
+                {[
+                  { id: "currentTradePayable", label: "Trade Payable (₹)", subLabel: "Short term / Less than 1 year", placeholder: "e.g., 100000.00" },
+                  { id: "currentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "currentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "currentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, subLabel, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                      {subLabel && <span className="text-xs text-slate-500 font-normal pl-0.5">{subLabel}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nonCurrentLiabilities" className="text-white font-medium">Non-Current Liabilities (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="nonCurrentLiabilities"
-                      type="number"
-                      placeholder="e.g., 140000.00"
-                      value={formData.nonCurrentLiabilities}
-                      onChange={(e) => handleInputChange("nonCurrentLiabilities", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("nonCurrentLiabilities", text)}
-                      onClear={() => handleInputChange("nonCurrentLiabilities", "")}
-                    />
+                ))}
+
+                {/* Non-Current Liabilities Sub-items */}
+                <p className="text-orange-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Liabilities</p>
+                {[
+                  { id: "nonCurrentTradePayable", label: "Trade Payable (₹)", subLabel: "Long term / More than 1 year", placeholder: "e.g., 400000.00" },
+                  { id: "nonCurrentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
+                  { id: "nonCurrentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "nonCurrentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
+                ].map(({ id, label, subLabel, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                      {subLabel && <span className="text-xs text-slate-500 font-normal pl-0.5">{subLabel}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               {/* Equity Section */}
-              <div className="space-y-4 p-6 rounded-2xl bg-gradient-to-br from-green-500/5 to-emerald-500/5 border border-green-400/20 backdrop-blur-xl">
-                <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/50">
-                    <Calculator className="h-4 w-4 text-white" />
+              <div className="space-y-4 p-6 rounded-[28px] bg-emerald-50/60 border border-emerald-100 shadow-sm backdrop-blur-xl">
+                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shadow-sm">
+                    <Calculator className="h-4 w-4 text-emerald-700" />
                   </div>
                   Equity
                 </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="equity" className="text-white font-medium">Equity (₹)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="equity"
-                      type="number"
-                      placeholder="e.g., 400000.00"
-                      value={formData.equity}
-                      onChange={(e) => handleInputChange("equity", e.target.value)}
-                      className="bg-slate-900/50 text-white border-blue-400/30 backdrop-blur-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all placeholder:text-blue-400/30"
-                    />
-                    <VoiceButton
-                      onTranscript={(text) => handleInputChange("equity", text)}
-                      onClear={() => handleInputChange("equity", "")}
-                    />
+                {[
+                  { id: "shareCapital", label: "Share Capital (₹)", placeholder: "e.g., 1000000.00" },
+                  { id: "reservesSurplus", label: "Reserves & Surplus (₹)", placeholder: "e.g., 500000.00" },
+                  { id: "equityOthers", label: "Others (₹)", placeholder: "e.g., 100000.00" },
+                ].map(({ id, label, placeholder }) => (
+                  <div className="space-y-2" key={id}>
+                    <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={id}
+                        type="number"
+                        placeholder={placeholder}
+                        value={formData[id]}
+                        onChange={(e) => handleInputChange(id, e.target.value)}
+                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                      />
+                      <VoiceButton
+                        onTranscript={(text) => handleInputChange(id, text)}
+                        onClear={() => handleInputChange(id, "")}
+                      />
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <Button
                 onClick={generateBalanceSheet}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
+                className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
               >
-                <Calculator className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+                <Calculator className="mr-2 h-5 w-5" />
                 Generate Balance Sheet
               </Button>
             </CardContent>
@@ -306,93 +532,93 @@ Powered by Advanced Financial Analytics Engine ✨
           {/* Results Card */}
           {balanceSheet && (
             <Card
-              className={`backdrop-blur-2xl ${balanceSheet.balanced ? 'bg-slate-800/90 border-emerald-400/60 shadow-emerald-500/60' : 'bg-slate-800/90 border-red-400/60 shadow-red-500/60'} border-2 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-2 transition-all duration-500 animate-in fade-in slide-in-from-right`}
+              className={`liquid-panel relative overflow-hidden rounded-[36px] border-white/55 bg-white/40 shadow-xl border-2 transition-all duration-500 animate-in fade-in duration-700`}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${balanceSheet.balanced ? 'from-emerald-500/10 via-transparent to-cyan-500/10' : 'from-red-500/10 via-transparent to-orange-500/10'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-sky-400 to-transparent" />
 
               {/* Status Badge */}
               <div className="absolute top-6 right-6 z-10">
-                <div className={`px-4 py-2 rounded-full backdrop-blur-xl ${balanceSheet.balanced ? 'bg-emerald-500/30 border border-emerald-400/50' : 'bg-red-500/30 border border-red-400/50'} flex items-center gap-2 shadow-lg`}>
+                <div className={`px-4 py-2 rounded-full backdrop-blur-xl shadow-md border ${balanceSheet.balanced ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'} flex items-center gap-2`}>
                   {balanceSheet.balanced ? (
                     <>
-                      <CheckCircle className="h-4 w-4 text-emerald-300" />
-                      <span className="text-emerald-100 font-bold text-sm">Balanced</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-700" />
+                      <span className="font-bold text-sm">Balanced</span>
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="h-4 w-4 text-red-300" />
-                      <span className="text-red-100 font-bold text-sm">Unbalanced</span>
+                      <AlertCircle className="h-4 w-4 text-rose-700" />
+                      <span className="font-bold text-sm">Unbalanced</span>
                     </>
                   )}
                 </div>
               </div>
 
               <CardHeader className="relative pt-8">
-                <CardTitle className="text-2xl font-bold text-white">Balance Sheet Report</CardTitle>
-                <CardDescription className={balanceSheet.balanced ? "text-emerald-200" : "text-red-200"}>
+                <CardTitle className="text-2xl font-bold text-slate-950">Balance Sheet Report</CardTitle>
+                <CardDescription className={balanceSheet.balanced ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}>
                   {balanceSheet.balanced ? "Balance sheet is balanced ✓" : "Balance sheet is NOT balanced"}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6 relative">
                 {/* Assets Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Assets</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Assets</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Current Assets</span>
-                      <span className="font-bold text-cyan-300">₹{balanceSheet.currentAssets.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.currentAssets.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Non-Current Assets</span>
-                      <span className="font-bold text-cyan-300">₹{balanceSheet.nonCurrentAssets.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentAssets.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-blue-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Assets</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]">₹{balanceSheet.totalAssets.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Assets</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalAssets.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Liabilities Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Liabilities</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Liabilities</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Current Liabilities</span>
-                      <span className="font-bold text-orange-300">₹{balanceSheet.currentLiabilities.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.currentLiabilities.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Non-Current Liabilities</span>
-                      <span className="font-bold text-orange-300">₹{balanceSheet.nonCurrentLiabilities.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentLiabilities.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-orange-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Liabilities</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.8)]">₹{balanceSheet.totalLiabilities.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Liabilities</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilities.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Equity Display */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-400/20 backdrop-blur-xl">
-                  <h3 className="font-bold mb-4 text-white text-lg">Equity</h3>
+                <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
+                  <h3 className="font-bold mb-4 text-slate-900 text-lg">Equity</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-white py-2">
+                    <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Equity</span>
-                      <span className="font-bold text-emerald-300">₹{balanceSheet.equity.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">₹{balanceSheet.equity.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center font-bold border-t border-green-400/30 pt-3 mt-3">
-                      <span className="text-white text-lg">Total Liabilities + Equity</span>
-                      <span className="text-xl text-white drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]">₹{balanceSheet.totalLiabilitiesEquity.toFixed(2)}</span>
+                    <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
+                      <span className="text-slate-950 text-lg">Total Liabilities + Equity</span>
+                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilitiesEquity.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 <Button
                   onClick={downloadReport}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-6 rounded-xl shadow-2xl shadow-blue-500/60 hover:shadow-blue-400/80 hover:scale-[1.02] transition-all duration-300 group"
+                  className="group rounded-full bg-slate-950 font-semibold text-white px-8 py-4 w-full shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
                 >
-                  <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform" />
+                  <Download className="mr-2 h-5 w-5 group-hover:translate-y-1 transition-transform duration-300" />
                   Download Report
                 </Button>
               </CardContent>

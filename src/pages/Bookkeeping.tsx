@@ -395,35 +395,28 @@ const Bookkeeping = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-950 text-white overflow-hidden relative">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:100px_100px]" />
-                <div className="absolute top-20 left-20 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
-                <div className="absolute top-40 right-40 w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
-                <div className="absolute bottom-40 left-60 w-2 h-2 bg-green-400 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
-            </div>
+        <div className="liquid-page min-h-screen overflow-hidden text-slate-950">
+            <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
-            <header className="relative backdrop-blur-xl bg-white/5 border-b border-emerald-400/20 shadow-2xl">
+            <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Button
                         variant="ghost"
                         onClick={handleBackToDashboard}
-                        className="mb-4 text-emerald-200 hover:text-emerald-100 hover:bg-white/10 backdrop-blur-md transition-all duration-300 hover:-translate-x-1"
+                        className="mb-4 rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Dashboard
                     </Button>
                     <div className="flex items-center gap-4">
-                        <div
-                            className="p-3 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl backdrop-blur-xl border border-emerald-400/30 hover:rotate-12 transition-transform duration-300"
-                        >
-                            <IndianRupee className="h-8 w-8 text-emerald-400" />
+                        <div className="liquid-icon flex h-16 w-16 items-center justify-center rounded-[22px]">
+                            <IndianRupee className="h-8 w-8 text-slate-900" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(20,184,166,0.8)] leading-tight">
+                            <h1 className="text-4xl font-semibold tracking-tight text-slate-950">
                                 Bookkeeping Automation
                             </h1>
-                            <p className="text-emerald-200/80 font-medium mt-1">Track income and expenses with financial insights</p>
+                            <p className="mt-1 text-slate-600">Track income and expenses with financial insights</p>
                         </div>
                     </div>
                 </div>
@@ -431,60 +424,37 @@ const Bookkeeping = () => {
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
                 {activeTab === 'analytics' && (
-                    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 backdrop-blur-2xl bg-white/5 border border-emerald-400/20 rounded-3xl p-6 shadow-2xl">
+                    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-[24px] border border-white/55 bg-white/42 p-6 shadow-xl backdrop-blur-2xl">
                         <div>
-                            <h2 className="text-xl font-bold text-emerald-100 mb-2">Financial Period</h2>
+                            <h2 className="text-xl font-bold text-slate-900 mb-2">Financial Period</h2>
                             <div className="flex flex-wrap gap-2 mb-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePreset('today')}
-                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
-                                >
-                                    Today
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePreset('yesterday')}
-                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
-                                >
-                                    Yesterday
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePreset('week')}
-                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
-                                >
-                                    Last 7 Days
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePreset('month')}
-                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
-                                >
-                                    This Month
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePreset('lastMonth')}
-                                    className="bg-white/5 border-emerald-400/20 hover:bg-emerald-500/20 text-emerald-100 text-xs h-8"
-                                >
-                                    Last Month
-                                </Button>
+                                {[
+                                    { preset: 'today', label: 'Today' },
+                                    { preset: 'yesterday', label: 'Yesterday' },
+                                    { preset: 'week', label: 'Last 7 Days' },
+                                    { preset: 'month', label: 'This Month' },
+                                    { preset: 'lastMonth', label: 'Last Month' }
+                                ].map((item) => (
+                                    <Button
+                                        key={item.preset}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handlePreset(item.preset as any)}
+                                        className="rounded-full border border-white/60 bg-white/45 text-slate-700 hover:bg-white/70 hover:text-slate-950"
+                                    >
+                                        {item.label}
+                                    </Button>
+                                ))}
                             </div>
-                            <p className="text-emerald-300/60 text-sm">Select a date range to filter transactions</p>
+                            <p className="text-slate-600 text-sm">Select a date range to filter transactions</p>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
-                                    className="w-full md:w-[300px] justify-start text-left font-normal bg-white/10 border-emerald-400/30 text-emerald-100 hover:bg-white/20 h-12 rounded-xl"
+                                    className="w-full md:w-[300px] justify-start text-left font-normal h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300 transition-all duration-300"
                                 >
-                                    <CalendarIcon className="mr-2 h-5 w-5 text-teal-400" />
+                                    <CalendarIcon className="mr-2 h-5 w-5 text-slate-600" />
                                     {dateRange?.from ? (
                                         dateRange.to ? (
                                             <span className="font-semibold text-lg">
@@ -498,7 +468,7 @@ const Bookkeeping = () => {
                                     )}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 bg-slate-900 border-emerald-400/30" align="end">
+                            <PopoverContent className="w-auto p-0 bg-white border border-slate-200" align="end">
                                 <Calendar
                                     initialFocus
                                     mode="range"
@@ -506,7 +476,7 @@ const Bookkeeping = () => {
                                     selected={{ from: dateRange.from, to: dateRange.to }}
                                     onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
                                     numberOfMonths={1}
-                                    className="bg-slate-900 text-emerald-100"
+                                    className="bg-white text-slate-900"
                                 />
                             </PopoverContent>
                         </Popover>
@@ -514,24 +484,24 @@ const Bookkeeping = () => {
                 )}
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="grid w-full grid-cols-3 backdrop-blur-2xl bg-white/10 border border-emerald-400/20 rounded-2xl p-1">
+                    <TabsList className="grid w-full grid-cols-3 rounded-[24px] border border-white/55 bg-white/42 p-1 shadow-[0_16px_42px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
                         <TabsTrigger
                             value="entries"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+                            className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <FileText className="h-4 w-4" />
                             Entries
                         </TabsTrigger>
                         <TabsTrigger
                             value="add"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+                            className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <Plus className="h-4 w-4" />
                             Add Entry
                         </TabsTrigger>
                         <TabsTrigger
                             value="analytics"
-                            className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-xl transition-all duration-300"
+                            className="flex items-center gap-2 rounded-[18px] text-slate-600 data-[state=active]:bg-slate-950 data-[state=active]:text-white transition-all duration-300"
                         >
                             <BarChart3 className="h-4 w-4" />
                             Analytics
@@ -540,23 +510,23 @@ const Bookkeeping = () => {
 
                     <TabsContent value="entries">
                         <Card
-                            className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
+                            className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500"
                         >
                             <CardHeader>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
-                                        <CardTitle className="text-2xl font-bold text-emerald-100 flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-teal-400" />
+                                        <CardTitle className="text-2xl font-semibold tracking-tight text-slate-950 flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-slate-800" />
                                             Bookkeeping Entries
                                         </CardTitle>
-                                        <CardDescription className="text-emerald-300/70">
+                                        <CardDescription className="text-slate-600">
                                             {entries.length} total entries • {financialSummary.netBalance >= 0 ? 'Positive' : 'Negative'} balance
                                         </CardDescription>
                                     </div>
 
                                     <div className="flex flex-wrap gap-3">
                                         <Select value={filterType} onValueChange={setFilterType}>
-                                            <SelectTrigger className="w-[140px] bg-white/5 border-emerald-400/30 text-emerald-100">
+                                            <SelectTrigger className="w-[140px] h-11 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300">
                                                 <Filter className="h-4 w-4 mr-2" />
                                                 <SelectValue placeholder="Filter by type" />
                                             </SelectTrigger>
@@ -568,7 +538,7 @@ const Bookkeeping = () => {
                                         </Select>
 
                                         <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                            <SelectTrigger className="w-[140px] bg-white/5 border-emerald-400/30 text-emerald-100">
+                                            <SelectTrigger className="w-[140px] h-11 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300">
                                                 <SelectValue placeholder="Filter by category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -584,7 +554,7 @@ const Bookkeeping = () => {
 
                                         <Button
                                             onClick={exportToCSV}
-                                            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white"
+                                            className="rounded-full bg-slate-950 font-semibold text-white transition-all duration-300 hover:bg-slate-800"
                                         >
                                             <Download className="h-4 w-4 mr-2" />
                                             Export CSV
@@ -596,8 +566,8 @@ const Bookkeeping = () => {
                             <CardContent>
                                 {isLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20">
-                                        <Loader2 className="h-10 w-10 text-emerald-400 animate-spin mb-4" />
-                                        <p className="text-emerald-300">Loading your entries...</p>
+                                        <Loader2 className="h-10 w-10 text-slate-800 animate-spin mb-4" />
+                                        <p className="text-slate-600">Loading your entries...</p>
                                     </div>
                                 ) : filteredEntries.length > 0 ? (
                                     <div className="space-y-6">
@@ -609,9 +579,9 @@ const Bookkeeping = () => {
 
                                             return (
                                                 <div key={dateKey} className="space-y-3">
-                                                    <div className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-md py-2 px-3 rounded-lg border-l-4 border-emerald-500 inline-block shadow-lg">
-                                                        <h4 className="text-emerald-100 font-bold text-sm tracking-wide uppercase flex items-center gap-2">
-                                                            <CalendarIcon className="h-4 w-4 text-emerald-400" />
+                                                    <div className="sticky top-0 z-10 bg-white/60 backdrop-blur-md py-2 px-3 rounded-lg border-l-4 border-slate-800 inline-block shadow-sm">
+                                                        <h4 className="text-slate-900 font-bold text-sm tracking-wide uppercase flex items-center gap-2">
+                                                            <CalendarIcon className="h-4 w-4 text-slate-800" />
                                                             {dateLabel}
                                                         </h4>
                                                     </div>
@@ -619,38 +589,37 @@ const Bookkeeping = () => {
                                                     {groupedEntries[dateKey].map((entry) => (
                                                         <div
                                                             key={entry.id}
-                                                            className="ml-2 p-4 backdrop-blur-xl bg-white/5 border border-emerald-400/10 rounded-2xl hover:border-emerald-400/30 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 group"
+                                                            className="ml-2 p-4 bg-white/40 border border-white/50 rounded-2xl hover:border-slate-300 transition-all duration-300 hover:bg-white/80 hover:-translate-y-0.5 group"
                                                         >
                                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center gap-3 mb-2">
                                                                         <Badge
                                                                             className={`px-3 py-1 rounded-full ${entry.type === 'Income'
-                                                                                ? 'bg-gradient-to-r from-green-500/80 to-emerald-500/80 text-white'
-                                                                                : 'bg-gradient-to-r from-red-500/80 to-pink-500/80 text-white'
+                                                                                ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white border-0'
+                                                                                : 'bg-gradient-to-r from-rose-600 to-red-600 text-white border-0'
                                                                                 }`}
                                                                         >
                                                                             {entry.type === 'Income' ? '💰 Income' : '💸 Expense'}
                                                                         </Badge>
                                                                         <Badge
                                                                             variant="outline"
-                                                                            className="border-emerald-400/40 text-emerald-300"
+                                                                            className="border-slate-200 text-slate-800"
                                                                         >
                                                                             {entry.category}
                                                                         </Badge>
-                                                                        <span className="text-emerald-300/40 text-xs hidden sm:inline-block">
+                                                                        <span className="text-slate-500 text-xs hidden sm:inline-block">
                                                                             {format(new Date(entry.createdAt), 'h:mm a')}
                                                                         </span>
                                                                     </div>
 
-                                                                    <h3 className="text-lg font-semibold text-emerald-100 mb-1 group-hover:text-emerald-50 transition-colors">
+                                                                    <h3 className="text-lg font-semibold text-slate-900 mb-1 group-hover:text-slate-950 transition-colors">
                                                                         {entry.description}
                                                                     </h3>
                                                                 </div>
 
                                                                 <div className="flex flex-col items-end gap-2">
-                                                                    <div className={`text-2xl font-bold ${entry.type === 'Income' ? 'text-green-400' : 'text-red-400'
-                                                                        }`}>
+                                                                    <div className={`text-2xl font-bold ${entry.type === 'Income' ? 'text-emerald-700' : 'text-rose-700'}`}>
                                                                         {entry.type === 'Income' ? '+' : '-'}₹{entry.amount.toLocaleString()}
                                                                     </div>
 
@@ -658,7 +627,7 @@ const Bookkeeping = () => {
                                                                         variant="ghost"
                                                                         size="sm"
                                                                         onClick={() => handleDeleteClick(entry.id)}
-                                                                        className="text-red-300/60 hover:text-red-200 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                        className="text-slate-400 hover:text-red-600 hover:bg-red-50/50 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                     >
                                                                         <Trash2 className="h-4 w-4" />
                                                                     </Button>
@@ -672,11 +641,11 @@ const Bookkeeping = () => {
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
-                                        <div className="p-6 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-xl border border-emerald-400/30 inline-block mb-4">
-                                            <FileText className="h-12 w-12 text-emerald-300" />
+                                        <div className="p-6 rounded-full bg-white/60 border border-white/80 inline-block mb-4">
+                                            <FileText className="h-12 w-12 text-slate-700" />
                                         </div>
-                                        <p className="text-emerald-300/80 text-lg font-medium">No entries found</p>
-                                        <p className="text-emerald-400/60 text-sm">Try adjusting your filters or add a new entry</p>
+                                        <p className="text-slate-800 text-lg font-medium">No entries found</p>
+                                        <p className="text-slate-600 text-sm">Try adjusting your filters or add a new entry</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -685,48 +654,48 @@ const Bookkeeping = () => {
 
                     <TabsContent value="add">
                         <Card
-                            className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
+                            className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500"
                         >
                             <CardHeader>
-                                <CardTitle className="text-2xl font-bold text-emerald-100 flex items-center gap-2">
-                                    <Plus className="h-5 w-5 text-teal-400" />
+                                <CardTitle className="text-2xl font-semibold tracking-tight text-slate-950 flex items-center gap-2">
+                                    <Plus className="h-5 w-5 text-slate-850" />
                                     Add New Bookkeeping Entry
                                 </CardTitle>
-                                <CardDescription className="text-emerald-300/70">
+                                <CardDescription className="text-slate-600">
                                     Record income or expenses to track your financial transactions
                                 </CardDescription>
                             </CardHeader>
 
                             <CardContent className="space-y-6">
                                 <div className="space-y-3">
-                                    <Label className="text-emerald-100 font-bold flex items-center gap-2">
-                                        <CalendarIcon className="h-4 w-4 text-teal-400" />
+                                    <Label className="text-slate-800 font-bold flex items-center gap-2">
+                                        <CalendarIcon className="h-4 w-4 text-slate-800" />
                                         Transaction Date
                                     </Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
-                                                className="w-full justify-start text-left font-normal bg-white/5 border-emerald-400/30 text-emerald-100 hover:bg-white/10"
+                                                className="w-full justify-start text-left font-normal h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
                                             >
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0 bg-slate-800 border-emerald-400/30">
+                                        <PopoverContent className="w-auto p-0 bg-white border border-slate-200">
                                             <Calendar
                                                 mode="single"
                                                 selected={selectedDate}
                                                 onSelect={(date) => date && setSelectedDate(date)}
                                                 initialFocus
-                                                className="bg-slate-800 text-emerald-100"
+                                                className="bg-white text-slate-900"
                                             />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label htmlFor="description" className="text-emerald-100 font-bold">
+                                    <Label htmlFor="description" className="text-slate-800 font-bold">
                                         Description
                                     </Label>
                                     <div className="flex items-center gap-2">
@@ -735,7 +704,7 @@ const Bookkeeping = () => {
                                             placeholder="Enter transaction description"
                                             value={formData.description}
                                             onChange={(e) => handleInputChange("description", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+                                            className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                                         />
                                         <VoiceButton
                                             onTranscript={(text) => handleInputChange("description", text)}
@@ -746,15 +715,15 @@ const Bookkeeping = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-3">
-                                        <Label className="text-emerald-100 font-bold">Type</Label>
+                                        <Label className="text-slate-800 font-bold">Type</Label>
                                         <div className="flex gap-2">
                                             <Button
                                                 type="button"
                                                 variant={formData.type === "Income" ? "default" : "outline"}
                                                 onClick={() => handleInputChange("type", "Income")}
-                                                className={`flex-1 ${formData.type === "Income"
-                                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white"
-                                                    : "border-emerald-400/30 text-emerald-300"
+                                                className={`flex-1 h-12 rounded-[18px] transition-all duration-300 ${formData.type === "Income"
+                                                    ? "bg-slate-950 text-white"
+                                                    : "border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-100"
                                                     }`}
                                             >
                                                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -764,9 +733,9 @@ const Bookkeeping = () => {
                                                 type="button"
                                                 variant={formData.type === "Expenses" ? "default" : "outline"}
                                                 onClick={() => handleInputChange("type", "Expenses")}
-                                                className={`flex-1 ${formData.type === "Expenses"
-                                                    ? "bg-gradient-to-r from-red-600 to-pink-600 text-white"
-                                                    : "border-emerald-400/30 text-emerald-300"
+                                                className={`flex-1 h-12 rounded-[18px] transition-all duration-300 ${formData.type === "Expenses"
+                                                    ? "bg-slate-950 text-white"
+                                                    : "border-slate-200 bg-white/80 text-slate-700 hover:bg-slate-100"
                                                     }`}
                                             >
                                                 <TrendingDown className="h-4 w-4 mr-2" />
@@ -776,12 +745,12 @@ const Bookkeeping = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <Label className="text-emerald-100 font-bold">Category</Label>
+                                        <Label className="text-slate-800 font-bold">Category</Label>
                                         <Select
                                             value={formData.category}
                                             onValueChange={(value) => handleInputChange("category", value)}
                                         >
-                                            <SelectTrigger className="bg-white/5 border-emerald-400/30 text-emerald-100">
+                                            <SelectTrigger className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300">
                                                 <SelectValue placeholder="Select category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -799,7 +768,7 @@ const Bookkeeping = () => {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => setIsAddingCategory(true)}
-                                                className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 justify-start h-8 px-2"
+                                                className="text-slate-900 hover:text-slate-950 hover:bg-white/60 justify-start h-8 px-2"
                                             >
                                                 <Plus className="h-3 w-3 mr-1" />
                                                 Add New Category
@@ -810,12 +779,12 @@ const Bookkeeping = () => {
                                                     placeholder="Category name"
                                                     value={newCategoryName}
                                                     onChange={(e) => setNewCategoryName(e.target.value)}
-                                                    className="h-8 bg-white/5 border-emerald-400/30 text-emerald-100 text-xs"
+                                                    className="h-8 bg-white/80 border border-slate-200 text-slate-900 text-xs"
                                                 />
                                                 <Button
                                                     size="sm"
                                                     onClick={addCategory}
-                                                    className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                    className="h-8 bg-slate-950 hover:bg-slate-900 text-white"
                                                 >
                                                     Add
                                                 </Button>
@@ -823,7 +792,7 @@ const Bookkeeping = () => {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => setIsAddingCategory(false)}
-                                                    className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                    className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                                                 >
                                                     Cancel
                                                 </Button>
@@ -833,7 +802,7 @@ const Bookkeeping = () => {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label htmlFor="amount" className="text-emerald-100 font-bold">
+                                    <Label htmlFor="amount" className="text-slate-800 font-bold">
                                         Amount (₹)
                                     </Label>
                                     <div className="flex items-center gap-2">
@@ -843,7 +812,7 @@ const Bookkeeping = () => {
                                             placeholder="0.00"
                                             value={formData.amount}
                                             onChange={(e) => handleInputChange("amount", e.target.value)}
-                                            className="bg-white/5 backdrop-blur-xl text-emerald-100 border border-emerald-400/30 rounded-xl placeholder:text-emerald-300/40 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/30"
+                                            className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
                                         />
                                         <VoiceButton
                                             onTranscript={(text) => handleInputChange("amount", text)}
@@ -854,7 +823,7 @@ const Bookkeeping = () => {
 
                                 <Button
                                     onClick={addEntry}
-                                    className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-lg rounded-xl shadow-2xl shadow-emerald-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/70"
+                                    className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
                                 >
                                     <Plus className="mr-2 h-5 w-5" />
                                     Add Entry
@@ -865,84 +834,77 @@ const Bookkeeping = () => {
 
                     <TabsContent value="analytics">
                         <Card
-                            className="backdrop-blur-2xl bg-white/10 border border-emerald-400/20 shadow-2xl shadow-emerald-500/20 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-emerald-500/40 hover:-translate-y-2"
+                            className="liquid-panel overflow-hidden rounded-[36px] border-white/55 transition-all duration-500"
                         >
                             <CardHeader>
-                                <CardTitle className="text-2xl font-bold text-emerald-100 flex items-center gap-2">
-                                    <BarChart3 className="h-5 w-5 text-teal-400" />
+                                <CardTitle className="text-2xl font-semibold tracking-tight text-slate-950 flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5 text-slate-800" />
                                     Financial Analytics
                                 </CardTitle>
-                                <CardDescription className="text-emerald-300/70">
+                                <CardDescription className="text-slate-600">
                                     Insights and summary of your bookkeeping data
                                 </CardDescription>
                             </CardHeader>
 
                             <CardContent>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl border border-green-400/30 rounded-2xl">
+                                    <Card className="rounded-[24px] border border-white/50 bg-emerald-500/10 shadow-sm">
                                         <CardContent className="pt-6">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-2 bg-green-500/30 rounded-lg">
-                                                    <TrendingUp className="h-5 w-5 text-green-700" />
+                                                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                                    <TrendingUp className="h-5 w-5 text-emerald-700" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-green-800 text-sm font-bold">Total Income</span>
-                                                    <span className="text-green-700 text-xs font-bold">
+                                                    <span className="text-emerald-800 text-sm font-semibold">Total Income</span>
+                                                    <span className="text-emerald-700 text-xs font-semibold">
                                                         {financialSummary.totalIncome + financialSummary.totalExpenses > 0
                                                             ? Math.round((financialSummary.totalIncome / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
                                                             : 0}% of turnover
                                                     </span>
                                                 </div>
                                             </div>
-                                            <p className="text-3xl font-black text-green-900">₹{financialSummary.totalIncome.toLocaleString()}</p>
-                                            <p className="text-green-800 text-sm mt-1 font-medium">From {filteredEntries.filter(e => e.type === 'Income').length} income entries</p>
+                                            <p className="text-3xl font-black text-slate-900">₹{financialSummary.totalIncome.toLocaleString()}</p>
+                                            <p className="text-slate-600 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Income').length} income entries</p>
                                         </CardContent>
                                     </Card>
 
-                                    <Card className="bg-gradient-to-br from-red-500/20 to-pink-500/20 backdrop-blur-xl border border-red-400/30 rounded-2xl">
+                                    <Card className="rounded-[24px] border border-white/50 bg-rose-500/10 shadow-sm">
                                         <CardContent className="pt-6">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-2 bg-red-500/30 rounded-lg">
-                                                    <TrendingDown className="h-5 w-5 text-red-700" />
+                                                <div className="p-2 bg-rose-500/20 rounded-lg">
+                                                    <TrendingDown className="h-5 w-5 text-rose-700" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-red-800 text-sm font-bold">Total Expenses</span>
-                                                    <span className="text-red-700 text-xs font-bold">
+                                                    <span className="text-rose-800 text-sm font-semibold">Total Expenses</span>
+                                                    <span className="text-rose-700 text-xs font-semibold">
                                                         {financialSummary.totalIncome + financialSummary.totalExpenses > 0
                                                             ? Math.round((financialSummary.totalExpenses / (financialSummary.totalIncome + financialSummary.totalExpenses)) * 100)
                                                             : 0}% of turnover
                                                     </span>
                                                 </div>
                                             </div>
-                                            <p className="text-3xl font-black text-red-900">₹{financialSummary.totalExpenses.toLocaleString()}</p>
-                                            <p className="text-red-800 text-sm mt-1 font-medium">From {filteredEntries.filter(e => e.type === 'Expenses').length} expense entries</p>
+                                            <p className="text-3xl font-black text-slate-900">₹{financialSummary.totalExpenses.toLocaleString()}</p>
+                                            <p className="text-slate-600 text-sm mt-1">From {filteredEntries.filter(e => e.type === 'Expenses').length} expense entries</p>
                                         </CardContent>
                                     </Card>
 
-                                    <Card className={`backdrop-blur-xl border rounded-2xl ${financialSummary.netBalance >= 0
-                                        ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20 border-teal-400/30'
-                                        : 'bg-gradient-to-br from-orange-500/20 to-red-500/20 border-orange-400/30'
+                                    <Card className={`rounded-[24px] border border-white/50 shadow-sm ${financialSummary.netBalance >= 0
+                                        ? 'bg-sky-500/10'
+                                        : 'bg-amber-500/10'
                                         }`}>
                                         <CardContent className="pt-6">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className={`p-2 rounded-lg ${financialSummary.netBalance >= 0
-                                                    ? 'bg-teal-500/30'
-                                                    : 'bg-orange-500/30'
-                                                    }`}>
-                                                    <IndianRupee className={`h-5 w-5 ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
-                                                        }`} />
+                                                <div className="p-2 bg-white/50 rounded-lg">
+                                                    <IndianRupee className="h-5 w-5 text-slate-800" />
                                                 </div>
-                                                <span className={`text-sm font-bold ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
-                                                    }`}>
+                                                <span className="text-slate-800 text-sm font-semibold">
                                                     Net Balance
                                                 </span>
                                             </div>
-                                            <p className={`text-3xl font-black ${financialSummary.netBalance >= 0 ? 'text-teal-900' : 'text-orange-900'
-                                                }`}>
+                                            <p className="text-3xl font-black text-slate-900">
                                                 {financialSummary.netBalance >= 0 ? '+' : ''}₹{financialSummary.netBalance.toLocaleString()}
                                             </p>
-                                            <p className={`text-sm mt-1 font-medium ${financialSummary.netBalance >= 0 ? 'text-teal-800' : 'text-orange-800'
-                                                }`}>
+                                            <p className="text-slate-600 text-sm mt-1">
                                                 {financialSummary.netBalance >= 0 ? 'Profit Margin' : 'Loss Margin'}: {
                                                     financialSummary.totalIncome > 0
                                                         ? Math.round((financialSummary.netBalance / financialSummary.totalIncome) * 100)
@@ -954,12 +916,10 @@ const Bookkeeping = () => {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h3 className="text-xl font-bold text-emerald-100">Category Breakdown</h3>
-                                    {/* Chart & Grid Section */}
+                                    <h3 className="text-xl font-bold text-slate-900">Category Breakdown</h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                        {/* Chart Section */}
-                                        <div className="lg:col-span-1 bg-white/5 backdrop-blur-xl border border-emerald-400/20 rounded-3xl p-6 flex flex-col items-center justify-center relative min-h-[400px]">
-                                            <h4 className="absolute top-6 left-6 text-lg font-bold text-emerald-100">Expense Distribution</h4>
+                                        <div className="lg:col-span-1 rounded-[24px] border border-white/55 bg-white/42 p-6 flex flex-col items-center justify-center relative min-h-[400px] shadow-sm">
+                                            <h4 className="absolute top-6 left-6 text-lg font-bold text-slate-900">Expense Distribution</h4>
 
                                             {filteredEntries.filter(e => e.type === 'Expenses').length > 0 ? (
                                                 <div className="w-full h-[300px] mt-8">
@@ -981,22 +941,22 @@ const Bookkeeping = () => {
                                                             >
                                                                 {allCategories.map((entry, index) => (
                                                                     <Cell key={`cell-${index}`} fill={[
-                                                                        '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
-                                                                    ][index % 8]} stroke="rgba(0,0,0,0.2)" />
+                                                                        '#0f172a', '#0284c7', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'
+                                                                    ][index % 8]} stroke="rgba(255,255,255,0.8)" />
                                                                 ))}
                                                             </Pie>
                                                             <Tooltip
                                                                 formatter={(value: number) => `₹${value.toLocaleString()}`}
-                                                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#34d399', borderRadius: '12px', color: '#fff' }}
-                                                                itemStyle={{ color: '#34d399' }}
+                                                                contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', borderRadius: '12px', color: '#0f172a' }}
+                                                                itemStyle={{ color: '#0f172a' }}
                                                             />
                                                             <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                                         </PieChart>
                                                     </ResponsiveContainer>
                                                 </div>
                                             ) : (
-                                                <div className="flex flex-col items-center text-emerald-300/40">
-                                                    <div className="p-4 rounded-full bg-white/5 mb-4">
+                                                <div className="flex flex-col items-center text-slate-400">
+                                                    <div className="p-4 rounded-full bg-white/50 mb-4">
                                                         <BarChart3 className="h-8 w-8" />
                                                     </div>
                                                     <p>No expense data to display</p>
@@ -1004,7 +964,6 @@ const Bookkeeping = () => {
                                             )}
                                         </div>
 
-                                        {/* Grid Cards Section */}
                                         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {allCategories.map((category, index) => {
                                                 const categoryEntries = filteredEntries.filter(e => e.category === category);
@@ -1017,37 +976,37 @@ const Bookkeeping = () => {
 
                                                 if (categoryEntries.length === 0) return null;
 
-                                                const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+                                                const COLORS = ['#0f172a', '#0284c7', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
                                                 const cardColor = COLORS[index % COLORS.length];
 
                                                 return (
-                                                    <div key={category} className="group relative overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 hover:border-emerald-500/30 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+                                                    <div key={category} className="group relative overflow-hidden rounded-[24px] border border-white/55 bg-white/42 hover:border-slate-300 transition-all duration-300 hover:-translate-y-0.5 shadow-sm">
                                                         <div className="absolute left-0 top-0 bottom-0 w-1 opacity-60 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: cardColor }} />
 
                                                         <div className="p-5">
                                                             <div className="flex justify-between items-start mb-4">
                                                                 <div>
-                                                                    <h4 className="font-bold text-lg text-emerald-50 group-hover:text-white transition-colors">{category}</h4>
-                                                                    <p className="text-xs text-emerald-300/60">{categoryEntries.length} transactions</p>
+                                                                    <h4 className="font-bold text-lg text-slate-900 group-hover:text-slate-950 transition-colors">{category}</h4>
+                                                                    <p className="text-xs text-slate-500">{categoryEntries.length} transactions</p>
                                                                 </div>
-                                                                <div className="p-2 rounded-lg bg-white/5 text-emerald-300">
+                                                                <div className="p-2 rounded-lg bg-white/60 text-slate-700">
                                                                     <FileText className="h-4 w-4" style={{ color: cardColor }} />
                                                                 </div>
                                                             </div>
 
                                                             <div className="flex items-end justify-between">
                                                                 <div>
-                                                                    <p className="text-xs text-emerald-200/50 uppercase tracking-wider font-semibold mb-1">Total Flow</p>
-                                                                    <p className="text-xl font-bold text-white">₹{(categoryIncome + categoryExpenses).toLocaleString()}</p>
+                                                                    <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Total Flow</p>
+                                                                    <p className="text-xl font-bold text-slate-900">₹{(categoryIncome + categoryExpenses).toLocaleString()}</p>
                                                                 </div>
                                                                 <div className="text-right">
                                                                     {categoryExpenses > 0 && (
-                                                                        <p className="text-sm font-medium text-red-400">
+                                                                        <p className="text-sm font-medium text-rose-700">
                                                                             -₹{categoryExpenses.toLocaleString()}
                                                                         </p>
                                                                     )}
                                                                     {categoryIncome > 0 && (
-                                                                        <p className="text-sm font-medium text-green-400">
+                                                                        <p className="text-sm font-medium text-emerald-700">
                                                                             +₹{categoryIncome.toLocaleString()}
                                                                         </p>
                                                                     )}
@@ -1066,37 +1025,37 @@ const Bookkeeping = () => {
                 </Tabs>
 
                 <div className="mt-8 text-center">
-                    <p className="text-emerald-300/50 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-emerald-400/20">
+                    <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40">
                         Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
                     </p>
                 </div>
             </main>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="bg-slate-900/95 backdrop-blur-xl border-emerald-500/20 text-emerald-50 max-w-md rounded-3xl">
+                <AlertDialogContent className="bg-white/95 backdrop-blur-xl border border-slate-200 text-slate-900 max-w-md rounded-[24px]">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="text-2xl font-bold flex items-center gap-2">
-                            <Trash2 className="h-6 w-6 text-red-400" />
+                            <Trash2 className="h-6 w-6 text-rose-650" />
                             Delete Entry?
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="text-emerald-200/60 text-base">
+                        <AlertDialogDescription className="text-slate-600 text-base">
                             This action cannot be undone. This will permanently delete the bookkeeping entry from our servers.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="gap-3 mt-6">
-                        <AlertDialogCancel className="bg-white/5 border-emerald-500/20 text-emerald-100 hover:bg-white/10 hover:text-white rounded-xl h-12 px-6">
+                        <AlertDialogCancel className="bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200 rounded-[14px] h-12 px-6">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={confirmDelete}
-                            className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white border-0 rounded-xl h-12 px-6 font-bold shadow-lg shadow-red-500/20"
+                            className="bg-slate-950 hover:bg-slate-900 text-white border-0 rounded-[14px] h-12 px-6 font-bold"
                         >
                             Delete Permanently
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div >
+        </div>
     );
 };
 
