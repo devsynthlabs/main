@@ -64,8 +64,22 @@ const INDIAN_STATES = [
   "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
 ];
 
-const GST_SLABS = ["0", "5", "12", "18", "28"];
+const GST_SLABS = ["0", "5", "12", "18", "28", "40"];
 const UNITS = ["Pcs", "Kg", "Ltr", "Mtr", "Box", "Dozen", "Pair", "Set", "Nos"];
+const COMPANY_NAME = "SHREE ANDAL AI SOFTWARE SOLUTIONS";
+const COMPANY_EMAIL = "support@saaiss.in";
+
+const HSN_SAC_AUTOMATION: Record<string, { code: string; codeType: 'HSN' | 'SAC'; gstRate: number }> = {
+  laptop: { code: "8471", codeType: "HSN", gstRate: 18 },
+  computer: { code: "8471", codeType: "HSN", gstRate: 18 },
+  keyboard: { code: "8471", codeType: "HSN", gstRate: 18 },
+  mouse: { code: "8471", codeType: "HSN", gstRate: 18 },
+  software: { code: "9983", codeType: "SAC", gstRate: 18 },
+  consulting: { code: "9983", codeType: "SAC", gstRate: 18 },
+  service: { code: "9983", codeType: "SAC", gstRate: 18 },
+  hotel: { code: "9963", codeType: "SAC", gstRate: 5 },
+  restaurant: { code: "9963", codeType: "SAC", gstRate: 5 },
+};
 
 // Invoice Item interface
 interface InvoiceItem {
@@ -73,6 +87,7 @@ interface InvoiceItem {
   inventoryItemId?: string; // Track which inventory item this came from
   itemName: string;
   itemCode: string;
+  codeType: 'HSN' | 'SAC';
   hsnCode: string;
   quantity: number;
   unit: string;
@@ -103,6 +118,13 @@ interface InvoiceData {
   saleType: 'credit' | 'cash' | 'gpay' | 'netbanking';
   partyName: string;
   phoneNo: string;
+  sellerName: string;
+  sellerPhone: string;
+  sellerGSTIN: string;
+  transactionType: 'B2B' | 'B2C';
+  invoiceSize: 'A4' | 'QUARTER_A4';
+  dueReminderDays: number;
+  dueReminderDate?: string;
   eWayBillNo: string;
   invoiceNo: string;
   invoiceDate: string;
@@ -121,6 +143,7 @@ interface InvoiceData {
   uploadedBill: string | null;
   customerEmail?: string;
   customerGSTIN?: string;
+  ocrJson?: unknown;
 }
 
 // Inventory Item interface (from Inventory Management)
@@ -161,12 +184,99 @@ const AutomationInvoice = () => {
   // Generate invoice number
   const generateInvoiceNo = (type: 'sales' | 'purchase') => {
     const prefix = type === 'sales' ? 'INV' : 'PUR';
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `${prefix}-${year}${month}-${random}`;
+    const year = new Date().getFullYear();
+    const key = `invoiceCounter:${prefix}:${year}`;
+    const next = Number(localStorage.getItem(key) || "0") + 1;
+    localStorage.setItem(key, String(next));
+    return `${prefix}-${year}-${String(next).padStart(5, '0')}`;
   };
+
+  const classifyTransaction = (sellerGSTIN = currentInvoice.sellerGSTIN, customerGSTIN = currentInvoice.customerGSTIN || ''): 'B2B' | 'B2C' => {
+    return sellerGSTIN.trim().length >= 15 && customerGSTIN.trim().length >= 15 ? 'B2B' : 'B2C';
+  };
+
+  const getDueReminderDate = (invoiceDate: string, reminderDays: number) => {
+    if (!reminderDays) return undefined;
+    const reminderDate = new Date(invoiceDate);
+    reminderDate.setDate(reminderDate.getDate() + Math.max(reminderDays - 1, 0));
+    return reminderDate.toISOString().split('T')[0];
+  };
+
+  const getAutomatedCode = (itemName = '', itemCode = '') => {
+    const haystack = `${itemName} ${itemCode}`.toLowerCase();
+    return Object.entries(HSN_SAC_AUTOMATION).find(([keyword]) => haystack.includes(keyword))?.[1];
+  };
+
+  const updateNewItemWithAutomation = (field: 'itemName' | 'itemCode', value: string) => {
+    setNewItem(prev => {
+      const next = { ...prev, [field]: value };
+      const automation = getAutomatedCode(next.itemName, next.itemCode);
+      if (automation && !next.hsnCode) {
+        next.hsnCode = automation.code;
+        next.codeType = automation.codeType;
+        next.taxPercent = automation.gstRate;
+      }
+      return next;
+    });
+  };
+
+  const downloadJsonFile = (filename: string, data: unknown) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const buildGstPortalJson = (invoice: InvoiceData, rawOcrText = ocrText) => ({
+    title: "Invoice Automation GST Export",
+    generatedAt: new Date().toISOString(),
+    transactionType: invoice.transactionType,
+    forms: {
+      gstr1: invoice.type === 'sales' ? [{
+        invoiceNumber: invoice.invoiceNo,
+        invoiceDate: invoice.invoiceDate,
+        customerName: invoice.partyName,
+        customerGSTIN: invoice.customerGSTIN || null,
+        taxableValue: invoice.subtotal,
+        taxAmount: invoice.totalTax,
+        totalValue: invoice.total,
+        items: invoice.items.map(item => ({
+          productName: item.itemName,
+          codeType: item.codeType,
+          hsnSacCode: item.hsnCode,
+          quantity: item.quantity,
+          taxableValue: item.amount - item.taxAmount,
+          taxRate: item.taxPercent,
+          taxAmount: item.taxAmount,
+          totalValue: item.amount
+        }))
+      }] : [],
+      gstr2b: invoice.type === 'purchase' ? [{
+        billNumber: invoice.invoiceNo,
+        billDate: invoice.invoiceDate,
+        supplierName: invoice.sellerName || invoice.partyName,
+        supplierGSTIN: invoice.sellerGSTIN || null,
+        totalValue: invoice.total,
+        taxAmount: invoice.totalTax
+      }] : [],
+      gstr3b: {
+        outwardTaxableSupply: invoice.type === 'sales' ? invoice.subtotal : 0,
+        inwardTaxableSupply: invoice.type === 'purchase' ? invoice.subtotal : 0,
+        outputTax: invoice.type === 'sales' ? invoice.totalTax : 0,
+        inputTaxCredit: invoice.type === 'purchase' ? invoice.totalTax : 0,
+        netTax: invoice.type === 'sales' ? invoice.totalTax : -invoice.totalTax
+      }
+    },
+    ocr: {
+      rawText: rawOcrText || "",
+      uploadedImagePresent: Boolean(uploadedImage)
+    }
+  });
 
   // Invoice state
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceData>({
@@ -174,6 +284,12 @@ const AutomationInvoice = () => {
     saleType: 'cash',
     partyName: '',
     phoneNo: '',
+    sellerName: COMPANY_NAME,
+    sellerPhone: '',
+    sellerGSTIN: '',
+    transactionType: 'B2C',
+    invoiceSize: 'A4',
+    dueReminderDays: 7,
     eWayBillNo: '',
     invoiceNo: generateInvoiceNo('sales'),
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -199,6 +315,7 @@ const AutomationInvoice = () => {
     inventoryItemId: undefined,
     itemName: '',
     itemCode: '',
+    codeType: 'HSN',
     hsnCode: '',
     quantity: 1,
     unit: 'Pcs',
@@ -329,37 +446,23 @@ const AutomationInvoice = () => {
     let sgstRate = 0, cgstRate = 0, igstRate = 0;
     let sgstAmount = 0, cgstAmount = 0, igstAmount = 0;
     let taxAmount = 0;
-    let finalAmount = 0;
+    let finalAmount = afterDiscount;
 
-    if (isInterState) {
-      // Inter-State: Apply IGST at the item's tax rate
-      igstRate = taxPct;
-      if (priceWithTax) {
+    if (priceWithTax && taxPct > 0) {
+      if (isInterState) {
+        igstRate = taxPct;
         const taxMultiplier = 1 + (igstRate / 100);
         const preTaxAmount = afterDiscount / taxMultiplier;
         igstAmount = afterDiscount - preTaxAmount;
-        finalAmount = afterDiscount;
+        taxAmount = igstAmount;
       } else {
-        igstAmount = (afterDiscount * igstRate) / 100;
-        finalAmount = afterDiscount + igstAmount;
-      }
-      taxAmount = igstAmount;
-    } else {
-      // Intra-State: Split GST 50-50 into SGST + CGST
-      sgstRate = taxPct / 2;
-      cgstRate = taxPct / 2;
-      if (priceWithTax) {
+        sgstRate = taxPct / 2;
+        cgstRate = taxPct / 2;
         const taxMultiplier = 1 + (taxPct / 100);
         const preTaxAmount = afterDiscount / taxMultiplier;
         taxAmount = afterDiscount - preTaxAmount;
         sgstAmount = taxAmount / 2;
         cgstAmount = taxAmount / 2;
-        finalAmount = afterDiscount;
-      } else {
-        sgstAmount = (afterDiscount * sgstRate) / 100;
-        cgstAmount = (afterDiscount * cgstRate) / 100;
-        taxAmount = sgstAmount + cgstAmount;
-        finalAmount = afterDiscount + taxAmount;
       }
     }
 
@@ -469,6 +572,7 @@ const AutomationInvoice = () => {
       inventoryItemId: newItem.inventoryItemId,
       itemName: newItem.itemName || '',
       itemCode: newItem.itemCode || '',
+      codeType: newItem.codeType || 'HSN',
       hsnCode: newItem.hsnCode || '',
       quantity: quantity,
       unit: newItem.unit || 'Pcs',
@@ -505,6 +609,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
+      codeType: 'HSN',
       hsnCode: '',
       quantity: 1,
       unit: 'Pcs',
@@ -524,6 +629,7 @@ const AutomationInvoice = () => {
       inventoryItemId: inventoryItem._id,
       itemName: inventoryItem.itemName,
       itemCode: inventoryItem.sku,
+      codeType: 'HSN',
       hsnCode: inventoryItem.hsnCode || '',
       quantity: 1,
       unit: inventoryItem.unit || 'Pcs',
@@ -628,6 +734,7 @@ const AutomationInvoice = () => {
     setIsSaving(true);
 
     try {
+      const dueReminderDate = getDueReminderDate(currentInvoice.invoiceDate, currentInvoice.dueReminderDays);
       // 1. Save to Backend to get a real ID for sharing
       const backendData = {
         invoiceNumber: currentInvoice.invoiceNo,
@@ -637,10 +744,25 @@ const AutomationInvoice = () => {
         customerEmail: currentInvoice.customerEmail || `${currentInvoice.partyName.toLowerCase().replace(/\s/g, '')}@example.com`,
         customerPhone: currentInvoice.phoneNo,
         customerGSTIN: currentInvoice.customerGSTIN,
-        businessName: "Saaiss Software Solution",
-        businessEmail: "support@saaiss.in",
+        businessName: currentInvoice.sellerName || COMPANY_NAME,
+        businessEmail: COMPANY_EMAIL,
+        businessPhone: currentInvoice.sellerPhone,
+        businessGSTIN: currentInvoice.sellerGSTIN,
+        transactionType: currentInvoice.transactionType,
+        invoiceSize: currentInvoice.invoiceSize,
+        dueReminderDays: currentInvoice.dueReminderDays,
+        dueReminderDate,
+        sourceInvoiceType: currentInvoice.type,
+        eWayBillNo: currentInvoice.eWayBillNo,
+        stateOfSupply: currentInvoice.stateOfSupply,
         items: currentInvoice.items.map(item => ({
           productName: item.itemName,
+          description: `${item.codeType}: ${item.hsnCode || 'N/A'} | Unit: ${item.unit}`,
+          codeType: item.codeType,
+          hsnCode: item.codeType === 'HSN' ? item.hsnCode : '',
+          sacCode: item.codeType === 'SAC' ? item.hsnCode : '',
+          unit: item.unit,
+          priceWithTax: item.priceWithTax,
           quantity: item.quantity,
           unitPrice: item.pricePerUnit,
           taxRate: item.taxPercent,
@@ -657,6 +779,7 @@ const AutomationInvoice = () => {
         amountPaid: currentInvoice.paid,
         balanceDue: currentInvoice.balance,
         paymentMethod: currentInvoice.saleType || 'cash',
+        gstPortalJson: buildGstPortalJson({ ...currentInvoice, dueReminderDate }),
         status: currentInvoice.balance <= 0 ? 'paid' : 'sent'
       };
 
@@ -679,7 +802,13 @@ const AutomationInvoice = () => {
 
       // 2. Save to localStorage
       const savedList = JSON.parse(localStorage.getItem('savedInvoices') || '[]');
-      const invoiceToSave = { ...currentInvoice, savedAt: new Date().toISOString(), id: backendId };
+      const invoiceToSave = {
+        ...currentInvoice,
+        dueReminderDate,
+        ocrJson: buildGstPortalJson({ ...currentInvoice, dueReminderDate }),
+        savedAt: new Date().toISOString(),
+        id: backendId
+      };
       savedList.unshift(invoiceToSave);
       localStorage.setItem('savedInvoices', JSON.stringify(savedList));
       setInvoiceHistory(savedList);
@@ -717,6 +846,12 @@ const AutomationInvoice = () => {
       saleType: 'cash',
       partyName: '',
       phoneNo: '',
+      sellerName: COMPANY_NAME,
+      sellerPhone: '',
+      sellerGSTIN: '',
+      transactionType: 'B2C',
+      invoiceSize: 'A4',
+      dueReminderDays: 7,
       eWayBillNo: '',
       invoiceNo: generateInvoiceNo(invoiceType),
       invoiceDate: new Date().toISOString().split('T')[0],
@@ -741,6 +876,7 @@ const AutomationInvoice = () => {
       inventoryItemId: undefined,
       itemName: '',
       itemCode: '',
+      codeType: 'HSN',
       hsnCode: '',
       quantity: 1,
       unit: 'Pcs',
@@ -963,15 +1099,26 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
         let newItems: InvoiceItem[] = [...currentInvoice.items];
 
         parsedData.items.forEach(item => {
-          const subtotal = item.quantity * item.rate;
-          const taxPct = 18;
-          const taxAmount = (subtotal * taxPct) / 100;
+          const automation = getAutomatedCode(item.product, '');
+          const taxPct = automation?.gstRate || 18;
+          const calculated = calculateItemAmounts({
+            ...newItem,
+            itemName: item.product,
+            codeType: automation?.codeType || 'HSN',
+            hsnCode: automation?.code || '',
+            quantity: item.quantity,
+            unit: 'Pcs',
+            pricePerUnit: item.rate,
+            priceWithTax: false,
+            taxPercent: taxPct
+          });
 
           newItems.push({
             id: `item-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             itemName: item.product,
             itemCode: '',
-            hsnCode: '',
+            codeType: automation?.codeType || 'HSN',
+            hsnCode: automation?.code || '',
             quantity: item.quantity,
             unit: 'Pcs',
             pricePerUnit: item.rate,
@@ -979,8 +1126,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             discountPercent: 0,
             discountAmount: 0,
             taxPercent: taxPct,
-            taxAmount: taxAmount,
-            amount: subtotal + taxAmount
+            ...calculated
           });
         });
 
@@ -1011,10 +1157,32 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
   const itemPreview = calculateItemAmounts(newItem);
 
   // Filter invoice history
-  const filteredHistory = invoiceHistory.filter(invoice =>
-    invoice.invoiceNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.partyName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredHistory = invoiceHistory.filter(invoice => {
+    const query = searchTerm.toLowerCase().trim();
+    if (!query) return true;
+    return [
+      invoice.invoiceNo,
+      invoice.partyName,
+      invoice.phoneNo,
+      invoice.customerGSTIN,
+      invoice.sellerName,
+      invoice.sellerGSTIN,
+      invoice.transactionType,
+      invoice.invoiceDate,
+      invoice.saleType
+    ].some(value => String(value || '').toLowerCase().includes(query));
+  });
+
+  const deleteHistoryInvoice = (invoiceId?: string, invoiceNo?: string) => {
+    const savedList = JSON.parse(localStorage.getItem('savedInvoices') || '[]');
+    const updatedList = savedList.filter((invoice: InvoiceData & { id?: string }) => {
+      if (invoiceId) return invoice.id !== invoiceId;
+      return invoice.invoiceNo !== invoiceNo;
+    });
+    localStorage.setItem('savedInvoices', JSON.stringify(updatedList));
+    setInvoiceHistory(updatedList);
+    toast.success("Invoice deleted from history");
+  };
 
   // Handle back to dashboard
   const handleBackToDashboard = () => {
@@ -1086,9 +1254,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Form */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Sale Type */}
-              {invoiceType === 'sales' && (
-                <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
+              {/* Payment and Document Options */}
+              <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
                   <Label className="text-slate-900 mb-3 block font-bold">Payment Mode</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
@@ -1113,6 +1280,75 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       </button>
                     ))}
                   </div>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-slate-800 text-sm font-semibold">Print Size</Label>
+                      <Select value={currentInvoice.invoiceSize} onValueChange={(val: 'A4' | 'QUARTER_A4') => setCurrentInvoice(prev => ({ ...prev, invoiceSize: val }))}>
+                        <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                          <SelectItem value="A4">A4</SelectItem>
+                          <SelectItem value="QUARTER_A4">1/4 A4 Receipt</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-800 text-sm font-semibold">Due Reminder</Label>
+                      <Select value={String(currentInvoice.dueReminderDays)} onValueChange={(val) => setCurrentInvoice(prev => ({ ...prev, dueReminderDays: Number(val) }))}>
+                        <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                          <SelectItem value="0">No reminder</SelectItem>
+                          <SelectItem value="7">1 week</SelectItem>
+                          <SelectItem value="14">2 weeks</SelectItem>
+                          <SelectItem value="30">1 month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-semibold text-slate-500">Transaction Type</p>
+                      <p className="text-lg font-bold text-slate-950">{currentInvoice.transactionType}</p>
+                    </div>
+                  </div>
+                </Card>
+
+              {invoiceType === 'sales' && (
+                <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
+                  <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-slate-800" />
+                    Seller Details
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-slate-800 text-sm font-semibold">Seller Name *</Label>
+                      <Input
+                        value={currentInvoice.sellerName}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, sellerName: e.target.value }))}
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-800 text-sm font-semibold">Phone Number</Label>
+                      <Input
+                        value={currentInvoice.sellerPhone}
+                        onChange={(e) => setCurrentInvoice(prev => ({ ...prev, sellerPhone: e.target.value }))}
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-slate-800 text-sm font-semibold">Seller GSTIN</Label>
+                      <Input
+                        value={currentInvoice.sellerGSTIN}
+                        onChange={(e) => {
+                          const sellerGSTIN = e.target.value.toUpperCase();
+                          setCurrentInvoice(prev => ({ ...prev, sellerGSTIN, transactionType: classifyTransaction(sellerGSTIN, prev.customerGSTIN || '') }));
+                        }}
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                      />
+                    </div>
+                  </div>
                 </Card>
               )}
 
@@ -1120,11 +1356,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
               <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
                 <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <User className="h-5 w-5 text-slate-800" />
-                  {invoiceType === 'sales' ? 'Customer Details' : 'Party Details'}
+                  {invoiceType === 'sales' ? 'Customer Details' : 'Customer Details (Purchase Invoice)'}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-800 text-sm font-semibold">{invoiceType === 'sales' ? 'Customer' : 'Party'} Name *</Label>
+                    <Label className="text-slate-800 text-sm font-semibold">Customer Name *</Label>
                     <div className="flex gap-2">
                       <Input
                         value={currentInvoice.partyName}
@@ -1174,12 +1410,13 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-slate-800 text-sm font-semibold">GST IN</Label>
+                    <Label className="text-slate-800 text-sm font-semibold">Customer GSTIN</Label>
                     <Input
                       value={currentInvoice.customerGSTIN || ''}
                       onChange={(e) => {
                         setLastSavedId(null);
-                        setCurrentInvoice(prev => ({ ...prev, customerGSTIN: e.target.value }));
+                        const customerGSTIN = e.target.value.toUpperCase();
+                        setCurrentInvoice(prev => ({ ...prev, customerGSTIN, transactionType: classifyTransaction(prev.sellerGSTIN, customerGSTIN) }));
                       }}
                       placeholder="Enter GSTIN"
                       className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300"
@@ -1329,7 +1566,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <div className="flex gap-2">
                         <Input
                           value={newItem.itemName}
-                          onChange={(e) => setNewItem(prev => ({ ...prev, itemName: e.target.value }))}
+                          onChange={(e) => updateNewItemWithAutomation('itemName', e.target.value)}
                           placeholder="Enter item name"
                           className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
                         />
@@ -1344,20 +1581,31 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Label className="text-slate-800 text-sm font-semibold">Item Code</Label>
                       <Input
                         value={newItem.itemCode}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, itemCode: e.target.value }))}
+                        onChange={(e) => updateNewItemWithAutomation('itemCode', e.target.value)}
                         placeholder="SKU"
                         className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-800 text-sm font-semibold">HSN Code</Label>
-                      <Input
-                        value={newItem.hsnCode}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
-                        placeholder="HSN"
-                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
-                      />
+                      <Label className="text-slate-800 text-sm font-semibold">HSN / SAC Code</Label>
+                      <div className="grid grid-cols-[88px_1fr] gap-2">
+                        <Select value={newItem.codeType || 'HSN'} onValueChange={(val: 'HSN' | 'SAC') => setNewItem(prev => ({ ...prev, codeType: val }))}>
+                          <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                            <SelectItem value="HSN">HSN</SelectItem>
+                            <SelectItem value="SAC">SAC</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={newItem.hsnCode}
+                          onChange={(e) => setNewItem(prev => ({ ...prev, hsnCode: e.target.value }))}
+                          placeholder={newItem.codeType === 'SAC' ? 'SAC' : 'HSN'}
+                          className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1462,8 +1710,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                           : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           }`}>
                           {isInterStateTransaction()
-                            ? `Inter-State: ${currentInvoice.businessState} → ${currentInvoice.stateOfSupply} (IGST 18%)`
-                            : `Intra-State: ${currentInvoice.stateOfSupply} (SGST ${(newItem.taxPercent || 0) / 2}% + CGST ${(newItem.taxPercent || 0) / 2}%)`
+                            ? `Inter-State: ${currentInvoice.businessState} → ${currentInvoice.stateOfSupply} (IGST ${newItem.priceWithTax ? newItem.taxPercent || 0 : 0}%)`
+                            : `Intra-State: ${currentInvoice.stateOfSupply} (SGST ${(newItem.priceWithTax ? newItem.taxPercent || 0 : 0) / 2}% + CGST ${(newItem.priceWithTax ? newItem.taxPercent || 0 : 0) / 2}%)`
                           }
                         </div>
                       )}
@@ -1471,11 +1719,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         <div className="flex flex-wrap gap-3 text-sm">
                           <span>Disc: <span className="font-semibold">₹{(itemPreview.discountAmount || 0).toFixed(2)}</span></span>
                           {isInterStateTransaction() ? (
-                            <span>IGST (18%): <span className="font-semibold text-orange-700">₹{(itemPreview.igstAmount || 0).toFixed(2)}</span></span>
+                            <span>IGST ({newItem.priceWithTax ? newItem.taxPercent || 0 : 0}%): <span className="font-semibold text-orange-700">₹{(itemPreview.igstAmount || 0).toFixed(2)}</span></span>
                           ) : (
                             <>
-                              <span>SGST ({(newItem.taxPercent || 0) / 2}%): <span className="font-semibold text-emerald-700">₹{(itemPreview.sgstAmount || 0).toFixed(2)}</span></span>
-                              <span>CGST ({(newItem.taxPercent || 0) / 2}%): <span className="font-semibold text-emerald-700">₹{(itemPreview.cgstAmount || 0).toFixed(2)}</span></span>
+                              <span>SGST ({(newItem.priceWithTax ? newItem.taxPercent || 0 : 0) / 2}%): <span className="font-semibold text-emerald-700">₹{(itemPreview.sgstAmount || 0).toFixed(2)}</span></span>
+                              <span>CGST ({(newItem.priceWithTax ? newItem.taxPercent || 0 : 0) / 2}%): <span className="font-semibold text-emerald-700">₹{(itemPreview.cgstAmount || 0).toFixed(2)}</span></span>
                             </>
                           )}
                         </div>
@@ -1732,14 +1980,25 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 const parsed = parseInvoiceText(text);
                 if (parsed.items.length > 0 || parsed.invoiceNumber || parsed.customerName) {
                   const newInvoiceItems = parsed.items.map(item => {
-                    const subtotal = item.quantity * item.rate;
-                    const taxPct = 18;
-                    const taxAmount = (subtotal * taxPct) / 100;
+                    const automation = getAutomatedCode(item.product, '');
+                    const taxPct = automation?.gstRate || 18;
+                    const calculated = calculateItemAmounts({
+                      ...newItem,
+                      itemName: item.product,
+                      codeType: automation?.codeType || 'HSN',
+                      hsnCode: automation?.code || '',
+                      quantity: item.quantity,
+                      unit: 'Pcs',
+                      pricePerUnit: item.rate,
+                      priceWithTax: false,
+                      taxPercent: taxPct
+                    });
                     return {
                       id: Math.random().toString(36).substr(2, 9),
                       itemName: item.product,
                       itemCode: '',
-                      hsnCode: '',
+                      codeType: automation?.codeType || 'HSN',
+                      hsnCode: automation?.code || '',
                       quantity: item.quantity,
                       unit: 'Pcs',
                       pricePerUnit: item.rate,
@@ -1747,8 +2006,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       discountPercent: 0,
                       discountAmount: 0,
                       taxPercent: taxPct,
-                      taxAmount: taxAmount,
-                      amount: subtotal + taxAmount
+                      ...calculated
                     };
                   });
 
@@ -1771,6 +2029,27 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 setUploadedImage(imageData);
               }}
             />
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => {
+                  const gstJson = buildGstPortalJson(currentInvoice, ocrText);
+                  setCurrentInvoice(prev => ({ ...prev, ocrJson: gstJson }));
+                  downloadJsonFile(`gst-export-${currentInvoice.invoiceNo}.json`, gstJson);
+                  toast.success("GST portal JSON exported for GSTR-1, GSTR-2B, and GSTR-3B.");
+                }}
+                className="rounded-full bg-slate-950 text-white hover:bg-slate-800"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export GST JSON
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab('create')}
+                className="rounded-full border-slate-200 bg-white/80 text-slate-800 hover:bg-white"
+              >
+                Review Invoice
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -1899,19 +2178,36 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                               {invoice.type === 'sales' ? 'SALES' : 'PURCHASE'}
                             </span>
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100">
+                              {invoice.transactionType || 'B2C'}
+                            </span>
                           </div>
                           <p className="text-slate-650 text-sm">
                             {invoice.partyName} | {invoice.invoiceDate}
                           </p>
-                          <p className="text-slate-500 text-xs mt-1">{invoice.items.length} items</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-slate-950">
-                            ₹{invoice.total.toFixed(2)}
+                          <p className="text-slate-500 text-xs mt-1">
+                            {invoice.items.length} items | {invoice.saleType?.toUpperCase()} | {invoice.invoiceSize || 'A4'}
+                            {invoice.dueReminderDate ? ` | Reminder: ${invoice.dueReminderDate}` : ''}
                           </p>
-                          {invoice.balance > 0 && (
-                            <p className="text-rose-700 text-sm font-semibold">Due: ₹{invoice.balance.toFixed(2)}</p>
-                          )}
+                        </div>
+                        <div className="flex items-center justify-between md:justify-end gap-4">
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-slate-950">
+                              ₹{invoice.total.toFixed(2)}
+                            </p>
+                            {invoice.balance > 0 && (
+                              <p className="text-rose-700 text-sm font-semibold">Due: ₹{invoice.balance.toFixed(2)}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteHistoryInvoice((invoice as InvoiceData & { id?: string }).id, invoice.invoiceNo)}
+                            className="rounded-full border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                          >
+                            <Trash2 className="mr-1.5 h-4 w-4" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </div>

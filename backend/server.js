@@ -54,6 +54,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 // Security headers for production
 if (process.env.DEV_MODE !== 'true') {
   app.use((req, res, next) => {
@@ -109,10 +113,11 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   name: { type: String },
   subscriptionStatus: { type: String, enum: ["pending", "active"], default: "pending" },
-  subscriptionPlan: { type: String, enum: ["monthly", "annual", "lifetime"], default: "monthly" },
+  subscriptionPlan: { type: String, enum: ["trial", "monthly", "annual", "lifetime"], default: "monthly" },
   subscriptionAmount: { type: Number },
   subscriptionStartDate: { type: Date },
   subscriptionEndDate: { type: Date },
+  trialEndDate: { type: Date },
   razorpayPaymentId: { type: String },
   razorpayOrderId: { type: String },
   createdAt: { type: Date, default: Date.now },
@@ -148,6 +153,66 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
+// ✅ START FREE TRIAL
+app.post("/api/signup-trial", async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const subscriptionStartDate = new Date();
+    const trialEndDate = new Date(subscriptionStartDate);
+    trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      email,
+      name: name || email.split("@")[0],
+      password: hashedPassword,
+      subscriptionStatus: "active",
+      subscriptionPlan: "trial",
+      subscriptionAmount: 0,
+      subscriptionStartDate,
+      subscriptionEndDate: trialEndDate,
+      trialEndDate,
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    res.status(201).json({
+      message: "Free trial started successfully",
+      token,
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+        subscriptionStatus: newUser.subscriptionStatus,
+        subscriptionPlan: newUser.subscriptionPlan,
+        subscriptionAmount: newUser.subscriptionAmount,
+        subscriptionStartDate: newUser.subscriptionStartDate,
+        subscriptionEndDate: newUser.subscriptionEndDate,
+        trialEndDate: newUser.trialEndDate,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    console.error("Trial Signup Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 // ✅ LOGIN (Sign In)
 app.post("/api/signin", async (req, res) => {
   try {
@@ -164,7 +229,21 @@ app.post("/api/signin", async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    res.json({ message: "Login successful", token });
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionAmount: user.subscriptionAmount,
+        subscriptionStartDate: user.subscriptionStartDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        trialEndDate: user.trialEndDate,
+      },
+    });
   } catch (error) {
     console.error("Signin Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -202,10 +281,67 @@ app.get("/api/user", verifyToken, async (req, res) => {
       subscriptionPlan: user.subscriptionPlan,
       subscriptionAmount: user.subscriptionAmount,
       subscriptionStartDate: user.subscriptionStartDate,
-      subscriptionEndDate: user.subscriptionEndDate
+      subscriptionEndDate: user.subscriptionEndDate,
+      trialEndDate: user.trialEndDate,
     });
   } catch (error) {
     console.error("Get User Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// ✅ UPDATE USER PROFILE (Protected Route)
+app.put("/api/user", verifyToken, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const trimmedEmail = email?.trim().toLowerCase();
+
+    if (!trimmedEmail) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const duplicateUser = await User.findOne({
+      email: trimmedEmail,
+      _id: { $ne: req.user.id },
+    });
+
+    if (duplicateUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        name: name?.trim() || trimmedEmail.split("@")[0],
+        email: trimmedEmail,
+      },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionAmount: user.subscriptionAmount,
+        subscriptionStartDate: user.subscriptionStartDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        trialEndDate: user.trialEndDate,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    console.error("Update User Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });

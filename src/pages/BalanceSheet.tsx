@@ -9,11 +9,47 @@ import { ArrowLeft, Calculator, Download, TrendingUp, AlertCircle, CheckCircle, 
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DEFAULT_REPORT_COMPANY_NAME, REPORT_FOOTER_COMPANY, getReportCompanyName } from "@/lib/reportBranding";
 
 const BalanceSheet = () => {
   const navigate = useNavigate();
 
+  const currentAssetFields = [
+    { id: "cashInHand", label: "Cash in Hand (₹)", reportLabel: "Cash in Hand", placeholder: "e.g., 150000.00" },
+    { id: "tradeReceivable", label: "Trade Receivable (₹)", reportLabel: "Trade Receivable", placeholder: "e.g., 100000.00" },
+    { id: "inventory", label: "Inventory (₹)", reportLabel: "Inventory", placeholder: "e.g., 200000.00" },
+    { id: "currentAssetsOthers", label: "Others (₹)", reportLabel: "Others", placeholder: "e.g., 50000.00" },
+  ];
+
+  const nonCurrentAssetFields = [
+    { id: "fixedAssets", label: "Fixed Assets (₹)", reportLabel: "Fixed Assets", placeholder: "e.g., 500000.00" },
+    { id: "machinery", label: "Machinery (₹)", reportLabel: "Machinery", placeholder: "e.g., 300000.00" },
+    { id: "laptops", label: "Laptops (₹)", reportLabel: "Laptops", placeholder: "e.g., 150000.00" },
+    { id: "nonCurrentAssetsOthers", label: "Others (₹)", reportLabel: "Others", placeholder: "e.g., 50000.00" },
+  ];
+
+  const currentLiabilityFields = [
+    { id: "currentTradePayable", label: "Trade Payable (₹)", reportLabel: "Trade Payable", subLabel: "Short term / Less than 1 year", placeholder: "e.g., 100000.00" },
+    { id: "currentGstPayable", label: "GST Payable (₹)", reportLabel: "GST Payable", placeholder: "e.g., 100000.00" },
+    { id: "currentBankLoan", label: "Bank Loan (₹)", reportLabel: "Bank Loan", placeholder: "e.g., 100000.00" },
+    { id: "currentLiabilitiesOthers", label: "Others (₹)", reportLabel: "Others", placeholder: "e.g., 50000.00" },
+  ];
+
+  const nonCurrentLiabilityFields = [
+    { id: "nonCurrentTradePayable", label: "Trade Payable (₹)", reportLabel: "Trade Payable", subLabel: "Long term / More than 1 year", placeholder: "e.g., 400000.00" },
+    { id: "nonCurrentGstPayable", label: "GST Payable (₹)", reportLabel: "GST Payable", placeholder: "e.g., 100000.00" },
+    { id: "nonCurrentBankLoan", label: "Bank Loan (₹)", reportLabel: "Bank Loan", placeholder: "e.g., 500000.00" },
+    { id: "nonCurrentLiabilitiesOthers", label: "Others (₹)", reportLabel: "Others", placeholder: "e.g., 50000.00" },
+  ];
+
+  const equityFields = [
+    { id: "shareCapital", label: "Share Capital (₹)", reportLabel: "Share Capital", placeholder: "e.g., 1000000.00" },
+    { id: "reservesSurplus", label: "Reserves & Surplus (₹)", reportLabel: "Reserves & Surplus", placeholder: "e.g., 500000.00" },
+    { id: "equityOthers", label: "Others (₹)", reportLabel: "Others", placeholder: "e.g., 100000.00" },
+  ];
+
   const [formData, setFormData] = useState({
+    companyName: DEFAULT_REPORT_COMPANY_NAME,
     // Current Assets sub-items
     cashInHand: "",
     tradeReceivable: "",
@@ -46,36 +82,35 @@ const BalanceSheet = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const formatCurrency = (val) => `₹${(parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const buildLineItems = (fields) =>
+    fields.map(({ id, reportLabel }) => ({
+      label: reportLabel,
+      value: parseFloat(formData[id]) || 0,
+    }));
+
+  const sumFields = (fields) =>
+    fields.reduce((sum, { id }) => sum + (parseFloat(formData[id]) || 0), 0);
+
+  const renderReportRows = (rows = []) => (
+    <div className="space-y-2 rounded-2xl bg-white/55 border border-slate-100 p-3">
+      {rows.map((row, index) => (
+        <div key={`${row.label}-${index}`} className="flex justify-between items-center text-sm text-slate-700">
+          <span>{row.label}</span>
+          <span className="font-semibold text-slate-900">{formatCurrency(row.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   const generateBalanceSheet = async () => {
     // Sum sub-items for each section (matching Python requirement logic)
-    const currentAssets =
-      (parseFloat(formData.cashInHand) || 0) +
-      (parseFloat(formData.tradeReceivable) || 0) +
-      (parseFloat(formData.inventory) || 0) +
-      (parseFloat(formData.currentAssetsOthers) || 0);
-
-    const nonCurrentAssets =
-      (parseFloat(formData.fixedAssets) || 0) +
-      (parseFloat(formData.machinery) || 0) +
-      (parseFloat(formData.laptops) || 0) +
-      (parseFloat(formData.nonCurrentAssetsOthers) || 0);
-
-    const currentLiabilities =
-      (parseFloat(formData.currentTradePayable) || 0) +
-      (parseFloat(formData.currentGstPayable) || 0) +
-      (parseFloat(formData.currentBankLoan) || 0) +
-      (parseFloat(formData.currentLiabilitiesOthers) || 0);
-
-    const nonCurrentLiabilities =
-      (parseFloat(formData.nonCurrentTradePayable) || 0) +
-      (parseFloat(formData.nonCurrentGstPayable) || 0) +
-      (parseFloat(formData.nonCurrentBankLoan) || 0) +
-      (parseFloat(formData.nonCurrentLiabilitiesOthers) || 0);
-
-    const equity =
-      (parseFloat(formData.shareCapital) || 0) +
-      (parseFloat(formData.reservesSurplus) || 0) +
-      (parseFloat(formData.equityOthers) || 0);
+    const currentAssets = sumFields(currentAssetFields);
+    const nonCurrentAssets = sumFields(nonCurrentAssetFields);
+    const currentLiabilities = sumFields(currentLiabilityFields);
+    const nonCurrentLiabilities = sumFields(nonCurrentLiabilityFields);
+    const equity = sumFields(equityFields);
 
     // Calculate totals like Python file
     const totalAssets = currentAssets + nonCurrentAssets;
@@ -94,6 +129,18 @@ const BalanceSheet = () => {
       equity,
       totalLiabilitiesEquity,
       balanced,
+      companyName: getReportCompanyName(formData.companyName),
+      breakdown: {
+        assets: {
+          currentAssets: buildLineItems(currentAssetFields),
+          nonCurrentAssets: buildLineItems(nonCurrentAssetFields),
+        },
+        liabilities: {
+          currentLiabilities: buildLineItems(currentLiabilityFields),
+          nonCurrentLiabilities: buildLineItems(nonCurrentLiabilityFields),
+        },
+        equity: buildLineItems(equityFields),
+      },
     };
 
     setBalanceSheet(dataToSave);
@@ -125,7 +172,7 @@ const BalanceSheet = () => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(255, 255, 255);
-    doc.text("SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED", pageWidth / 2, 14, { align: "center" });
+    doc.text(getReportCompanyName(balanceSheet.companyName || formData.companyName), pageWidth / 2, 14, { align: "center" });
 
     // Main Title
     doc.setFontSize(18);
@@ -148,6 +195,19 @@ const BalanceSheet = () => {
 
     const startX = 15;
     const contentWidth = pageWidth - 30; // 180mm
+    const drawDetailRows = (rows = []) => {
+      rows.forEach((row) => {
+        y += 6;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(95, 95, 95);
+        doc.text(row.label, startX + 8, y);
+        doc.text(formatCurrency(row.value), startX + contentWidth - 3, y, { align: "right" });
+      });
+      y += 3;
+      doc.setDrawColor(240, 240, 240);
+      doc.line(startX, y, startX + contentWidth, y);
+    };
 
     // --- ASSETS SECTION ---
     let y = 56;
@@ -165,18 +225,16 @@ const BalanceSheet = () => {
     doc.setTextColor(50, 50, 50);
     doc.text("Current Assets", startX + 3, y);
     doc.text(formatCurrency(balanceSheet.currentAssets), startX + contentWidth - 3, y, { align: "right" });
-    // Line
-    y += 3;
-    doc.setDrawColor(240, 240, 240);
-    doc.line(startX, y, startX + contentWidth, y);
+    drawDetailRows(balanceSheet.breakdown?.assets?.currentAssets);
 
     // Non-Current Assets row
     y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(50, 50, 50);
     doc.text("Non-Current Assets", startX + 3, y);
     doc.text(formatCurrency(balanceSheet.nonCurrentAssets), startX + contentWidth - 3, y, { align: "right" });
-    // Line
-    y += 3;
-    doc.line(startX, y, startX + contentWidth, y);
+    drawDetailRows(balanceSheet.breakdown?.assets?.nonCurrentAssets);
 
     // Total Assets row
     y += 2;
@@ -200,17 +258,16 @@ const BalanceSheet = () => {
     doc.setTextColor(50, 50, 50);
     doc.text("Current Liabilities", startX + 3, y);
     doc.text(formatCurrency(balanceSheet.currentLiabilities), startX + contentWidth - 3, y, { align: "right" });
-    // Line
-    y += 3;
-    doc.line(startX, y, startX + contentWidth, y);
+    drawDetailRows(balanceSheet.breakdown?.liabilities?.currentLiabilities);
 
     // Non-Current Liabilities row
     y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(50, 50, 50);
     doc.text("Non-Current Liabilities", startX + 3, y);
     doc.text(formatCurrency(balanceSheet.nonCurrentLiabilities), startX + contentWidth - 3, y, { align: "right" });
-    // Line
-    y += 3;
-    doc.line(startX, y, startX + contentWidth, y);
+    drawDetailRows(balanceSheet.breakdown?.liabilities?.nonCurrentLiabilities);
 
     // Total Liabilities row
     y += 2;
@@ -234,9 +291,7 @@ const BalanceSheet = () => {
     doc.setTextColor(50, 50, 50);
     doc.text("Equity", startX + 3, y);
     doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y, { align: "right" });
-    // Line
-    y += 3;
-    doc.line(startX, y, startX + contentWidth, y);
+    drawDetailRows(balanceSheet.breakdown?.equity);
 
     // Total Equity row
     y += 2;
@@ -296,7 +351,7 @@ const BalanceSheet = () => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(156, 163, 175);
-    doc.text("Generated by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED  |  Powered by Advanced Financial Analytics Engine", pageWidth / 2, y + 5, { align: "center" });
+    doc.text(`Generated by ${REPORT_FOOTER_COMPANY}  |  Powered by Advanced Financial Analytics Engine`, pageWidth / 2, y + 5, { align: "center" });
 
     // Save PDF
     doc.save(`Balance_Sheet_${Date.now()}.pdf`);
@@ -352,6 +407,18 @@ const BalanceSheet = () => {
             </CardHeader>
 
             <CardContent className="space-y-6 relative">
+              <div className="space-y-2 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+                <Label htmlFor="companyName" className="text-slate-700 font-semibold">Enter Your Company Name</Label>
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Enter your company name"
+                  value={formData.companyName}
+                  onChange={(e) => handleInputChange("companyName", e.target.value)}
+                  className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                />
+              </div>
+
               {/* Assets Section */}
               <div className="space-y-4 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
                 <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
@@ -363,12 +430,7 @@ const BalanceSheet = () => {
 
                 {/* Current Assets Sub-items */}
                 <p className="text-sky-800 text-xs font-bold uppercase tracking-wider pl-1">Current Assets</p>
-                {[
-                  { id: "cashInHand", label: "Cash in Hand (₹)", placeholder: "e.g., 150000.00" },
-                  { id: "tradeReceivable", label: "Trade Receivable (₹)", placeholder: "e.g., 100000.00" },
-                  { id: "inventory", label: "Inventory (₹)", placeholder: "e.g., 200000.00" },
-                  { id: "currentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
-                ].map(({ id, label, placeholder }) => (
+                {currentAssetFields.map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
@@ -390,12 +452,7 @@ const BalanceSheet = () => {
 
                 {/* Non-Current Assets Sub-items */}
                 <p className="text-sky-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Assets</p>
-                {[
-                  { id: "fixedAssets", label: "Fixed Assets (₹)", placeholder: "e.g., 500000.00" },
-                  { id: "machinery", label: "Machinery (₹)", placeholder: "e.g., 300000.00" },
-                  { id: "laptops", label: "Laptops (₹)", placeholder: "e.g., 150000.00" },
-                  { id: "nonCurrentAssetsOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
-                ].map(({ id, label, placeholder }) => (
+                {nonCurrentAssetFields.map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
@@ -427,12 +484,7 @@ const BalanceSheet = () => {
 
                 {/* Current Liabilities Sub-items */}
                 <p className="text-orange-800 text-xs font-bold uppercase tracking-wider pl-1">Current Liabilities</p>
-                {[
-                  { id: "currentTradePayable", label: "Trade Payable (₹)", subLabel: "Short term / Less than 1 year", placeholder: "e.g., 100000.00" },
-                  { id: "currentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
-                  { id: "currentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 100000.00" },
-                  { id: "currentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
-                ].map(({ id, label, subLabel, placeholder }) => (
+                {currentLiabilityFields.map(({ id, label, subLabel, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <div className="flex flex-col gap-0.5">
                       <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
@@ -457,12 +509,7 @@ const BalanceSheet = () => {
 
                 {/* Non-Current Liabilities Sub-items */}
                 <p className="text-orange-800 text-xs font-bold uppercase tracking-wider mt-4 pl-1">Non-Current Liabilities</p>
-                {[
-                  { id: "nonCurrentTradePayable", label: "Trade Payable (₹)", subLabel: "Long term / More than 1 year", placeholder: "e.g., 400000.00" },
-                  { id: "nonCurrentGstPayable", label: "GST Payable (₹)", placeholder: "e.g., 100000.00" },
-                  { id: "nonCurrentBankLoan", label: "Bank Loan (₹)", placeholder: "e.g., 500000.00" },
-                  { id: "nonCurrentLiabilitiesOthers", label: "Others (₹)", placeholder: "e.g., 50000.00" },
-                ].map(({ id, label, subLabel, placeholder }) => (
+                {nonCurrentLiabilityFields.map(({ id, label, subLabel, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <div className="flex flex-col gap-0.5">
                       <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
@@ -494,11 +541,7 @@ const BalanceSheet = () => {
                   </div>
                   Equity
                 </h3>
-                {[
-                  { id: "shareCapital", label: "Share Capital (₹)", placeholder: "e.g., 1000000.00" },
-                  { id: "reservesSurplus", label: "Reserves & Surplus (₹)", placeholder: "e.g., 500000.00" },
-                  { id: "equityOthers", label: "Others (₹)", placeholder: "e.g., 100000.00" },
-                ].map(({ id, label, placeholder }) => (
+                {equityFields.map(({ id, label, placeholder }) => (
                   <div className="space-y-2" key={id}>
                     <Label htmlFor={id} className="text-slate-700 font-semibold">{label}</Label>
                     <div className="flex items-center gap-2">
@@ -565,17 +608,23 @@ const BalanceSheet = () => {
                 <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
                   <h3 className="font-bold mb-4 text-slate-900 text-lg">Assets</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-slate-800 py-1">
-                      <span className="font-medium">Current Assets</span>
-                      <span className="font-bold text-slate-900">₹{balanceSheet.currentAssets.toFixed(2)}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-slate-800 py-1">
+                        <span className="font-semibold">Current Assets</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(balanceSheet.currentAssets)}</span>
+                      </div>
+                      {renderReportRows(balanceSheet.breakdown?.assets?.currentAssets)}
                     </div>
-                    <div className="flex justify-between items-center text-slate-800 py-1">
-                      <span className="font-medium">Non-Current Assets</span>
-                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentAssets.toFixed(2)}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-slate-800 py-1">
+                        <span className="font-semibold">Non-Current Assets</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(balanceSheet.nonCurrentAssets)}</span>
+                      </div>
+                      {renderReportRows(balanceSheet.breakdown?.assets?.nonCurrentAssets)}
                     </div>
                     <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
                       <span className="text-slate-950 text-lg">Total Assets</span>
-                      <span className="text-xl text-slate-950">₹{balanceSheet.totalAssets.toFixed(2)}</span>
+                      <span className="text-xl text-slate-950">{formatCurrency(balanceSheet.totalAssets)}</span>
                     </div>
                   </div>
                 </div>
@@ -584,17 +633,23 @@ const BalanceSheet = () => {
                 <div className="p-6 rounded-2xl bg-white/70 border border-slate-200 hover:scale-[1.01] transition-all duration-300">
                   <h3 className="font-bold mb-4 text-slate-900 text-lg">Liabilities</h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-slate-800 py-1">
-                      <span className="font-medium">Current Liabilities</span>
-                      <span className="font-bold text-slate-900">₹{balanceSheet.currentLiabilities.toFixed(2)}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-slate-800 py-1">
+                        <span className="font-semibold">Current Liabilities</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(balanceSheet.currentLiabilities)}</span>
+                      </div>
+                      {renderReportRows(balanceSheet.breakdown?.liabilities?.currentLiabilities)}
                     </div>
-                    <div className="flex justify-between items-center text-slate-800 py-1">
-                      <span className="font-medium">Non-Current Liabilities</span>
-                      <span className="font-bold text-slate-900">₹{balanceSheet.nonCurrentLiabilities.toFixed(2)}</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-slate-800 py-1">
+                        <span className="font-semibold">Non-Current Liabilities</span>
+                        <span className="font-bold text-slate-900">{formatCurrency(balanceSheet.nonCurrentLiabilities)}</span>
+                      </div>
+                      {renderReportRows(balanceSheet.breakdown?.liabilities?.nonCurrentLiabilities)}
                     </div>
                     <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
                       <span className="text-slate-950 text-lg">Total Liabilities</span>
-                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilities.toFixed(2)}</span>
+                      <span className="text-xl text-slate-950">{formatCurrency(balanceSheet.totalLiabilities)}</span>
                     </div>
                   </div>
                 </div>
@@ -605,11 +660,12 @@ const BalanceSheet = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-slate-800 py-1">
                       <span className="font-medium">Equity</span>
-                      <span className="font-bold text-slate-900">₹{balanceSheet.equity.toFixed(2)}</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(balanceSheet.equity)}</span>
                     </div>
+                    {renderReportRows(balanceSheet.breakdown?.equity)}
                     <div className="flex justify-between items-center font-bold border-t border-slate-200 pt-3 mt-3">
                       <span className="text-slate-950 text-lg">Total Liabilities + Equity</span>
-                      <span className="text-xl text-slate-950">₹{balanceSheet.totalLiabilitiesEquity.toFixed(2)}</span>
+                      <span className="text-xl text-slate-950">{formatCurrency(balanceSheet.totalLiabilitiesEquity)}</span>
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ const router = express.Router();
 
 // ✅ Define ProfitLoss schema - UPDATED to match Python file with 8 expenses
 const profitLossSchema = new mongoose.Schema({
+  companyName: { type: String },
   // Revenue fields
   sales: { type: Number, required: true, default: 0 },
   serviceIncome: { type: Number, required: true, default: 0 },
@@ -107,6 +108,7 @@ router.post("/add", async (req, res) => {
     );
 
     const dataToSave = {
+      companyName: plData.companyName || "",
       // Revenue
       sales: plData.sales || 0,
       serviceIncome: plData.serviceIncome || 0,
