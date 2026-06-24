@@ -6,37 +6,27 @@ const router = express.Router();
 
 // ==================== SCHEMAS ====================
 
-// ✅ Dynamic Mode Schema (Original - with items array)
+// ✅ Static Mode Schema (Aligned with P&L)
 const cashFlowStatementSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, default: "Cash Flow Statement" },
   companyName: { type: String },
   period: { type: String, required: true },
-  inflowItems: [{
-    description: { type: String, required: true },
-    amount: { type: Number, required: true },
-    category: { type: String, default: "Revenue" }
-  }],
-  outflowItems: [{
-    description: { type: String, required: true },
-    amount: { type: Number, required: true },
-    category: { type: String, default: "Expense" }
-  }],
-  totalInflow: { type: Number, required: true },
-  totalOutflow: { type: Number, required: true },
-  netCashFlow: { type: Number, required: true },
-  status: { type: String, enum: ["positive", "negative", "neutral"], required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+  // Inflow fields
+  sales: { type: Number, default: 0 },
+  serviceIncome: { type: Number, default: 0 },
+  interestIncome: { type: Number, default: 0 },
+  otherIncome: { type: Number, default: 0 },
+  // Outflow fields
+  costOfMaterials: { type: Number, default: 0 },
+  salaries: { type: Number, default: 0 },
+  rent: { type: Number, default: 0 },
+  utilities: { type: Number, default: 0 },
+  financeCost: { type: Number, default: 0 },
+  depreciation: { type: Number, default: 0 },
+  amortization: { type: Number, default: 0 },
+  otherExpenses: { type: Number, default: 0 },
 
-// ✅ Simple Mode Schema (Requirement style - with textarea)
-const simpleCashFlowStatementSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  companyName: { type: String },
-  period: { type: String, required: true },
-  inflowText: { type: String, required: true },
-  outflowText: { type: String, required: true },
   totalInflow: { type: Number, required: true },
   totalOutflow: { type: Number, required: true },
   netCashFlow: { type: Number, required: true },
@@ -46,7 +36,10 @@ const simpleCashFlowStatementSchema = new mongoose.Schema({
 });
 
 const CashFlowStatement = mongoose.model("CashFlowStatement", cashFlowStatementSchema);
-const SimpleCashFlowStatement = mongoose.model("SimpleCashFlowStatement", simpleCashFlowStatementSchema);
+const SimpleCashFlowStatement = mongoose.model("SimpleCashFlowStatement", new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  dummy: { type: String }
+}, { strict: false })); // Keeping SimpleCashFlowStatement model placeholder to prevent errors elsewhere if referenced
 
 // ==================== MIDDLEWARE ====================
 
@@ -70,21 +63,48 @@ const verifyToken = (req, res, next) => {
 
 // ==================== DYNAMIC MODE ROUTES (Original) ====================
 
-// ✅ POST - Create dynamic cash flow statement
+// ✅ POST - Create cash flow statement
 router.post("/create", verifyToken, async (req, res) => {
   try {
-    const { companyName, period, inflowItems, outflowItems } = req.body;
+    const {
+      companyName,
+      period,
+      sales,
+      serviceIncome,
+      interestIncome,
+      otherIncome,
+      costOfMaterials,
+      salaries,
+      rent,
+      utilities,
+      financeCost,
+      depreciation,
+      amortization,
+      otherExpenses
+    } = req.body;
 
-    if (!period || !inflowItems || !outflowItems) {
-      return res.status(400).json({ message: "Period, inflow items, and outflow items are required" });
+    if (!period) {
+      return res.status(400).json({ message: "Period is required" });
     }
 
-    // Calculate totals
-    const totalInflow = inflowItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-    const totalOutflow = outflowItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+    const sVal = parseFloat(sales) || 0;
+    const siVal = parseFloat(serviceIncome) || 0;
+    const iiVal = parseFloat(interestIncome) || 0;
+    const oiVal = parseFloat(otherIncome) || 0;
+
+    const cmVal = parseFloat(costOfMaterials) || 0;
+    const salVal = parseFloat(salaries) || 0;
+    const rVal = parseFloat(rent) || 0;
+    const uVal = parseFloat(utilities) || 0;
+    const fcVal = parseFloat(financeCost) || 0;
+    const dVal = parseFloat(depreciation) || 0;
+    const amVal = parseFloat(amortization) || 0;
+    const oeVal = parseFloat(otherExpenses) || 0;
+
+    const totalInflow = sVal + siVal + iiVal + oiVal;
+    const totalOutflow = cmVal + salVal + rVal + uVal + fcVal + dVal + amVal + oeVal;
     const netCashFlow = totalInflow - totalOutflow;
     
-    // Determine status
     let status = "neutral";
     if (netCashFlow > 0) status = "positive";
     if (netCashFlow < 0) status = "negative";
@@ -93,8 +113,18 @@ router.post("/create", verifyToken, async (req, res) => {
       userId: req.user.id,
       companyName,
       period,
-      inflowItems,
-      outflowItems,
+      sales: sVal,
+      serviceIncome: siVal,
+      interestIncome: iiVal,
+      otherIncome: oiVal,
+      costOfMaterials: cmVal,
+      salaries: salVal,
+      rent: rVal,
+      utilities: uVal,
+      financeCost: fcVal,
+      depreciation: dVal,
+      amortization: amVal,
+      otherExpenses: oeVal,
       totalInflow,
       totalOutflow,
       netCashFlow,
@@ -145,16 +175,43 @@ router.get("/:id", verifyToken, async (req, res) => {
 router.put("/update/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { period, inflowItems, outflowItems } = req.body;
+    const {
+      period,
+      sales,
+      serviceIncome,
+      interestIncome,
+      otherIncome,
+      costOfMaterials,
+      salaries,
+      rent,
+      utilities,
+      financeCost,
+      depreciation,
+      amortization,
+      otherExpenses
+    } = req.body;
 
     const existingStatement = await CashFlowStatement.findOne({ _id: id, userId: req.user.id });
     if (!existingStatement) {
       return res.status(404).json({ message: "Cash flow statement not found" });
     }
 
-    // Recalculate totals
-    const totalInflow = inflowItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
-    const totalOutflow = outflowItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+    const sVal = parseFloat(sales) || 0;
+    const siVal = parseFloat(serviceIncome) || 0;
+    const iiVal = parseFloat(interestIncome) || 0;
+    const oiVal = parseFloat(otherIncome) || 0;
+
+    const cmVal = parseFloat(costOfMaterials) || 0;
+    const salVal = parseFloat(salaries) || 0;
+    const rVal = parseFloat(rent) || 0;
+    const uVal = parseFloat(utilities) || 0;
+    const fcVal = parseFloat(financeCost) || 0;
+    const dVal = parseFloat(depreciation) || 0;
+    const amVal = parseFloat(amortization) || 0;
+    const oeVal = parseFloat(otherExpenses) || 0;
+
+    const totalInflow = sVal + siVal + iiVal + oiVal;
+    const totalOutflow = cmVal + salVal + rVal + uVal + fcVal + dVal + amVal + oeVal;
     const netCashFlow = totalInflow - totalOutflow;
     
     let status = "neutral";
@@ -165,8 +222,18 @@ router.put("/update/:id", verifyToken, async (req, res) => {
       id,
       {
         period,
-        inflowItems,
-        outflowItems,
+        sales: sVal,
+        serviceIncome: siVal,
+        interestIncome: iiVal,
+        otherIncome: oiVal,
+        costOfMaterials: cmVal,
+        salaries: salVal,
+        rent: rVal,
+        utilities: uVal,
+        financeCost: fcVal,
+        depreciation: dVal,
+        amortization: amVal,
+        otherExpenses: oeVal,
         totalInflow,
         totalOutflow,
         netCashFlow,

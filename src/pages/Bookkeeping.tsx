@@ -268,7 +268,9 @@ const Bookkeeping = () => {
     const sortedGroupKeys = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     const allCategories = [...DEFAULT_CATEGORIES, ...customCategories.map(c => c.name)];
-    const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+    const INCOME_COLORS = ['#10b981', '#06b6d4', '#3b82f6', '#0284c7', '#14b8a6', '#22c55e', '#8b5cf6', '#6366f1', '#4ade80', '#059669'];
+    const EXPENSE_COLORS = ['#ef4444', '#f97316', '#ec4899', '#f59e0b', '#e11d48', '#be185d', '#d97706', '#991b1b', '#c2410c', '#ff8a65'];
+    const CHART_COLORS = [...INCOME_COLORS, ...EXPENSE_COLORS];
 
     const incomeDistributionData = allCategories.map(cat => ({
         name: cat,
@@ -988,7 +990,7 @@ const Bookkeeping = () => {
                                                                 dataKey="value"
                                                             >
                                                                 {incomeDistributionData.map((entry, index) => (
-                                                                    <Cell key={`income-cell-${entry.name}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke="rgba(255,255,255,0.8)" />
+                                                                    <Cell key={`income-cell-${entry.name}`} fill={INCOME_COLORS[index % INCOME_COLORS.length]} stroke="rgba(255,255,255,0.8)" />
                                                                 ))}
                                                             </Pie>
                                                             <Tooltip
@@ -1027,7 +1029,7 @@ const Bookkeeping = () => {
                                                                 dataKey="value"
                                                             >
                                                                 {expenseDistributionData.map((entry, index) => (
-                                                                    <Cell key={`expense-cell-${entry.name}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke="rgba(255,255,255,0.8)" />
+                                                                    <Cell key={`expense-cell-${entry.name}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} stroke="rgba(255,255,255,0.8)" />
                                                                 ))}
                                                             </Pie>
                                                             <Tooltip

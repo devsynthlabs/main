@@ -6,6 +6,7 @@ const router = express.Router();
 // ✅ Define Balance Sheet Schema - Updated to match Python file structure
 const balanceSheetSchema = new mongoose.Schema({
   companyName: { type: String },
+  financialYear: { type: String },
   // Assets
   currentAssets: { type: Number, required: true, default: 0 },
   nonCurrentAssets: { type: Number, required: true, default: 0 },
@@ -46,6 +47,7 @@ router.post("/add", async (req, res) => {
     // Fill missing fields with 0 to avoid validation errors
     const dataToSave = {
       companyName: balanceData.companyName || "",
+      financialYear: balanceData.financialYear || "",
       // Assets
       currentAssets: balanceData.currentAssets || 0,
       nonCurrentAssets: balanceData.nonCurrentAssets || 0,

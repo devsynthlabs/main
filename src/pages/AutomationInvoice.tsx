@@ -53,6 +53,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 
 // Indian States for GST
 const INDIAN_STATES = [
@@ -122,7 +124,7 @@ interface InvoiceData {
   sellerPhone: string;
   sellerGSTIN: string;
   transactionType: 'B2B' | 'B2C';
-  invoiceSize: 'A4' | 'QUARTER_A4';
+  invoiceSize: 'A4' | 'QUARTER_A4' | 'A6';
   dueReminderDays: number;
   dueReminderDate?: string;
   eWayBillNo: string;
@@ -185,9 +187,27 @@ const AutomationInvoice = () => {
   const generateInvoiceNo = (type: 'sales' | 'purchase') => {
     const prefix = type === 'sales' ? 'INV' : 'PUR';
     const year = new Date().getFullYear();
-    const key = `invoiceCounter:${prefix}:${year}`;
-    const next = Number(localStorage.getItem(key) || "0") + 1;
-    localStorage.setItem(key, String(next));
+    const saved = localStorage.getItem('savedInvoices');
+    let next = 1;
+    if (saved) {
+      try {
+        const invoices = JSON.parse(saved) as InvoiceData[];
+        const matchingNos = invoices
+          .filter(inv => inv.type === type && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-${year}-`))
+          .map(inv => {
+            const parts = inv.invoiceNo.split('-');
+            const numStr = parts[parts.length - 1];
+            const num = parseInt(numStr, 10);
+            return isNaN(num) ? 0 : num;
+          });
+
+        if (matchingNos.length > 0) {
+          next = Math.max(...matchingNos) + 1;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
     return `${prefix}-${year}-${String(next).padStart(5, '0')}`;
   };
 
@@ -284,7 +304,7 @@ const AutomationInvoice = () => {
     saleType: 'cash',
     partyName: '',
     phoneNo: '',
-    sellerName: COMPANY_NAME,
+    sellerName: '',
     sellerPhone: '',
     sellerGSTIN: '',
     transactionType: 'B2C',
@@ -381,13 +401,95 @@ const AutomationInvoice = () => {
     fetchInventory();
   }, []);
 
-  // Load saved invoices from localStorage on mount
+  // Load saved invoices from localStorage and backend on mount
   useEffect(() => {
-    const saved = localStorage.getItem('savedInvoices');
-    if (saved) {
-      setInvoiceHistory(JSON.parse(saved));
-    }
-  }, []);
+    const loadInvoices = async () => {
+      let mergedInvoices: InvoiceData[] = [];
+
+      // Load from localStorage
+      const saved = localStorage.getItem('savedInvoices');
+      if (saved) {
+        try {
+          mergedInvoices = JSON.parse(saved);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // Load from backend
+      try {
+        const response = await fetch(`${API_BASE_URL}/invoice/all?limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.invoices && Array.isArray(data.invoices)) {
+            const backendInvoices = data.invoices.map((inv: any) => ({
+              ...inv,
+              id: inv._id,
+              type: inv.sourceInvoiceType || 'sales',
+              saleType: inv.paymentMethod || 'cash',
+              partyName: inv.customerName,
+              phoneNo: inv.customerPhone,
+              items: inv.items ? inv.items.map((item: any) => ({
+                itemName: item.productName,
+                quantity: item.quantity,
+                pricePerUnit: item.unitPrice,
+                amount: item.total,
+                taxPercent: item.taxRate,
+                discountAmount: item.discount,
+                codeType: item.codeType || 'HSN',
+                hsnCode: item.hsnCode || item.sacCode || ''
+              })) : [],
+              subtotal: inv.subtotal,
+              totalTax: inv.taxAmount,
+              totalSgst: inv.sgst || 0,
+              totalCgst: inv.cgst || 0,
+              totalIgst: inv.igst || 0,
+              total: inv.grandTotal,
+              paid: inv.amountPaid || 0,
+              balance: inv.balanceDue || 0
+            }));
+
+            // Merge and de-duplicate by invoiceNo
+            const existingNos = new Set(mergedInvoices.map(inv => inv.invoiceNo));
+            backendInvoices.forEach((inv: InvoiceData) => {
+              if (!existingNos.has(inv.invoiceNo)) {
+                mergedInvoices.push(inv);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch backend invoices:", err);
+      }
+
+      setInvoiceHistory(mergedInvoices);
+
+      // Recalculate invoice number dynamically based on maximum sequence number
+      const prefix = invoiceType === 'sales' ? 'INV' : 'PUR';
+      const year = new Date().getFullYear();
+      const matchingNos = mergedInvoices
+        .filter(inv => inv.type === invoiceType && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-${year}-`))
+        .map(inv => {
+          const parts = inv.invoiceNo.split('-');
+          const numStr = parts[parts.length - 1];
+          const num = parseInt(numStr, 10);
+          return isNaN(num) ? 0 : num;
+        });
+
+      let next = 1;
+      if (matchingNos.length > 0) {
+        next = Math.max(...matchingNos) + 1;
+      }
+
+      const newNo = `${prefix}-${year}-${String(next).padStart(5, '0')}`;
+      setCurrentInvoice(prev => ({
+        ...prev,
+        invoiceNo: newNo
+      }));
+    };
+
+    loadInvoices();
+  }, [invoiceType]);
 
   // Close inventory dropdown when clicking outside
   useEffect(() => {
@@ -433,8 +535,8 @@ const AutomationInvoice = () => {
     const qty = item.quantity || 0;
     const price = item.pricePerUnit || 0;
     const discountPct = item.discountPercent || 0;
-    const taxPct = item.taxPercent || 0;
     const priceWithTax = item.priceWithTax || false;
+    const taxPct = priceWithTax ? (item.taxPercent || 0) : 0;
 
     let baseAmount = qty * price;
     let discountAmount = (baseAmount * discountPct) / 100;
@@ -451,23 +553,21 @@ const AutomationInvoice = () => {
     if (priceWithTax && taxPct > 0) {
       if (isInterState) {
         igstRate = taxPct;
-        const taxMultiplier = 1 + (igstRate / 100);
-        const preTaxAmount = afterDiscount / taxMultiplier;
-        igstAmount = afterDiscount - preTaxAmount;
+        igstAmount = (afterDiscount * igstRate) / 100;
         taxAmount = igstAmount;
       } else {
         sgstRate = taxPct / 2;
         cgstRate = taxPct / 2;
-        const taxMultiplier = 1 + (taxPct / 100);
-        const preTaxAmount = afterDiscount / taxMultiplier;
-        taxAmount = afterDiscount - preTaxAmount;
-        sgstAmount = taxAmount / 2;
-        cgstAmount = taxAmount / 2;
+        sgstAmount = (afterDiscount * sgstRate) / 100;
+        cgstAmount = (afterDiscount * cgstRate) / 100;
+        taxAmount = sgstAmount + cgstAmount;
       }
+      finalAmount = afterDiscount + taxAmount;
     }
 
     return {
       ...item,
+      taxPercent: taxPct,
       discountAmount: Math.round(discountAmount * 100) / 100,
       taxAmount: Math.round(taxAmount * 100) / 100,
       sgstRate: Math.round(sgstRate * 100) / 100,
@@ -514,6 +614,30 @@ const AutomationInvoice = () => {
       }
     } catch (error) {
       console.error("Error refreshing inventory:", error);
+    }
+  };
+
+  const deleteInventoryItem = async (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this item from inventory?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/inventory/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        toast.success("Item deleted from inventory");
+        refreshInventory();
+      } else {
+        const error = await res.json();
+        toast.error(error.message || "Failed to delete item");
+      }
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error("Error deleting item from inventory");
     }
   };
 
@@ -621,6 +745,24 @@ const AutomationInvoice = () => {
     setSelectedInventoryMaxQty(null);
 
     toast.success(newItem.inventoryItemId ? "Item added & stock reserved" : "Item added to invoice");
+  };
+
+  const resetItemForm = () => {
+    setNewItem({
+      inventoryItemId: undefined,
+      itemName: '',
+      itemCode: '',
+      codeType: 'HSN',
+      hsnCode: '',
+      quantity: 1,
+      unit: 'Pcs',
+      pricePerUnit: 0,
+      priceWithTax: false,
+      discountPercent: 0,
+      taxPercent: 18
+    });
+    setSelectedInventoryMaxQty(null);
+    toast.info("Item form cleared");
   };
 
   // Select inventory item and auto-populate form
@@ -783,7 +925,7 @@ const AutomationInvoice = () => {
         status: currentInvoice.balance <= 0 ? 'paid' : 'sent'
       };
 
-      let backendId = `inv-${Date.now()}`;
+      let backendId = '';
       try {
         const response = await fetch(`${API_ENDPOINTS.INVOICE}/create`, {
           method: 'POST',
@@ -792,12 +934,18 @@ const AutomationInvoice = () => {
         });
         const result = await response.json();
         if (response.ok) {
-          backendId = result.invoiceId || result.invoice?._id || backendId;
+          backendId = result.invoiceId || result.invoice?._id;
           setLastSavedId(backendId);
+        } else {
+          toast.error(result.message || "Failed to save invoice to server. Try changing the invoice number.");
+          setIsSaving(false);
+          return;
         }
       } catch (err) {
-        console.warn("Backend save failed, using local ID fallback:", err);
-        setLastSavedId(backendId);
+        console.warn("Backend save failed:", err);
+        toast.error("Failed to connect to the server. Please check your network.");
+        setIsSaving(false);
+        return;
       }
 
       // 2. Save to localStorage
@@ -846,7 +994,7 @@ const AutomationInvoice = () => {
       saleType: 'cash',
       partyName: '',
       phoneNo: '',
-      sellerName: COMPANY_NAME,
+      sellerName: '',
       sellerPhone: '',
       sellerGSTIN: '',
       transactionType: 'B2C',
@@ -915,6 +1063,167 @@ const AutomationInvoice = () => {
     }
   };
 
+  // Generate Invoice PDF using jsPDF and jspdf-autotable
+  const generateInvoicePDF = (data: InvoiceData) => {
+    try {
+      const doc = new jsPDF();
+      const sellerName = data.sellerName || COMPANY_NAME;
+      const customerName = data.partyName || 'Valued Customer';
+
+      // Header Banner
+      doc.setFillColor(79, 70, 229); // Indigo banner
+      doc.rect(0, 0, 210, 38, 'F');
+
+      // Invoice Title & Company Info
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text(sellerName, 15, 18);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const sellerInfo = [
+        data.sellerPhone ? `Phone: ${data.sellerPhone}` : '',
+        data.sellerGSTIN ? `GSTIN: ${data.sellerGSTIN}` : ''
+      ].filter(Boolean).join(' | ');
+      doc.text(sellerInfo, 15, 26);
+
+      // TAX INVOICE label
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("TAX INVOICE", 150, 18);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Invoice No: #${data.invoiceNo}`, 150, 26);
+      doc.text(`Date: ${data.invoiceDate}`, 150, 32);
+
+      // Billing details block
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("BILL TO:", 15, 52);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Customer Name: ${customerName}`, 15, 58);
+      if (data.phoneNo) doc.text(`Phone: ${data.phoneNo}`, 15, 64);
+      if (data.customerGSTIN) doc.text(`GSTIN: ${data.customerGSTIN}`, 15, 70);
+      if (data.stateOfSupply) doc.text(`State of Supply: ${data.stateOfSupply}`, 15, 76);
+
+      // Payment mode on the right
+      doc.setFont("helvetica", "bold");
+      doc.text("PAYMENT SUMMARY:", 120, 52);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Payment Mode: ${data.saleType?.toUpperCase() || 'CASH'}`, 120, 58);
+      doc.text(`Transaction Type: ${data.transactionType || 'B2C'}`, 120, 64);
+      if (data.eWayBillNo) doc.text(`E-Way Bill: ${data.eWayBillNo}`, 120, 70);
+
+      // Draw horizontal line
+      doc.setDrawColor(226, 232, 240); // Slate 200
+      doc.line(15, 82, 195, 82);
+
+      // Items Table using autoTable
+      const tableBody = data.items.map((item, index) => [
+        index + 1,
+        item.itemName,
+        item.hsnCode || item.itemCode || '-',
+        item.quantity,
+        item.unit,
+        `INR ${item.pricePerUnit.toFixed(2)}`,
+        item.discountAmount > 0 ? `INR ${item.discountAmount.toFixed(2)}` : '0.00',
+        item.taxAmount > 0 ? `${item.taxPercent}%` : '0%',
+        `INR ${item.amount.toFixed(2)}`
+      ]);
+
+      (doc as any).autoTable({
+        startY: 88,
+        head: [['#', 'Item Description', 'HSN/SKU', 'Qty', 'Unit', 'Price/Unit', 'Discount', 'Tax Rate', 'Amount']],
+        body: tableBody,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [79, 70, 229], // Indigo
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          textColor: [15, 23, 42],
+          fontSize: 9
+        },
+        columnStyles: {
+          1: { cellWidth: 40 },
+          5: { halign: 'right' },
+          6: { halign: 'right' },
+          7: { halign: 'center' },
+          8: { halign: 'right' }
+        }
+      });
+
+      // Totals block below the table
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Subtotal:`, 130, finalY);
+      doc.text(`INR ${data.subtotal.toFixed(2)}`, 190, finalY, { align: 'right' });
+
+      let currentY = finalY + 6;
+      if (data.totalSgst > 0) {
+        doc.text(`SGST:`, 130, currentY);
+        doc.text(`INR ${data.totalSgst.toFixed(2)}`, 190, currentY, { align: 'right' });
+        currentY += 6;
+      }
+      if (data.totalCgst > 0) {
+        doc.text(`CGST:`, 130, currentY);
+        doc.text(`INR ${data.totalCgst.toFixed(2)}`, 190, currentY, { align: 'right' });
+        currentY += 6;
+      }
+      if (data.totalIgst > 0) {
+        doc.text(`IGST:`, 130, currentY);
+        doc.text(`INR ${data.totalIgst.toFixed(2)}`, 190, currentY, { align: 'right' });
+        currentY += 6;
+      }
+
+      doc.text(`Total Tax:`, 130, currentY);
+      doc.text(`INR ${data.totalTax.toFixed(2)}`, 190, currentY, { align: 'right' });
+      currentY += 8;
+
+      // Grand Total in box
+      doc.setFillColor(243, 244, 246); // Gray 100
+      doc.rect(125, currentY - 5, 70, 10, 'F');
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(`Grand Total:`, 130, currentY + 1);
+      doc.text(`INR ${data.total.toFixed(2)}`, 190, currentY + 1, { align: 'right' });
+
+      currentY += 12;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Amount Paid:`, 130, currentY);
+      doc.text(`INR ${data.paid.toFixed(2)}`, 190, currentY, { align: 'right' });
+
+      currentY += 6;
+      doc.text(`Balance Due:`, 130, currentY);
+      doc.setFont("helvetica", "bold");
+      doc.text(`INR ${data.balance.toFixed(2)}`, 190, currentY, { align: 'right' });
+
+      // Footer message
+      const footerY = 280;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("This is a digitally generated invoice. No signature required.", 15, footerY);
+      doc.text("Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS", 120, footerY);
+
+      // Save PDF
+      doc.save(`invoice_${data.invoiceNo}.pdf`);
+      toast.success("PDF generated & downloaded successfully!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate PDF");
+    }
+  };
+
   // Export invoice
   const exportInvoice = (format: 'csv' | 'pdf') => {
     if (currentInvoice.items.length === 0) {
@@ -970,9 +1279,9 @@ const AutomationInvoice = () => {
       // Summary — only non-zero values
       csvContent += "\nSUMMARY\n";
       // Recalculate from items to ensure correctness
-      const subtotal = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit) - i.discountAmount, 0);
-      const totalTax = items.reduce((sum, i) => sum + i.taxAmount, 0);
       const grandTotal = items.reduce((sum, i) => sum + i.amount, 0);
+      const totalTax = items.reduce((sum, i) => sum + i.taxAmount, 0);
+      const subtotal = grandTotal - totalTax;
 
       if (subtotal > 0) csvContent += `Subtotal,${Math.round(subtotal * 100) / 100}\n`;
       if (anyDiscount) {
@@ -994,7 +1303,7 @@ const AutomationInvoice = () => {
       window.URL.revokeObjectURL(url);
       toast.success("Invoice exported to CSV!");
     } else {
-      toast.info("PDF export coming soon!");
+      generateInvoicePDF(currentInvoice);
     }
   };
 
@@ -1060,8 +1369,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
       toast.error("Please save the invoice first.");
       return;
     }
-    const baseUrl = window.location.origin;
-    const shareLink = `${baseUrl}/invoice/view/${idToUse}`;
+    const shareLink = `https://software.saaiss.in/invoice/view/${idToUse}`;
 
     message += `🔗 ${shareLink}\n\n`;
     message += `If you have any questions regarding this invoice, please feel free to reach out to us.\n\n`;
@@ -1127,7 +1435,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             discountAmount: 0,
             taxPercent: taxPct,
             ...calculated
-          });
+          } as InvoiceItem);
         });
 
         const newTotal = newItems.reduce((sum, item) => sum + item.amount, 0);
@@ -1193,8 +1501,39 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
     <div className="liquid-page min-h-screen overflow-hidden text-slate-950">
       <div className="liquid-backdrop fixed inset-0 pointer-events-none" />
 
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          /* Reset containers for print */
+          body, html, .liquid-page, main {
+            background: white !important;
+            color: #0f172a !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          #invoice-official-copy {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+          }
+          @page {
+            size: ${currentInvoice.invoiceSize === 'A6' ? '105mm 148mm' : 'A4'};
+            margin: 8mm;
+          }
+        }
+      `}</style>
+
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl">
+      <header className="sticky top-0 z-20 border-b border-white/40 bg-white/24 backdrop-blur-2xl no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
@@ -1221,7 +1560,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Tabs Navigation */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 no-print">
           {[
             { id: 'create', label: 'Create Invoice', icon: Plus, desc: 'Generate new' },
             { id: 'ocr', label: 'Invoice OCR', icon: Camera, desc: 'Scan & Auto-Extract' },
@@ -1253,66 +1592,74 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
         {activeTab === 'create' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Form */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6 no-print">
               {/* Payment and Document Options */}
               <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
-                  <Label className="text-slate-900 mb-3 block font-bold">Payment Mode</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { type: 'cash', label: 'Cash', icon: Banknote, activeClass: 'bg-emerald-600 text-white' },
-                      { type: 'credit', label: 'Credit', icon: CreditCard, activeClass: 'bg-blue-600 text-white' },
-                      { type: 'gpay', label: 'GPay', icon: Smartphone, activeClass: 'bg-violet-600 text-white' },
-                      { type: 'netbanking', label: 'Netbanking', icon: Building2, activeClass: 'bg-indigo-600 text-white' }
-                    ].map((mode) => (
-                      <button
-                        key={mode.type}
-                        onClick={() => {
-                          setLastSavedId(null);
-                          setCurrentInvoice(prev => ({ ...prev, saleType: mode.type as any }));
-                        }}
-                        className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === mode.type
-                          ? mode.activeClass
-                          : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-slate-100'
-                          }`}
-                      >
-                        <mode.icon className="h-4 w-4" />
-                        {mode.label}
-                      </button>
-                    ))}
+                <Label className="text-slate-900 mb-3 block font-bold">Payment Mode</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { type: 'cash', label: 'Cash', icon: Banknote, activeClass: 'bg-emerald-600 text-white' },
+                    { type: 'credit', label: 'Credit', icon: CreditCard, activeClass: 'bg-blue-600 text-white' },
+                    { type: 'gpay', label: 'GPay', icon: Smartphone, activeClass: 'bg-violet-600 text-white' },
+                    { type: 'netbanking', label: 'Netbanking', icon: Building2, activeClass: 'bg-indigo-600 text-white' }
+                  ].map((mode) => (
+                    <button
+                      key={mode.type}
+                      onClick={() => {
+                        setLastSavedId(null);
+                        setCurrentInvoice(prev => ({ ...prev, saleType: mode.type as any }));
+                      }}
+                      className={`py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${currentInvoice.saleType === mode.type
+                        ? mode.activeClass
+                        : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                    >
+                      <mode.icon className="h-4 w-4" />
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-slate-800 text-sm font-semibold">Print Size</Label>
+                    <Select value={currentInvoice.invoiceSize} onValueChange={(val: 'A4' | 'QUARTER_A4' | 'A6') => setCurrentInvoice(prev => ({ ...prev, invoiceSize: val }))}>
+                      <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                        <SelectItem value="A4">A4</SelectItem>
+                        <SelectItem value="A6">A6 Receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-slate-800 text-sm font-semibold">Print Size</Label>
-                      <Select value={currentInvoice.invoiceSize} onValueChange={(val: 'A4' | 'QUARTER_A4') => setCurrentInvoice(prev => ({ ...prev, invoiceSize: val }))}>
-                        <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border border-slate-200 text-slate-900">
-                          <SelectItem value="A4">A4</SelectItem>
-                          <SelectItem value="QUARTER_A4">1/4 A4 Receipt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-800 text-sm font-semibold">Due Reminder</Label>
-                      <Select value={String(currentInvoice.dueReminderDays)} onValueChange={(val) => setCurrentInvoice(prev => ({ ...prev, dueReminderDays: Number(val) }))}>
-                        <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border border-slate-200 text-slate-900">
-                          <SelectItem value="0">No reminder</SelectItem>
-                          <SelectItem value="7">1 week</SelectItem>
-                          <SelectItem value="14">2 weeks</SelectItem>
-                          <SelectItem value="30">1 month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-xs font-semibold text-slate-500">Transaction Type</p>
-                      <p className="text-lg font-bold text-slate-950">{currentInvoice.transactionType}</p>
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-800 text-sm font-semibold">Due Reminder</Label>
+                    <Select value={String(currentInvoice.dueReminderDays)} onValueChange={(val) => setCurrentInvoice(prev => ({ ...prev, dueReminderDays: Number(val) }))}>
+                      <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                        <SelectItem value="0">No reminder</SelectItem>
+                        <SelectItem value="7">1 week</SelectItem>
+                        <SelectItem value="14">2 weeks</SelectItem>
+                        <SelectItem value="30">1 month</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </Card>
+                  <div className="space-y-2">
+                    <Label className="text-slate-800 text-sm font-semibold">Transaction Type</Label>
+                    <Select value={currentInvoice.transactionType} onValueChange={(val: 'B2B' | 'B2C') => setCurrentInvoice(prev => ({ ...prev, transactionType: val }))}>
+                      <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-200 text-slate-900">
+                        <SelectItem value="B2B">B2B</SelectItem>
+                        <SelectItem value="B2C">B2C</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
 
               {invoiceType === 'sales' && (
                 <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5">
@@ -1326,7 +1673,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Input
                         value={currentInvoice.sellerName}
                         onChange={(e) => setCurrentInvoice(prev => ({ ...prev, sellerName: e.target.value }))}
-                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                        placeholder="Enter seller name"
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1334,7 +1682,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Input
                         value={currentInvoice.sellerPhone}
                         onChange={(e) => setCurrentInvoice(prev => ({ ...prev, sellerPhone: e.target.value }))}
-                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                        placeholder="Enter phone number"
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1345,7 +1694,8 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                           const sellerGSTIN = e.target.value.toUpperCase();
                           setCurrentInvoice(prev => ({ ...prev, sellerGSTIN, transactionType: classifyTransaction(sellerGSTIN, prev.customerGSTIN || '') }));
                         }}
-                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900"
+                        placeholder="Enter seller GSTIN"
+                        className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -1526,20 +1876,32 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                               </div>
                             ) : filteredInventoryItems.length > 0 ? (
                               filteredInventoryItems.map((item) => (
-                                <button
+                                <div
                                   key={item._id}
-                                  onClick={() => selectInventoryItem(item)}
-                                  className="w-full px-4 py-3 text-left hover:bg-slate-100 transition-all border-b border-slate-100 last:border-b-0 flex items-center justify-between group"
+                                  className="w-full px-4 py-3 hover:bg-slate-100 transition-all border-b border-slate-100 last:border-b-0 flex items-center justify-between group"
                                 >
-                                  <div>
-                                    <p className="font-medium text-slate-900 group-hover:text-slate-950 transition-colors">{item.itemName}</p>
-                                    <p className="text-xs text-slate-500">SKU: {item.sku} • {item.category}</p>
+                                  <div
+                                    onClick={() => selectInventoryItem(item)}
+                                    className="flex-1 cursor-pointer flex justify-between items-center mr-4"
+                                  >
+                                    <div>
+                                      <p className="font-medium text-slate-900 group-hover:text-slate-950 transition-colors">{item.itemName}</p>
+                                      <p className="text-xs text-slate-500">SKU: {item.sku} • {item.category}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-emerald-700">₹{item.price}</p>
+                                      <p className="text-xs text-slate-500">{item.quantity} in stock</p>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <p className="font-bold text-emerald-700">₹{item.price}</p>
-                                    <p className="text-xs text-slate-500">{item.quantity} in stock</p>
-                                  </div>
-                                </button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => deleteInventoryItem(e, item._id)}
+                                    className="text-slate-400 hover:text-red-650 hover:bg-red-50 rounded-full h-8 w-8 shrink-0"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               ))
                             ) : (
                               <div className="p-4 text-center text-slate-500">
@@ -1651,8 +2013,23 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Label className="text-slate-800 text-sm font-semibold">Price *</Label>
                       <Input
                         type="number"
-                        value={newItem.pricePerUnit}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, pricePerUnit: parseFloat(e.target.value) || 0 }))}
+                        value={newItem.pricePerUnit ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewItem(prev => ({ ...prev, pricePerUnit: val }));
+                        }}
+                        onFocus={() => {
+                          if (parseFloat(String(newItem.pricePerUnit)) === 0) {
+                            setNewItem(prev => ({ ...prev, pricePerUnit: '' }));
+                          }
+                        }}
+                        onBlur={() => {
+                          if (newItem.pricePerUnit === '' || newItem.pricePerUnit === undefined) {
+                            setNewItem(prev => ({ ...prev, pricePerUnit: 0 }));
+                          } else {
+                            setNewItem(prev => ({ ...prev, pricePerUnit: parseFloat(String(newItem.pricePerUnit)) || 0 }));
+                          }
+                        }}
                         min="0"
                         className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
                       />
@@ -1662,8 +2039,23 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <Label className="text-slate-800 text-sm font-semibold">Disc %</Label>
                       <Input
                         type="number"
-                        value={newItem.discountPercent}
-                        onChange={(e) => setNewItem(prev => ({ ...prev, discountPercent: parseFloat(e.target.value) || 0 }))}
+                        value={newItem.discountPercent ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewItem(prev => ({ ...prev, discountPercent: val }));
+                        }}
+                        onFocus={() => {
+                          if (parseFloat(String(newItem.discountPercent)) === 0) {
+                            setNewItem(prev => ({ ...prev, discountPercent: '' }));
+                          }
+                        }}
+                        onBlur={() => {
+                          if (newItem.discountPercent === '' || newItem.discountPercent === undefined) {
+                            setNewItem(prev => ({ ...prev, discountPercent: 0 }));
+                          } else {
+                            setNewItem(prev => ({ ...prev, discountPercent: parseFloat(String(newItem.discountPercent)) || 0 }));
+                          }
+                        }}
                         min="0"
                         max="100"
                         className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300"
@@ -1672,7 +2064,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
                     <div className="space-y-2">
                       <Label className="text-slate-800 text-sm font-semibold">Tax %</Label>
-                      <Select value={newItem.taxPercent?.toString()} onValueChange={(val) => setNewItem(prev => ({ ...prev, taxPercent: parseFloat(val) }))}>
+                      <Select 
+                        value={newItem.priceWithTax ? (newItem.taxPercent?.toString() || "18") : "0"} 
+                        onValueChange={(val) => setNewItem(prev => ({ ...prev, taxPercent: parseFloat(val) }))}
+                        disabled={!newItem.priceWithTax}
+                      >
                         <SelectTrigger className="h-10 rounded-[14px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300">
                           <SelectValue />
                         </SelectTrigger>
@@ -1732,13 +2128,22 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                     </div>
                   ) : null}
 
-                  <Button
-                    onClick={addItemToInvoice}
-                    className="w-full h-12 rounded-full bg-slate-950 font-semibold text-white transition-all duration-300 hover:bg-slate-800"
-                  >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Item
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={addItemToInvoice}
+                      className="flex-1 h-12 rounded-full bg-slate-950 font-semibold text-white transition-all duration-300 hover:bg-slate-800"
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
+                      Add Item
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={resetItemForm}
+                      className="px-6 h-12 rounded-full border-slate-200 text-slate-700 hover:bg-slate-100"
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               </Card>
 
@@ -1819,7 +2224,7 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
             </div>
 
             {/* Right Column - Summary */}
-            <div className="space-y-6">
+            <div className="space-y-6 no-print">
               <Card className="liquid-panel overflow-hidden rounded-[36px] border-white/55 p-5 sticky top-6">
                 <h2 className="text-xl font-bold text-slate-950 mb-6 flex items-center gap-3">
                   <IndianRupee className="h-5 w-5 text-slate-900" />
@@ -1944,6 +2349,149 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                 </div>
               </Card>
             </div>
+
+            {/* Print Preview Copy */}
+            {currentInvoice.items.length > 0 && (
+              <div className="lg:col-span-3 mt-8">
+                <h3 className="text-xl font-bold text-slate-950 mb-4 no-print">Invoice Print Preview</h3>
+                <div id="invoice-official-copy" className="bg-white border border-slate-300 rounded-[12px] shadow-md overflow-hidden text-slate-950 p-8 lg:p-12 space-y-6 max-w-4xl mx-auto">
+                  {/* Header: Company Name & Invoice Number */}
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-700">Tax Invoice</p>
+                      <h2 className="mt-2 text-2xl lg:text-3xl font-black text-slate-900">{currentInvoice.businessName || 'Saaiss Software Solution'}</h2>
+                      <p className="mt-1 text-sm text-slate-700 font-medium">{currentInvoice.businessEmail || 'billing@saaiss.in'}{currentInvoice.businessPhone ? ` | ${currentInvoice.businessPhone}` : ""}</p>
+                      {currentInvoice.businessGSTIN && <p className="text-sm text-slate-700 font-medium">GSTIN: {currentInvoice.businessGSTIN}</p>}
+                    </div>
+                    <div className="md:text-right">
+                      <p className="text-sm text-slate-500 font-medium">Invoice Number</p>
+                      <p className="text-2xl font-black text-slate-900">#{currentInvoice.invoiceNo}</p>
+                      <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-700 border border-slate-300">
+                        {currentInvoice.saleType?.toUpperCase() || "CASH"} | {currentInvoice.invoiceSize || "A4"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Details Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-slate-200 pb-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2 border-l-2 border-indigo-500 pl-2">From</h2>
+                        <div className="space-y-0.5 text-sm">
+                          <p className="font-bold text-slate-950">{currentInvoice.businessName || 'Saaiss Software Solution'}</p>
+                          <p className="text-slate-650">{currentInvoice.businessEmail || 'billing@saaiss.in'}</p>
+                          {currentInvoice.businessGSTIN && <p className="text-slate-650">GSTIN: {currentInvoice.businessGSTIN}</p>}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2 border-l-2 border-indigo-500 pl-2">Bill To</h2>
+                        <div className="space-y-0.5 text-sm">
+                          <p className="font-bold text-slate-950">{currentInvoice.partyName || 'Valued Customer'}</p>
+                          {currentInvoice.phoneNo && <p className="text-slate-650">Phone: {currentInvoice.phoneNo}</p>}
+                          {currentInvoice.stateOfSupply && <p className="text-slate-650">State: {currentInvoice.stateOfSupply}</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:text-right flex flex-col md:items-end text-sm">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 w-48 text-left md:text-right">
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date</h2>
+                        <p className="text-slate-950 font-bold">{currentInvoice.invoiceDate}</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 w-48 text-left md:text-right">
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Due Date</h2>
+                        <p className="text-slate-950 font-bold">{currentInvoice.invoiceDate}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items Table */}
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b-2 border-slate-300 text-left bg-slate-50">
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700">Item Name</th>
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700">Code/Type</th>
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700 text-center">Qty</th>
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700 text-right">Price</th>
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700 text-right">Tax %</th>
+                          <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-slate-700 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {currentInvoice.items.map((item, idx) => (
+                          <tr key={item.id || idx} className="text-sm">
+                            <td className="py-4 px-2">
+                              <p className="text-slate-950 font-semibold">{item.itemName}</p>
+                              {item.itemCode && <p className="text-slate-500 text-xs mt-0.5">Code: {item.itemCode}</p>}
+                            </td>
+                            <td className="py-4 px-2 text-slate-650">{item.codeType || "HSN"}: {item.hsnCode || "-"}</td>
+                            <td className="py-4 px-2 text-center text-slate-700">{item.quantity} {item.unit || "Pcs"}</td>
+                            <td className="py-4 px-2 text-right text-slate-700">₹{item.pricePerUnit.toFixed(2)}</td>
+                            <td className="py-4 px-2 text-right text-slate-700">{item.taxPercent}%</td>
+                            <td className="py-4 px-2 text-right text-slate-950 font-bold">₹{item.amount.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Totals Summary */}
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-8 pt-6 border-t border-slate-200">
+                    <div className="text-xs text-slate-500">
+                      <p>Thank you for your business!</p>
+                      <p className="mt-1">This is a system-generated document.</p>
+                    </div>
+
+                    <div className="w-full md:w-72 space-y-2.5 text-sm">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Subtotal</span>
+                        <span>₹{currentInvoice.subtotal.toFixed(2)}</span>
+                      </div>
+                      {currentInvoice.totalSgst > 0 && (
+                        <div className="flex justify-between text-slate-500 text-xs">
+                          <span>SGST</span>
+                          <span>₹{currentInvoice.totalSgst.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {currentInvoice.totalCgst > 0 && (
+                        <div className="flex justify-between text-slate-500 text-xs">
+                          <span>CGST</span>
+                          <span>₹{currentInvoice.totalCgst.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {currentInvoice.totalIgst > 0 && (
+                        <div className="flex justify-between text-slate-500 text-xs">
+                          <span>IGST</span>
+                          <span>₹{currentInvoice.totalIgst.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-slate-600">
+                        <span>Total Tax</span>
+                        <span>₹{currentInvoice.totalTax.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                        <span className="text-base font-bold text-slate-900">Grand Total</span>
+                        <span className="text-xl font-black text-slate-950 border-t-2 border-b-2 border-slate-900 py-1 px-3">
+                          ₹{currentInvoice.total.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Info */}
+                  <div className="px-8 lg:px-12 py-8 bg-slate-50 border-t border-slate-200 text-center">
+                    <p className="text-slate-650 text-sm">
+                      This is a digitally generated invoice. No signature required.
+                    </p>
+                    <p className="text-indigo-600/60 text-[10px] mt-2 tracking-widest font-bold uppercase">
+                      Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2225,14 +2773,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="mt-12 py-8 border-t border-white/40 backdrop-blur-xl bg-white/24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-slate-600 text-sm">
-            Invoice Automation • OCR & Voice Powered
-          </p>
-        </div>
-      </footer>
+      <div className="mt-8 text-center">
+        <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40 bg-white/30">
+          Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+        </p>
+      </div>
     </div>
   );
 };

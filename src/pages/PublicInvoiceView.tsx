@@ -44,7 +44,7 @@ interface InvoiceData {
     businessPhone?: string;
     businessGSTIN?: string;
     transactionType?: "B2B" | "B2C";
-    invoiceSize?: "A4" | "QUARTER_A4";
+    invoiceSize?: "A4" | "QUARTER_A4" | "A6";
     items: InvoiceItem[];
     subtotal: number;
     taxAmount: number;
@@ -115,35 +115,142 @@ const PublicInvoiceView = () => {
         );
     }
 
-    const printSizeClass = invoice.invoiceSize === "QUARTER_A4" ? "invoice-receipt-copy" : "invoice-a4-copy";
+    const printSizeClass = (invoice.invoiceSize === "QUARTER_A4" || invoice.invoiceSize === "A6") ? "invoice-receipt-copy" : "invoice-a4-copy";
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-500/30">
             <style>{`
+                /* Screen view overrides for clean print preview */
+                #invoice-official-copy {
+                    background: white !important;
+                    color: #0f172a !important;
+                    border: 1px solid #cbd5e1 !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
+                }
+                #invoice-official-copy * {
+                    color: #0f172a !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                }
+                #invoice-official-copy .text-blue-200, 
+                #invoice-official-copy .text-slate-200, 
+                #invoice-official-copy .text-indigo-700 {
+                    color: #4f46e5 !important;
+                }
+                #invoice-official-copy .bg-gradient-to-r {
+                    background: transparent !important;
+                }
+                #invoice-official-copy th {
+                    background-color: #f8fafc !important;
+                    color: #0f172a !important;
+                    border-bottom: 2px solid #cbd5e1 !important;
+                }
+                #invoice-official-copy td {
+                    border-bottom: 1px solid #f1f5f9 !important;
+                }
+                #invoice-official-copy .text-white {
+                    color: #0f172a !important;
+                }
+                #invoice-official-copy .bg-white\\/20 {
+                    background-color: #f1f5f9 !important;
+                    border-color: #cbd5e1 !important;
+                }
+                #invoice-official-copy .bg-slate-50 {
+                    background-color: #f8fafc !important;
+                }
+                #invoice-official-copy .text-emerald-400,
+                #invoice-official-copy .text-rose-400,
+                #invoice-official-copy .text-blue-400 {
+                    color: #4f46e5 !important;
+                    border-color: #c7d2fe !important;
+                    background-color: #e0e7ff !important;
+                }
+                #invoice-official-copy .from-violet-600 {
+                    background: transparent !important;
+                    border-bottom: 1px solid #cbd5e1 !important;
+                }
+                #invoice-official-copy .from-indigo-50\\/60 {
+                    background: transparent !important;
+                }
+
                 @media print {
-                    @page {
-                        size: ${invoice.invoiceSize === "QUARTER_A4" ? "105mm 148mm" : "A4"};
-                        margin: ${invoice.invoiceSize === "QUARTER_A4" ? "6mm" : "12mm"};
-                    }
-                    body {
-                        background: white !important;
-                    }
                     .no-print {
                         display: none !important;
                     }
-                    .official-copy {
-                        box-shadow: none !important;
-                        border: 1px solid #d8dee9 !important;
+                    body, html {
                         background: white !important;
                         color: #0f172a !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
                     }
-                    .official-copy * {
+                    /* Hide parent containers or reset layout */
+                    .min-h-screen {
+                        min-height: 0 !important;
+                        background: transparent !important;
+                    }
+                    .relative.z-10 {
+                        position: static !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: 100% !important;
+                        z-index: auto !important;
+                    }
+                    #invoice-official-copy {
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 100% !important;
+                        display: block !important;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                    }
+                    /* Reduce spacing between sections */
+                    #invoice-official-copy > * + * {
+                        margin-top: 0.5rem !important;
+                    }
+                    #invoice-official-copy .pb-6 {
+                        padding-bottom: 0.5rem !important;
+                    }
+                    #invoice-official-copy .pt-6 {
+                        padding-top: 0.5rem !important;
+                    }
+                    #invoice-official-copy .py-8 {
+                        padding-top: 0.5rem !important;
+                        padding-bottom: 0.5rem !important;
+                    }
+                    #invoice-official-copy * {
                         color: #0f172a !important;
+                        background-color: transparent !important;
                         background-image: none !important;
+                    }
+                    @page {
+                        size: A4;
+                        margin: 8mm;
+                    }
+                    #invoice-official-copy table {
+                        page-break-inside: avoid;
+                    }
+                    #invoice-official-copy tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                    #invoice-official-copy td, #invoice-official-copy th {
+                        padding-top: 4px !important;
+                        padding-bottom: 4px !important;
+                    }
+                    #invoice-official-copy h2, #invoice-official-copy h1, #invoice-official-copy p {
+                        margin-top: 1px !important;
+                        margin-bottom: 1px !important;
                     }
                     .invoice-receipt-copy {
                         width: 100% !important;
-                        font-size: 11px !important;
+                        font-size: 10px !important;
                     }
                 }
             `}</style>
@@ -178,160 +285,139 @@ const PublicInvoiceView = () => {
                 </div>
 
                 {/* Invoice Card */}
-                <div id="invoice-official-copy" className={`official-copy ${printSizeClass} backdrop-blur-2xl bg-white/[0.98] border border-slate-200 rounded-[28px] shadow-2xl overflow-hidden text-slate-950`}>
-                    <div className="px-8 lg:px-12 py-6 border-b border-slate-200 bg-slate-950 text-white">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-200">Tax Invoice</p>
-                                <h2 className="mt-2 text-2xl lg:text-3xl font-black text-white">{invoice.businessName}</h2>
-                                <p className="mt-1 text-sm text-slate-300">{invoice.businessEmail}{invoice.businessPhone ? ` | ${invoice.businessPhone}` : ""}</p>
-                                {invoice.businessGSTIN && <p className="text-sm text-slate-300">GSTIN: {invoice.businessGSTIN}</p>}
-                            </div>
-                            <div className="md:text-right">
-                                <p className="text-sm text-slate-300">Invoice Number</p>
-                                <p className="text-xl font-black text-white">#{invoice.invoiceNumber}</p>
-                                <p className="mt-2 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
-                                    {invoice.transactionType || "B2C"} | {invoice.invoiceSize === "QUARTER_A4" ? "Receipt" : "A4"}
-                                </p>
-                            </div>
+                <div id="invoice-official-copy" className={`official-copy ${printSizeClass} bg-white border border-slate-300 rounded-[12px] shadow-md overflow-hidden text-slate-950 p-8 lg:p-12 space-y-6 max-w-4xl mx-auto`}>
+                    <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-700 text-white p-8 -mx-8 -mt-8 rounded-t-[11px] mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Tax Invoice</p>
+                            <h2 className="mt-2 text-2xl lg:text-3xl font-black text-white">{invoice.businessName}</h2>
+                            <p className="mt-1 text-sm text-indigo-100 font-medium">{invoice.businessEmail}{invoice.businessPhone ? ` | ${invoice.businessPhone}` : ""}</p>
+                            {invoice.businessGSTIN && <p className="text-sm text-indigo-100 font-medium">GSTIN: {invoice.businessGSTIN}</p>}
+                        </div>
+                        <div className="md:text-right">
+                            <p className="text-sm text-indigo-200 font-medium">Invoice Number</p>
+                            <p className="text-2xl font-black text-white">#{invoice.invoiceNumber}</p>
+                            <p className="mt-2 inline-flex rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-widest text-white border border-white/20">
+                                {invoice.transactionType || "B2C"} | {(invoice.invoiceSize === "QUARTER_A4" || invoice.invoiceSize === "A6") ? "A6" : "A4"}
+                            </p>
                         </div>
                     </div>
-                    {/* Header Section */}
-                    <div className="p-8 lg:p-12 border-b border-slate-200 bg-gradient-to-br from-blue-50 to-white">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                            <div className="space-y-6">
-                                <div>
-                                    <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-700 mb-4">From</h2>
-                                    <div className="space-y-1">
-                                        <p className="text-xl font-bold text-slate-950">{invoice.businessName}</p>
-                                        <p className="text-slate-600">{invoice.businessEmail}</p>
-                                        {invoice.businessPhone && <p className="text-slate-600">{invoice.businessPhone}</p>}
-                                        {invoice.businessGSTIN && <p className="text-slate-600">GSTIN: {invoice.businessGSTIN}</p>}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-700 mb-4">Bill To</h2>
-                                    <div className="space-y-1">
-                                        <p className="text-xl font-bold text-slate-950">{invoice.customerName}</p>
-                                        <p className="text-slate-600">{invoice.customerEmail}</p>
-                                        {invoice.customerPhone && <p className="text-slate-600">Phone: {invoice.customerPhone}</p>}
-                                        {invoice.customerGSTIN && <p className="text-slate-600">GSTIN: {invoice.customerGSTIN}</p>}
-                                    </div>
+                    {/* Details Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b border-slate-200 pb-6">
+                        <div className="space-y-4">
+                            <div>
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2 border-l-2 border-indigo-500 pl-2">From</h2>
+                                <div className="space-y-0.5 text-sm">
+                                    <p className="font-bold text-slate-950">{invoice.businessName}</p>
+                                    <p className="text-slate-650">{invoice.businessEmail}</p>
+                                    {invoice.businessGSTIN && <p className="text-slate-650">GSTIN: {invoice.businessGSTIN}</p>}
                                 </div>
                             </div>
 
-                            <div className="space-y-6 md:text-right flex flex-col md:items-end">
-                                <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${invoice.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                    invoice.status === 'overdue' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                                        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                    }`}>
-                                    {invoice.status}
+                            <div>
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2 border-l-2 border-indigo-500 pl-2">Bill To</h2>
+                                <div className="space-y-0.5 text-sm">
+                                    <p className="font-bold text-slate-950">{invoice.customerName}</p>
+                                    {invoice.customerPhone && <p className="text-slate-650">Phone: {invoice.customerPhone}</p>}
+                                    {invoice.customerGSTIN && <p className="text-slate-650">GSTIN: {invoice.customerGSTIN}</p>}
                                 </div>
+                            </div>
+                        </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-1 gap-6 md:gap-4 md:w-full">
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Invoice Date</h2>
-                                        <p className="text-slate-950 font-bold">{new Date(invoice.invoiceDate).toLocaleDateString()}</p>
-                                    </div>
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Due Date</h2>
-                                        <p className="text-slate-950 font-bold">{new Date(invoice.dueDate).toLocaleDateString()}</p>
-                                    </div>
-                                </div>
+                        <div className="space-y-2 md:text-right flex flex-col md:items-end text-sm">
+                            <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 w-48 text-left md:text-right">
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-650">Invoice Date</h2>
+                                <p className="text-slate-950 font-bold">{new Date(invoice.invoiceDate).toLocaleDateString()}</p>
+                            </div>
+                            <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 w-48 text-left md:text-right">
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-650">Due Date</h2>
+                                <p className="text-slate-950 font-bold">{new Date(invoice.dueDate).toLocaleDateString()}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Items Table */}
-                    <div className="p-8 lg:p-12 bg-white">
-                        <div className="w-full overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="border-b border-slate-200 text-left">
-                                        <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500">Item Description</th>
-                                        <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500">HSN/SAC</th>
-                                        <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Qty</th>
-                                        <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Unit Price</th>
-                                        <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Total</th>
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-indigo-250 text-left bg-indigo-50/70">
+                                    <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-indigo-800">Item Description</th>
+                                    <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-indigo-800">HSN/SAC</th>
+                                    <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-indigo-800 text-center">Qty</th>
+                                    <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-indigo-800 text-right">Price</th>
+                                    <th className="py-3 px-2 text-xs font-bold uppercase tracking-wider text-indigo-800 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {invoice.items.map((item, idx) => (
+                                    <tr key={idx} className="text-sm">
+                                        <td className="py-4 px-2">
+                                            <p className="text-slate-950 font-semibold">{item.productName}</p>
+                                            {item.description && <p className="text-slate-500 text-xs mt-0.5">{item.description}</p>}
+                                        </td>
+                                        <td className="py-4 px-2 text-slate-650">HSN: {item.hsnCode || item.sacCode || "-"}</td>
+                                        <td className="py-4 px-2 text-center text-slate-700">{item.quantity} {item.unit || "Pcs"}</td>
+                                        <td className="py-4 px-2 text-right text-slate-700">₹{item.unitPrice.toFixed(2)}</td>
+                                        <td className="py-4 px-2 text-right text-slate-950 font-bold">₹{item.total.toFixed(2)}</td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {invoice.items.map((item, idx) => (
-                                        <tr key={idx} className="group">
-                                            <td className="py-6 pr-4">
-                                                <p className="text-slate-950 font-semibold transition-colors group-hover:text-blue-700">{item.productName}</p>
-                                                {item.description && <p className="text-slate-500 text-sm mt-1">{item.description}</p>}
-                                            </td>
-                                            <td className="py-6 text-slate-600 font-medium">{item.hsnCode || item.sacCode || "-"}</td>
-                                            <td className="py-6 text-center text-slate-700 font-medium">{item.quantity} {item.unit || ""}</td>
-                                            <td className="py-6 text-right text-slate-700 font-medium">₹{item.unitPrice.toFixed(2)}</td>
-                                            <td className="py-6 text-right text-slate-950 font-bold">₹{item.total.toFixed(2)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Totals Summary */}
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-8 pt-6 border-t border-slate-200">
+                        <div className="text-xs text-slate-500">
+                            <p>Thank you for your business!</p>
+                            <p className="mt-1">This is a system-generated document.</p>
                         </div>
 
-                        {/* Totals Section */}
-                        <div className="mt-12 flex flex-col md:flex-row justify-between items-start gap-12 pt-12 border-t border-slate-200">
-                            <div className="max-w-xs">
-                                <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-700 mb-4">Payment Method</h2>
-                                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                    <CreditCard className="h-5 w-5 text-slate-500" />
-                                    <p className="text-slate-950 font-medium capitalize">{invoice.paymentMethod.replace("_", " ")}</p>
-                                </div>
+                        <div className="w-full md:w-72 space-y-2.5 text-sm">
+                            <div className="flex justify-between text-slate-600">
+                                <span>Subtotal</span>
+                                <span>₹{invoice.subtotal.toFixed(2)}</span>
                             </div>
-
-                            <div className="w-full md:w-80 space-y-4">
-                                <div className="flex justify-between items-center text-slate-600">
-                                    <span>Subtotal</span>
-                                    <span className="text-slate-950 font-medium">₹{invoice.subtotal.toFixed(2)}</span>
-                                </div>
-                                {/* GST Breakdown */}
-                                {(invoice.sgst && invoice.sgst > 0) || (invoice.cgst && invoice.cgst > 0) ? (
-                                    <>
-                                        <div className="flex justify-between items-center text-slate-600 text-sm">
-                                            <span>SGST</span>
-                                            <span className="text-slate-950 font-medium">₹{(invoice.sgst || 0).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-slate-600 text-sm">
-                                            <span>CGST</span>
-                                            <span className="text-slate-950 font-medium">₹{(invoice.cgst || 0).toFixed(2)}</span>
-                                        </div>
-                                    </>
-                                ) : invoice.igst && invoice.igst > 0 ? (
-                                    <div className="flex justify-between items-center text-slate-600 text-sm">
-                                        <span>IGST</span>
-                                        <span className="text-slate-950 font-medium">₹{invoice.igst.toFixed(2)}</span>
+                            {(invoice.sgst && invoice.sgst > 0) || (invoice.cgst && invoice.cgst > 0) ? (
+                                <>
+                                    <div className="flex justify-between text-slate-550 text-xs">
+                                        <span>SGST</span>
+                                        <span>₹{(invoice.sgst || 0).toFixed(2)}</span>
                                     </div>
-                                ) : (
-                                    <div className="flex justify-between items-center text-slate-600">
-                                        <span>Tax Amount</span>
-                                        <span className="text-slate-950 font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
+                                    <div className="flex justify-between text-slate-550 text-xs">
+                                        <span>CGST</span>
+                                        <span>₹{(invoice.cgst || 0).toFixed(2)}</span>
                                     </div>
-                                )}
-                                <div className="flex justify-between items-center text-slate-600 pb-4 border-b border-slate-200">
-                                    <span>Total Tax</span>
-                                    <span className="text-slate-950 font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
+                                </>
+                            ) : invoice.igst && invoice.igst > 0 ? (
+                                <div className="flex justify-between text-slate-550 text-xs">
+                                    <span>IGST</span>
+                                    <span>₹{invoice.igst.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between items-center pt-2">
-                                    <span className="text-lg font-bold text-slate-950">Grand Total</span>
-                                    <span className="text-3xl font-black text-blue-700 bg-blue-50 px-4 py-1 rounded-2xl">
-                                        ₹{invoice.grandTotal.toFixed(2)}
-                                    </span>
+                            ) : (
+                                <div className="flex justify-between text-slate-600">
+                                    <span>Tax Amount</span>
+                                    <span>₹{invoice.taxAmount.toFixed(2)}</span>
                                 </div>
+                            )}
+                            <div className="flex justify-between text-slate-600 pb-4 border-b border-slate-200">
+                                <span>Total Tax</span>
+                                <span>₹{invoice.taxAmount.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-3 pb-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl shadow-md text-white">
+                                <span className="text-base font-bold">Grand Total</span>
+                                <span className="text-2xl font-black">
+                                    ₹{invoice.grandTotal.toFixed(2)}
+                                </span>
                             </div>
                         </div>
                     </div>
 
                     {/* Footer Info */}
                     <div className="px-8 lg:px-12 py-8 bg-slate-50 border-t border-slate-200 text-center">
-                        <p className="text-slate-600 text-sm">
+                        <p className="text-slate-650 text-sm">
                             This is a digitally generated invoice. No signature required.
                         </p>
-                        <p className="text-blue-700/60 text-[10px] mt-2 tracking-widest font-bold uppercase">
-                            Powered by Invoice Automation System
+                        <p className="text-indigo-600/60 text-[10px] mt-2 tracking-widest font-bold uppercase">
+                            Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
                         </p>
                     </div>
                 </div>

@@ -121,17 +121,102 @@ const PublicPurchaseInvoiceView = () => {
     return (
         <>
             <style>{`
+                /* Screen view overrides for clean print preview */
+                #purchase-invoice-print {
+                    background: white !important;
+                    color: #0f172a !important;
+                    border: 1px solid #cbd5e1 !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
+                }
+                #purchase-invoice-print * {
+                    color: #0f172a !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                }
+                #purchase-invoice-print .text-amber-350,
+                #purchase-invoice-print .text-slate-350,
+                #purchase-invoice-print .text-amber-400,
+                #purchase-invoice-print .text-amber-300 {
+                    color: #d97706 !important;
+                }
+                #purchase-invoice-print th {
+                    background-color: #f8fafc !important;
+                    color: #0f172a !important;
+                    border-bottom: 2px solid #cbd5e1 !important;
+                }
+                #purchase-invoice-print td {
+                    border-bottom: 1px solid #f1f5f9 !important;
+                }
+                #purchase-invoice-print .text-white {
+                    color: #0f172a !important;
+                }
+                #purchase-invoice-print .border-amber-400\/30,
+                #purchase-invoice-print .border-white\/10 {
+                    border-color: #cbd5e1 !important;
+                }
+                #purchase-invoice-print .bg-amber-400\/10 {
+                    background-color: #fef3c7 !important;
+                }
+                #purchase-invoice-print .bg-black\/20,
+                #purchase-invoice-print .bg-white\/5 {
+                    background-color: #f8fafc !important;
+                }
+                #purchase-invoice-print .text-slate-400,
+                #purchase-invoice-print .text-slate-300 {
+                    color: #4b5563 !important;
+                }
+                #purchase-invoice-print .bg-gradient-to-r {
+                    background: transparent !important;
+                }
+
                 @media print {
-                    body * { visibility: hidden; }
-                    #purchase-invoice-print, #purchase-invoice-print * { visibility: visible; }
-                    #purchase-invoice-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border-radius: 0 !important; }
-                    .no-print { display: none !important; }
-                    @page { size: ${invoiceSize}; margin: 12mm; }
+                    .no-print {
+                        display: none !important;
+                    }
+                    body, html, .min-h-screen, .relative.z-10, .max-w-5xl, .max-w-\[720px\] {
+                        background: white !important;
+                        color: #0f172a !important;
+                        box-shadow: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        max-width: 100% !important;
+                    }
+                    #purchase-invoice-print {
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 100% !important;
+                        display: block !important;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        page-break-inside: avoid;
+                    }
+                    #purchase-invoice-print * {
+                        color: #0f172a !important;
+                        background-color: transparent !important;
+                        background-image: none !important;
+                    }
+                    @page {
+                        size: ${invoiceSize};
+                        margin: 8mm;
+                    }
+                    #purchase-invoice-print td, #purchase-invoice-print th {
+                        padding-top: 5px !important;
+                        padding-bottom: 5px !important;
+                    }
+                    #purchase-invoice-print h2, #purchase-invoice-print h1, #purchase-invoice-print p {
+                        margin-top: 1px !important;
+                        margin-bottom: 1px !important;
+                    }
                 }
             `}</style>
             <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-500/30">
                 {/* Background Effects */}
-                <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="fixed inset-0 overflow-hidden pointer-events-none no-print">
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-600/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
                     <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-600/10 blur-[120px] rounded-full -translate-x-1/2 translate-y-1/2" />
                 </div>
@@ -163,7 +248,7 @@ const PublicPurchaseInvoiceView = () => {
                     {/* Invoice Card */}
                     <div id="purchase-invoice-print" className="backdrop-blur-2xl bg-white/[0.04] border border-white/10 rounded-[28px] shadow-2xl overflow-hidden">
                         {/* Header Section */}
-                        <div className="p-8 lg:p-10 border-b border-white/10 bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent">
+                        <div className="p-8 lg:p-10 border-b border-white/10 bg-gradient-to-r from-amber-600/30 via-orange-500/20 to-rose-500/10">
                             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div>
                                     <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-300">{invoiceFormat}</p>
@@ -227,13 +312,13 @@ const PublicPurchaseInvoiceView = () => {
                             <div className="w-full overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-left">
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500">Item</th>
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Qty</th>
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Unit</th>
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Price/Unit</th>
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Tax</th>
-                                            <th className="pb-6 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Amount</th>
+                                        <tr className="border-b border-white/10 text-left bg-white/5">
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400">Item</th>
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400 text-center">Qty</th>
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400 text-center">Unit</th>
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400 text-right">Price/Unit</th>
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400 text-right">Tax</th>
+                                            <th className="py-4 px-3 text-xs font-bold uppercase tracking-wider text-amber-400 text-right">Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
@@ -305,7 +390,7 @@ const PublicPurchaseInvoiceView = () => {
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-lg font-bold text-white">Grand Total</span>
-                                        <span className="text-3xl font-black text-amber-400 bg-amber-400/10 px-4 py-1 rounded-2xl">
+                                        <span className="text-3xl font-black text-white bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-2.5 rounded-2xl shadow-lg transition-transform hover:scale-105">
                                             ₹{invoice.total.toFixed(2)}
                                         </span>
                                     </div>
@@ -319,7 +404,7 @@ const PublicPurchaseInvoiceView = () => {
                                 This is a digitally generated purchase invoice. No signature required.
                             </p>
                             <p className="text-amber-500/40 text-[10px] mt-2 tracking-widest font-bold uppercase">
-                                Powered by Sri Andal Financial Automation
+                                Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
                             </p>
                         </div>
                     </div>
