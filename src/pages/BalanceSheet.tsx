@@ -50,6 +50,7 @@ const BalanceSheet = () => {
 
   const [formData, setFormData] = useState({
     companyName: DEFAULT_REPORT_COMPANY_NAME,
+    financialYear: "2025-2026",
     // Current Assets sub-items
     cashInHand: "",
     tradeReceivable: "",
@@ -130,6 +131,7 @@ const BalanceSheet = () => {
       totalLiabilitiesEquity,
       balanced,
       companyName: getReportCompanyName(formData.companyName),
+      financialYear: formData.financialYear,
       breakdown: {
         assets: {
           currentAssets: buildLineItems(currentAssetFields),
@@ -183,7 +185,7 @@ const BalanceSheet = () => {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const month = monthNames[new Date().getMonth()];
     const year = new Date().getFullYear();
-    const formattedDate = `As of ${day} ${month} ${year}`;
+    const formattedDate = `Financial Year: ${balanceSheet.financialYear || formData.financialYear}  |  As of ${day} ${month} ${year}`;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
@@ -407,16 +409,29 @@ const BalanceSheet = () => {
             </CardHeader>
 
             <CardContent className="space-y-6 relative">
-              <div className="space-y-2 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
-                <Label htmlFor="companyName" className="text-slate-700 font-semibold">Enter Your Company Name</Label>
-                <Input
-                  id="companyName"
-                  type="text"
-                  placeholder="Enter your company name"
-                  value={formData.companyName}
-                  onChange={(e) => handleInputChange("companyName", e.target.value)}
-                  className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 rounded-[28px] bg-white/60 border border-white/80 shadow-sm backdrop-blur-xl">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-slate-700 font-semibold">Enter Your Company Name</Label>
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Enter your company name"
+                    value={formData.companyName}
+                    onChange={(e) => handleInputChange("companyName", e.target.value)}
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="financialYear" className="text-slate-700 font-semibold">Financial Year</Label>
+                  <Input
+                    id="financialYear"
+                    type="text"
+                    placeholder="e.g., 2025-2026"
+                    value={formData.financialYear}
+                    onChange={(e) => handleInputChange("financialYear", e.target.value)}
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                  />
+                </div>
               </div>
 
               {/* Assets Section */}
@@ -598,9 +613,16 @@ const BalanceSheet = () => {
 
               <CardHeader className="relative pt-8">
                 <CardTitle className="text-2xl font-bold text-slate-950">Balance Sheet Report</CardTitle>
-                <CardDescription className={balanceSheet.balanced ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}>
-                  {balanceSheet.balanced ? "Balance sheet is balanced ✓" : "Balance sheet is NOT balanced"}
-                </CardDescription>
+                <div className="flex flex-col gap-1 mt-1">
+                  {balanceSheet.financialYear && (
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Financial Year: {balanceSheet.financialYear}
+                    </span>
+                  )}
+                  <CardDescription className={balanceSheet.balanced ? "text-emerald-700 font-semibold" : "text-rose-700 font-semibold"}>
+                    {balanceSheet.balanced ? "Balance sheet is balanced ✓" : "Balance sheet is NOT balanced"}
+                  </CardDescription>
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-6 relative">
@@ -680,6 +702,12 @@ const BalanceSheet = () => {
               </CardContent>
             </Card>
           )}
+        </div>
+        
+        <div className="mt-8 text-center pb-8">
+            <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40">
+                Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+            </p>
         </div>
       </main>
     </div>

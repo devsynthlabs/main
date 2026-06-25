@@ -54,6 +54,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Serve static files from the uploads directory
+app.use("/uploads", express.static("uploads"));
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });

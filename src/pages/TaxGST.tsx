@@ -46,6 +46,8 @@ const TaxGST = () => {
   const [companyName, setCompanyName] = useState(DEFAULT_REPORT_COMPANY_NAME);
 
   // Calculator State
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState("");
   const [gstRate, setGstRate] = useState("18");
   const [transactionType, setTransactionType] = useState("intrastate");
@@ -57,6 +59,29 @@ const TaxGST = () => {
   const [returns, setReturns] = useState<TaxReturn[]>([]);
   const [filteredReturns, setFilteredReturns] = useState<TaxReturn[]>([]);
 
+  // Generate next sequential GST invoice number
+  const generateGSTInvoiceNo = (currentReturns: TaxReturn[]) => {
+    const prefix = 'GST';
+    const year = new Date().getFullYear();
+    let next = 1;
+
+    if (currentReturns && currentReturns.length > 0) {
+      const matchingNos = currentReturns
+        .filter(ret => ret.invoiceNumber && ret.invoiceNumber.startsWith(`${prefix}-${year}-`))
+        .map(ret => {
+          const parts = ret.invoiceNumber!.split('-');
+          const numStr = parts[parts.length - 1];
+          const num = parseInt(numStr, 10);
+          return isNaN(num) ? 0 : num;
+        });
+
+      if (matchingNos.length > 0) {
+        next = Math.max(...matchingNos) + 1;
+      }
+    }
+    return `${prefix}-${year}-${String(next).padStart(5, '0')}`;
+  };
+
   // Fetch GST data from backend
   useEffect(() => {
     const fetchReturns = async () => {
@@ -65,6 +90,7 @@ const TaxGST = () => {
         const data = await response.json();
         setReturns(data);
         setFilteredReturns(data);
+        setInvoiceNumber(generateGSTInvoiceNo(data));
       } catch (error) {
         console.error("Error fetching GST data:", error);
       }
@@ -95,6 +121,8 @@ const TaxGST = () => {
     setShowResult(true);
 
     const taxData = {
+      invoiceNumber,
+      invoiceDate,
       baseAmount,
       gstRate: parseFloat(gstRate),
       transactionType,
@@ -121,6 +149,7 @@ const TaxGST = () => {
         const newData = await response.json();
         setReturns(newData);
         setFilteredReturns(newData);
+        setInvoiceNumber(generateGSTInvoiceNo(newData));
         toast({
           title: "Success",
           description: "GST return entry saved successfully!",
@@ -448,6 +477,31 @@ const TaxGST = () => {
               </CardHeader>
 
               <CardContent className="space-y-8 p-8">
+                {/* Invoice Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="invoiceNumber" className="font-semibold text-slate-700">Invoice Number</Label>
+                    <Input
+                      id="invoiceNumber"
+                      type="text"
+                      placeholder="e.g., GST-2026-0001"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="invoiceDate" className="font-semibold text-slate-700">Invoice Date</Label>
+                    <Input
+                      id="invoiceDate"
+                      type="date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 focus:border-slate-300 focus:ring-0 transition-all duration-300"
+                    />
+                  </div>
+                </div>
+
                 {/* Base Amount Input */}
                 <div className="space-y-3 group">
                   <Label htmlFor="amount" className="font-semibold text-slate-700 text-lg flex items-center gap-2">
@@ -740,13 +794,13 @@ const TaxGST = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Bottom floating info */}
-        <div className="mt-8 text-center">
-          <p className="text-slate-500 text-sm bg-white/45 backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/60">
-            Powered by Advanced Tax Calculation Engine ✨
-          </p>
-        </div>
       </main>
+
+      <div className="mt-8 text-center">
+        <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40 bg-white/30">
+          Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+        </p>
+      </div>
     </div>
   );
 };

@@ -5,6 +5,8 @@ const router = express.Router();
 
 // ✅ Define GST Schema
 const gstSchema = new mongoose.Schema({
+  invoiceNumber: { type: String },
+  invoiceDate: { type: String },
   baseAmount: { type: Number, required: true }, // frontend sends baseAmount
   gstRate: { type: Number, required: true },
   transactionType: { type: String, enum: ["intrastate", "interstate"], required: true },

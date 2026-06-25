@@ -2265,6 +2265,12 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                     </AlertDialogContent>
                 </AlertDialog>
             </main>
+
+            <div className="mt-8 text-center">
+                <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40 bg-white/30">
+                    Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+                </p>
+            </div>
         </div>
     );
 };

@@ -17,6 +17,7 @@ const ProfitLoss = () => {
   // UPDATED formData with 8 expense fields (matching Python)
   const [formData, setFormData] = useState({
     companyName: DEFAULT_REPORT_COMPANY_NAME,
+    financialYear: "2025-2026",
     // Revenue
     sales: "",
     serviceIncome: "",
@@ -69,6 +70,7 @@ const ProfitLoss = () => {
 
     const result = {
       companyName: getReportCompanyName(formData.companyName),
+      financialYear: formData.financialYear,
       // Revenue
       sales,
       serviceIncome,
@@ -176,7 +178,7 @@ const ProfitLoss = () => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, pageW / 2, y, { align: "center" });
+    doc.text(`Financial Year: ${statement.financialYear || formData.financialYear}  |  Generated: ${new Date().toLocaleDateString('en-IN')}`, pageW / 2, y, { align: "center" });
     y += 10;
 
     // 1. Revenue Table
@@ -378,16 +380,29 @@ const ProfitLoss = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2 p-5 rounded-[24px] bg-white/60 border border-white/80 shadow-sm">
-                <Label htmlFor="companyName" className="text-slate-700 font-semibold">Enter Your Company Name</Label>
-                <Input
-                  id="companyName"
-                  type="text"
-                  placeholder="Enter your company name"
-                  value={formData.companyName}
-                  onChange={(e) => handleInputChange("companyName", e.target.value)}
-                  className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-[24px] bg-white/60 border border-white/80 shadow-sm">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-slate-700 font-semibold">Enter Your Company Name</Label>
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Enter your company name"
+                    value={formData.companyName}
+                    onChange={(e) => handleInputChange("companyName", e.target.value)}
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="financialYear" className="text-slate-700 font-semibold">Financial Year</Label>
+                  <Input
+                    id="financialYear"
+                    type="text"
+                    placeholder="e.g., 2025-2026"
+                    value={formData.financialYear}
+                    onChange={(e) => handleInputChange("financialYear", e.target.value)}
+                    className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0"
+                  />
+                </div>
               </div>
 
               {/* Revenue Section */}
@@ -475,9 +490,16 @@ const ProfitLoss = () => {
                   {statement.profitable ? <TrendingUp className="h-6 w-6 text-emerald-600" /> : <TrendingDown className="h-6 w-6 text-rose-600" />}
                   Financial Summary
                 </CardTitle>
-                <CardDescription className={statement.profitable ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}>
-                  Detailed profit & loss breakdown with AI insights
-                </CardDescription>
+                <div className="flex flex-col gap-1 mt-1">
+                  {statement.financialYear && (
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Financial Year: {statement.financialYear}
+                    </span>
+                  )}
+                  <CardDescription className={statement.profitable ? 'text-emerald-700 font-semibold' : 'text-rose-700 font-semibold'}>
+                    Detailed profit & loss breakdown with AI insights
+                  </CardDescription>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="p-5 rounded-2xl bg-white/70 border border-slate-200 space-y-3">
@@ -585,6 +607,12 @@ const ProfitLoss = () => {
           )}
         </div>
       </main>
+
+      <div className="mt-8 text-center">
+        <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40 bg-white/30">
+          Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+        </p>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,11 @@
 import express from "express";
 import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -86,7 +92,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   invoiceSize: {
     type: String,
-    enum: ['A4', 'QUARTER_A4'],
+    enum: ['A4', 'QUARTER_A4', 'A6'],
     default: 'A4'
   },
   dueReminderDays: { type: Number, default: 0 },

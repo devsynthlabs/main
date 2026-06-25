@@ -1100,7 +1100,11 @@ const FraudDetection = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
+        <div className="mt-8 text-center pb-8">
+            <p className="text-slate-500 text-sm backdrop-blur-md inline-block px-6 py-2 rounded-full border border-white/40">
+                Powered by SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED ✨
+            </p>
+        </div>
       </main>
     </div>
   );
