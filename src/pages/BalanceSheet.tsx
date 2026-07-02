@@ -165,6 +165,7 @@ const BalanceSheet = () => {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
     // 1. Blue Header Banner
     doc.setFillColor(26, 54, 164);
@@ -185,7 +186,7 @@ const BalanceSheet = () => {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const month = monthNames[new Date().getMonth()];
     const year = new Date().getFullYear();
-    const formattedDate = `Financial Year: ${balanceSheet.financialYear || formData.financialYear}  |  As of ${day} ${month} ${year}`;
+    const formattedDate = `Financial Year: ${balanceSheet.financialYear || formData.financialYear}  |  As on ${day} ${month} ${year}`;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
@@ -199,29 +200,29 @@ const BalanceSheet = () => {
     const contentWidth = pageWidth - 30; // 180mm
     const drawDetailRows = (rows = []) => {
       rows.forEach((row) => {
-        y += 6;
+        y += 5;
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
+        doc.setFontSize(8.0);
         doc.setTextColor(95, 95, 95);
         doc.text(row.label, startX + 8, y);
         doc.text(formatCurrency(row.value), startX + contentWidth - 3, y, { align: "right" });
       });
-      y += 3;
+      y += 2.5;
       doc.setDrawColor(240, 240, 240);
       doc.line(startX, y, startX + contentWidth, y);
     };
 
     // --- ASSETS SECTION ---
-    let y = 56;
+    let y = 54;
     doc.setFillColor(239, 246, 255); // Very light blue
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.5);
     doc.setTextColor(29, 78, 216); // Blue text
-    doc.text("ASSETS", startX + 3, y + 5.5);
+    doc.text("ASSETS", startX + 3, y + 5.0);
 
     // Current Assets row
-    y += 14;
+    y += 11;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(50, 50, 50);
@@ -230,7 +231,7 @@ const BalanceSheet = () => {
     drawDetailRows(balanceSheet.breakdown?.assets?.currentAssets);
 
     // Non-Current Assets row
-    y += 7;
+    y += 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(50, 50, 50);
@@ -241,21 +242,21 @@ const BalanceSheet = () => {
     // Total Assets row
     y += 2;
     doc.setFillColor(248, 250, 252); // Light grey
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
-    doc.text("Total Assets", startX + 3, y + 5.5);
-    doc.text(formatCurrency(balanceSheet.totalAssets), startX + contentWidth - 3, y + 5.5, { align: "right" });
+    doc.text("Total Assets", startX + 3, y + 5.0);
+    doc.text(formatCurrency(balanceSheet.totalAssets), startX + contentWidth - 3, y + 5.0, { align: "right" });
 
     // --- LIABILITIES SECTION ---
-    y += 18;
+    y += 12;
     doc.setFillColor(255, 247, 237); // Very light orange
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
     doc.setTextColor(194, 65, 12); // Orange text
-    doc.text("LIABILITIES", startX + 3, y + 5.5);
+    doc.text("LIABILITIES", startX + 3, y + 5.0);
 
     // Current Liabilities row
-    y += 14;
+    y += 11;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50, 50, 50);
     doc.text("Current Liabilities", startX + 3, y);
@@ -263,7 +264,7 @@ const BalanceSheet = () => {
     drawDetailRows(balanceSheet.breakdown?.liabilities?.currentLiabilities);
 
     // Non-Current Liabilities row
-    y += 7;
+    y += 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.setTextColor(50, 50, 50);
@@ -274,21 +275,21 @@ const BalanceSheet = () => {
     // Total Liabilities row
     y += 2;
     doc.setFillColor(248, 250, 252); // Light grey
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
-    doc.text("Total Liabilities", startX + 3, y + 5.5);
-    doc.text(formatCurrency(balanceSheet.totalLiabilities), startX + contentWidth - 3, y + 5.5, { align: "right" });
+    doc.text("Total Liabilities", startX + 3, y + 5.0);
+    doc.text(formatCurrency(balanceSheet.totalLiabilities), startX + contentWidth - 3, y + 5.0, { align: "right" });
 
     // --- EQUITY SECTION ---
-    y += 18;
+    y += 12;
     doc.setFillColor(240, 253, 244); // Very light green
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
     doc.setTextColor(22, 163, 74); // Green text
-    doc.text("EQUITY", startX + 3, y + 5.5);
+    doc.text("EQUITY", startX + 3, y + 5.0);
 
     // Equity row
-    y += 14;
+    y += 11;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(50, 50, 50);
     doc.text("Equity", startX + 3, y);
@@ -298,23 +299,23 @@ const BalanceSheet = () => {
     // Total Equity row
     y += 2;
     doc.setFillColor(248, 250, 252); // Light grey
-    doc.rect(startX, y, contentWidth, 8, "F");
+    doc.rect(startX, y, contentWidth, 7, "F");
     doc.setFont("helvetica", "bold");
-    doc.text("Total Equity", startX + 3, y + 5.5);
-    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y + 5.5, { align: "right" });
+    doc.text("Total Equity", startX + 3, y + 5.0);
+    doc.text(formatCurrency(balanceSheet.equity), startX + contentWidth - 3, y + 5.0, { align: "right" });
 
     // --- TOTAL LIABILITIES + EQUITY ROW ---
-    y += 16;
+    y += 11;
     doc.setFillColor(15, 23, 42); // Slate 900
-    doc.rect(startX, y, contentWidth, 12, "F");
+    doc.rect(startX, y, contentWidth, 10, "F");
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text("Total Liabilities + Equity", startX + 5, y + 7.5);
+    doc.text("Total Liabilities + Equity", startX + 5, y + 6.5);
     doc.setTextColor(147, 197, 253); // Light blue
-    doc.text(formatCurrency(balanceSheet.totalLiabilitiesEquity), startX + contentWidth - 5, y + 7.5, { align: "right" });
+    doc.text(formatCurrency(balanceSheet.totalLiabilitiesEquity), startX + contentWidth - 5, y + 6.5, { align: "right" });
 
     // --- BALANCED/UNBALANCED BOX ---
-    y += 20;
+    y += 13;
     const isBalanced = balanceSheet.balanced;
     if (isBalanced) {
       doc.setFillColor(240, 253, 244); // Light green
@@ -347,13 +348,13 @@ const BalanceSheet = () => {
     }
 
     // --- FOOTER ---
-    y += 28;
+    const footerY = pageHeight - 12;
     doc.setDrawColor(220, 220, 220);
-    doc.line(startX, y, startX + contentWidth, y);
+    doc.line(startX, footerY - 3, startX + contentWidth, footerY - 3);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(156, 163, 175);
-    doc.text(`Generated by ${REPORT_FOOTER_COMPANY}  |  Powered by Advanced Financial Analytics Engine`, pageWidth / 2, y + 5, { align: "center" });
+    doc.text(`Powered by ${REPORT_FOOTER_COMPANY}`, pageWidth / 2, footerY, { align: "center" });
 
     // Save PDF
     doc.save(`Balance_Sheet_${Date.now()}.pdf`);

@@ -68,7 +68,7 @@ const INDIAN_STATES = [
 
 const GST_SLABS = ["0", "5", "12", "18", "28", "40"];
 const UNITS = ["Pcs", "Kg", "Ltr", "Mtr", "Box", "Dozen", "Pair", "Set", "Nos"];
-const COMPANY_NAME = "SHREE ANDAL AI SOFTWARE SOLUTIONS";
+const COMPANY_NAME = "SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED";
 const COMPANY_EMAIL = "support@saaiss.in";
 
 const HSN_SAC_AUTOMATION: Record<string, { code: string; codeType: 'HSN' | 'SAC'; gstRate: number }> = {
@@ -186,14 +186,13 @@ const AutomationInvoice = () => {
   // Generate invoice number
   const generateInvoiceNo = (type: 'sales' | 'purchase') => {
     const prefix = type === 'sales' ? 'INV' : 'PUR';
-    const year = new Date().getFullYear();
     const saved = localStorage.getItem('savedInvoices');
     let next = 1;
     if (saved) {
       try {
         const invoices = JSON.parse(saved) as InvoiceData[];
         const matchingNos = invoices
-          .filter(inv => inv.type === type && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-${year}-`))
+          .filter(inv => inv.type === type && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-`))
           .map(inv => {
             const parts = inv.invoiceNo.split('-');
             const numStr = parts[parts.length - 1];
@@ -208,7 +207,7 @@ const AutomationInvoice = () => {
         console.error(e);
       }
     }
-    return `${prefix}-${year}-${String(next).padStart(5, '0')}`;
+    return `${prefix}-${String(next).padStart(5, '0')}`;
   };
 
   const classifyTransaction = (sellerGSTIN = currentInvoice.sellerGSTIN, customerGSTIN = currentInvoice.customerGSTIN || ''): 'B2B' | 'B2C' => {
@@ -466,9 +465,8 @@ const AutomationInvoice = () => {
 
       // Recalculate invoice number dynamically based on maximum sequence number
       const prefix = invoiceType === 'sales' ? 'INV' : 'PUR';
-      const year = new Date().getFullYear();
       const matchingNos = mergedInvoices
-        .filter(inv => inv.type === invoiceType && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-${year}-`))
+        .filter(inv => inv.type === invoiceType && inv.invoiceNo && inv.invoiceNo.startsWith(`${prefix}-`))
         .map(inv => {
           const parts = inv.invoiceNo.split('-');
           const numStr = parts[parts.length - 1];
@@ -481,7 +479,7 @@ const AutomationInvoice = () => {
         next = Math.max(...matchingNos) + 1;
       }
 
-      const newNo = `${prefix}-${year}-${String(next).padStart(5, '0')}`;
+      const newNo = `${prefix}-${String(next).padStart(5, '0')}`;
       setCurrentInvoice(prev => ({
         ...prev,
         invoiceNo: newNo
@@ -1353,30 +1351,30 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
     const data = lastSavedId ? currentInvoice : (invoiceHistory[0] || currentInvoice);
     const customerName = data.partyName || 'Valued Customer';
 
-    // Build professional message based on user template
-    let message = `*INVOICE: ${data.invoiceNo}*\n`;
-    message += `__________________________\n\n`;
-    message += `Dear *${customerName}*,\n\n`;
-    message += `A new invoice has been generated for your recent transaction with *Saaiss Software Solution*.\n\n`;
-    message += `*Bill Summary:*\n`;
-    message += `• Invoice ID: #${data.invoiceNo}\n`;
-    message += `• Date: ${data.invoiceDate}\n`;
-    message += `• Total Amount: ₹${data.total.toFixed(2)}\n\n`;
-    message += `You can view, download, or pay your invoice online using the secure link below:\n`;
-
-    const idToUse = lastSavedId || (data as any).id;
-    if (!idToUse) {
-      toast.error("Please save the invoice first.");
-      return;
-    }
-    const shareLink = `https://software.saaiss.in/invoice/view/${idToUse}`;
-
-    message += `🔗 ${shareLink}\n\n`;
-    message += `If you have any questions regarding this invoice, please feel free to reach out to us.\n\n`;
-    message += `Best regards,\n`;
-    message += `*Saaiss Software Solution*\n`;
-    message += `__________________________\n`;
-    message += `_Powered by Sri Andal Financial Automation_`;
+     // Build professional message based on user template
+     let message = `*INVOICE: ${data.invoiceNo}*\n`;
+     message += `__________________________\n\n`;
+     message += `Dear *${customerName}*,\n\n`;
+     message += `A new invoice has been generated for your recent transaction with *${data.sellerName || 'SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED'}*.\n\n`;
+     message += `*Bill Summary:*\n`;
+     message += `• Invoice ID: #${data.invoiceNo}\n`;
+     message += `• Date: ${data.invoiceDate}\n`;
+     message += `• Total Amount: ₹${data.total.toFixed(2)}\n\n`;
+     message += `You can view, download, or pay your invoice online using the secure link below:\n`;
+ 
+     const idToUse = lastSavedId || (data as any).id;
+     if (!idToUse) {
+       toast.error("Please save the invoice first.");
+       return;
+     }
+     const shareLink = `https://software.saaiss.in/invoice/view/${idToUse}`;
+ 
+     message += `🔗 ${shareLink}\n\n`;
+     message += `If you have any questions regarding this invoice, please feel free to reach out to us.\n\n`;
+     message += `Best regards,\n`;
+     message += `*${data.sellerName || 'SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED'}*\n`;
+     message += `__________________________\n`;
+     message += `_Powered by Sri Andal Financial Automation_`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
@@ -2359,9 +2357,11 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-700">Tax Invoice</p>
-                      <h2 className="mt-2 text-2xl lg:text-3xl font-black text-slate-900">{currentInvoice.businessName || 'Saaiss Software Solution'}</h2>
-                      <p className="mt-1 text-sm text-slate-700 font-medium">{currentInvoice.businessEmail || 'billing@saaiss.in'}{currentInvoice.businessPhone ? ` | ${currentInvoice.businessPhone}` : ""}</p>
-                      {currentInvoice.businessGSTIN && <p className="text-sm text-slate-700 font-medium">GSTIN: {currentInvoice.businessGSTIN}</p>}
+                      <h2 className="mt-2 text-2xl lg:text-3xl font-black text-slate-900">{currentInvoice.sellerName || 'SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED'}</h2>
+                      <p className="mt-1 text-sm text-slate-700 font-medium">
+                        {currentInvoice.sellerPhone ? `Phone: ${currentInvoice.sellerPhone}` : 'support@saaiss.in'}
+                      </p>
+                      {currentInvoice.sellerGSTIN && <p className="text-sm text-slate-700 font-medium">GSTIN: {currentInvoice.sellerGSTIN}</p>}
                     </div>
                     <div className="md:text-right">
                       <p className="text-sm text-slate-500 font-medium">Invoice Number</p>
@@ -2378,9 +2378,9 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                       <div>
                         <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-2 border-l-2 border-indigo-500 pl-2">From</h2>
                         <div className="space-y-0.5 text-sm">
-                          <p className="font-bold text-slate-950">{currentInvoice.businessName || 'Saaiss Software Solution'}</p>
-                          <p className="text-slate-650">{currentInvoice.businessEmail || 'billing@saaiss.in'}</p>
-                          {currentInvoice.businessGSTIN && <p className="text-slate-650">GSTIN: {currentInvoice.businessGSTIN}</p>}
+                          <p className="font-bold text-slate-950">{currentInvoice.sellerName || 'SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED'}</p>
+                          {currentInvoice.sellerPhone && <p className="text-slate-650">Phone: {currentInvoice.sellerPhone}</p>}
+                          {currentInvoice.sellerGSTIN && <p className="text-slate-650">GSTIN: {currentInvoice.sellerGSTIN}</p>}
                         </div>
                       </div>
 

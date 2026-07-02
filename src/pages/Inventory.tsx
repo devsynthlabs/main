@@ -171,14 +171,49 @@ const Inventory = () => {
         stateOfSupply: ""
     });
 
-    // Purchase Invoice State
-    const generatePurchaseNo = () => {
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const time = `${date.getHours()}${date.getMinutes()}${date.getSeconds()}`.padStart(6, '0');
-        return `INV-${year}${month}${day}-${time}`;
+    const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
+
+    const generatePurchaseNo = (invoicesList: PurchaseInvoice[] = purchaseInvoices) => {
+        const prefix = 'PUR';
+        let next = 1;
+        if (invoicesList && invoicesList.length > 0) {
+            const matchingNos = invoicesList
+                .filter(inv => inv.billNo && inv.billNo.startsWith(`${prefix}-`))
+                .map(inv => {
+                    const parts = inv.billNo.split('-');
+                    const numStr = parts[parts.length - 1];
+                    const num = parseInt(numStr, 10);
+                    return isNaN(num) ? 0 : num;
+                });
+            if (matchingNos.length > 0) {
+                next = Math.max(...matchingNos) + 1;
+            }
+        }
+        return `${prefix}-${String(next).padStart(5, '0')}`;
+    };
+
+    const fetchPurchaseInvoices = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/purchase-invoice/all`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const fetched = data.invoices || [];
+                setPurchaseInvoices(fetched);
+                setPurchaseInvoice(prev => {
+                    if (!prev.billNo || prev.billNo.startsWith('INV-')) {
+                        return { ...prev, billNo: generatePurchaseNo(fetched) };
+                    }
+                    return prev;
+                });
+                return fetched;
+            }
+        } catch (error) {
+            console.error("Error fetching purchase invoices:", error);
+        }
+        return [];
     };
 
     const [purchaseInvoice, setPurchaseInvoice] = useState<PurchaseInvoice>({
@@ -190,7 +225,7 @@ const Inventory = () => {
         supplierName: '',
         phone: '',
         gstin: '',
-        billNo: generatePurchaseNo(),
+        billNo: '',
         billDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'Cash',
         invoiceSize: 'A4',
@@ -460,6 +495,7 @@ const Inventory = () => {
                 toast.success(msg);
                 setLastSavedPurchaseId(data.invoice?._id || null);
                 fetchItems(); // Refresh inventory items list
+                fetchPurchaseInvoices(); // Refresh purchase invoices list to update sequence
             } else {
                 const data = await res.json();
                 toast.error(data.message || "Failed to save purchase invoice");
@@ -638,24 +674,23 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
             return;
         }
 
-        const supplierName = purchaseInvoice.supplierName || 'Supplier';
-        const shareLink = `${window.location.origin}/purchase-invoice/view/${lastSavedPurchaseId}`;
+        const customerName = purchaseInvoice.customerName || 'Valued Customer';
+        const sellerName = purchaseInvoice.supplierName || 'SHREE ANDAL AI SOFTWARE SOLUTIONS (OPC) PRIVATE LIMITED';
+        const shareLink = `https://software.saaiss.in/purchase-invoice/view/${lastSavedPurchaseId}`;
 
         let message = `*PURCHASE INVOICE: ${purchaseInvoice.billNo}*\n`;
         message += `__________________________\n\n`;
-        message += `Dear *${supplierName}*,\n\n`;
-        message += `A purchase invoice has been recorded for your recent transaction.\n\n`;
+        message += `Dear *${customerName}*,\n\n`;
+        message += `A new invoice has been generated for your recent transaction with *${sellerName}*.\n\n`;
         message += `*Bill Summary:*\n`;
-        message += `• Bill No: #${purchaseInvoice.billNo}\n`;
+        message += `• Invoice ID: #${purchaseInvoice.billNo}\n`;
         message += `• Date: ${purchaseInvoice.billDate}\n`;
-        message += `• Bill To: ${purchaseInvoice.customerName}\n`;
-        message += `• Payment: ${purchaseInvoice.paymentMethod}\n`;
         message += `• Total Amount: ₹${purchaseInvoice.total.toFixed(2)}\n\n`;
-        message += `You can view the full invoice details using the link below:\n`;
+        message += `You can view, download, or pay your invoice online using the secure link below:\n`;
         message += `🔗 ${shareLink}\n\n`;
-        if (purchaseInvoice.balance > 0) {
-            message += `Balance Due: ₹${purchaseInvoice.balance.toFixed(2)}\n\n`;
-        }
+        message += `If you have any questions regarding this invoice, please feel free to reach out to us.\n\n`;
+        message += `Best regards,\n`;
+        message += `*${sellerName}*\n`;
         message += `__________________________\n`;
         message += `_Powered by Sri Andal Financial Automation_`;
 
@@ -682,6 +717,8 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
             } else {
                 fetchSales();
             }
+        } else if (activeTab === "purchase") {
+            fetchPurchaseInvoices();
         }
     }, [activeTab, activeSubTab]);
 
