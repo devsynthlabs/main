@@ -62,12 +62,11 @@ const TaxGST = () => {
   // Generate next sequential GST invoice number
   const generateGSTInvoiceNo = (currentReturns: TaxReturn[]) => {
     const prefix = 'GST';
-    const year = new Date().getFullYear();
     let next = 1;
 
     if (currentReturns && currentReturns.length > 0) {
       const matchingNos = currentReturns
-        .filter(ret => ret.invoiceNumber && ret.invoiceNumber.startsWith(`${prefix}-${year}-`))
+        .filter(ret => ret.invoiceNumber && ret.invoiceNumber.startsWith(`${prefix}-`))
         .map(ret => {
           const parts = ret.invoiceNumber!.split('-');
           const numStr = parts[parts.length - 1];
@@ -79,7 +78,7 @@ const TaxGST = () => {
         next = Math.max(...matchingNos) + 1;
       }
     }
-    return `${prefix}-${year}-${String(next).padStart(5, '0')}`;
+    return `${prefix}-${String(next).padStart(5, '0')}`;
   };
 
   // Fetch GST data from backend
@@ -229,13 +228,16 @@ const TaxGST = () => {
       ret.transactionType === "intrastate" ? "Intrastate" : "Interstate",
       `${ret.gstRate}%`,
       `Rs. ${ret.baseAmount.toFixed(2)}`,
+      `Rs. ${(ret.cgst || 0).toFixed(2)}`,
+      `Rs. ${(ret.sgst || 0).toFixed(2)}`,
+      `Rs. ${(ret.igst || 0).toFixed(2)}`,
       `Rs. ${(ret.cgst + ret.sgst + ret.igst).toFixed(2)}`,
       `Rs. ${ret.total.toFixed(2)}`
     ]);
 
     autoTable(doc, {
       startY: y,
-      head: [["S.No", "Invoice Number", "Invoice Date", "Type", "GST Rate", "Base Amount", "Tax Collected", "Total Amount"]],
+      head: [["S.No", "Invoice Number", "Invoice Date", "Type", "GST Rate", "Base Amount", "CGST", "SGST", "IGST", "Tax Collected", "Total Amount"]],
       body: reportRows,
       theme: "grid",
       headStyles: { fillColor: [30, 64, 175] },
@@ -345,7 +347,7 @@ const TaxGST = () => {
     doc.setFontSize(12);
     doc.setTextColor(22, 163, 74);
     doc.text("TAX RECORDED SUCCESSFULLY", pageW / 2, y + 7, { align: "center" });
-    
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(71, 85, 105);

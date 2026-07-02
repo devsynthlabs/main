@@ -161,15 +161,15 @@ const CashFlow = () => {
     }
 
     doc.setFontSize(12);
-    doc.text("📊 HISTORICAL CASH FLOW DATA", 15, yPosition);
+    doc.text("HISTORICAL CASH FLOW DATA", 15, yPosition);
 
     yPosition += 10;
     const historicalData = cashflowData.map((entry, index) => [
       index + 1,
       `${entry.month} ${entry.year}`,
-      `₹${entry.cashInflow.toFixed(2)}`,
-      `₹${entry.cashOutflow.toFixed(2)}`,
-      `₹${entry.netCashFlow.toFixed(2)}`,
+      `Rs. ${entry.cashInflow.toFixed(2)}`,
+      `Rs. ${entry.cashOutflow.toFixed(2)}`,
+      `Rs. ${entry.netCashFlow.toFixed(2)}`,
       entry.netCashFlow >= 0 ? "Positive" : "Negative"
     ]);
 
@@ -188,7 +188,7 @@ const CashFlow = () => {
     }
 
     doc.setFontSize(12);
-    doc.text("📈 SUMMARY STATISTICS", 15, yPosition);
+    doc.text("SUMMARY STATISTICS", 15, yPosition);
     yPosition += 8;
 
     const totalInflow = cashflowData.reduce((sum, e) => sum + e.cashInflow, 0);
@@ -198,10 +198,10 @@ const CashFlow = () => {
 
     const summaryData = [
       ["Total Entries", cashflowData.length.toString()],
-      ["Total Cash Inflow", `₹${totalInflow.toFixed(2)}`],
-      ["Total Cash Outflow", `₹${totalOutflow.toFixed(2)}`],
-      ["Total Net Cash Flow", `₹${totalNetCashFlow.toFixed(2)}`],
-      ["Average Net Cash Flow", `₹${averageNetCashFlow.toFixed(2)}`],
+      ["Total Cash Inflow", `Rs. ${totalInflow.toFixed(2)}`],
+      ["Total Cash Outflow", `Rs. ${totalOutflow.toFixed(2)}`],
+      ["Total Net Cash Flow", `Rs. ${totalNetCashFlow.toFixed(2)}`],
+      ["Average Net Cash Flow", `Rs. ${averageNetCashFlow.toFixed(2)}`],
     ];
 
     autoTable(doc, {
@@ -220,13 +220,13 @@ const CashFlow = () => {
       }
 
       doc.setFontSize(12);
-      doc.text("🔮 AI-POWERED PREDICTIONS (Next 6 Months)", 15, yPosition);
+      doc.text("AI-POWERED PREDICTIONS (Next 6 Months)", 15, yPosition);
       yPosition += 8;
 
       const predictionData = predictions.map((pred, index) => [
         index + 1,
         pred.month,
-        `₹${pred.predictedNetCashFlow.toFixed(2)}`,
+        `Rs. ${pred.predictedNetCashFlow.toFixed(2)}`,
         pred.predictedNetCashFlow >= 0 ? "Positive" : "Negative"
       ]);
 
