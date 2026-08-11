@@ -67,13 +67,6 @@ export const Header = () => {
             >
               Pricing
             </a>
-            <a 
-              href="/product" 
-              onClick={(e) => { e.preventDefault(); navigate("/product"); }}
-              className="text-xs font-bold text-slate-655 hover:text-slate-950 transition-colors uppercase tracking-[0.15em] cursor-pointer"
-            >
-              Product
-            </a>
           </nav>
 
           {/* Action Button & Hamburger */}
@@ -129,13 +122,6 @@ export const Header = () => {
                   className="text-xs font-extrabold text-slate-655 hover:text-slate-950 transition-colors uppercase tracking-[0.15em]"
                 >
                   Pricing
-                </a>
-                <a
-                  href="/product"
-                  onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); navigate("/product"); }}
-                  className="text-xs font-extrabold text-slate-655 hover:text-slate-950 transition-colors uppercase tracking-[0.15em] cursor-pointer"
-                >
-                  Product
                 </a>
                 
                 <div className="h-px bg-slate-200/50 my-1" />
