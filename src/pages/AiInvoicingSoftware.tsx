@@ -126,16 +126,6 @@ const AiCommandInteractiveSection = () => {
         
         {/* Header */}
         <div className="space-y-4 text-center max-w-3xl mx-auto">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest">NATURAL COMMAND INVOICING</span>
-            <button 
-              onClick={triggerAnimation}
-              title="Replay AI Animation"
-              className="p-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
-          </div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Create Invoices Using Text or Voice Commands
           </h2>
@@ -554,7 +544,7 @@ export const AiInvoicingSoftware = () => {
               <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
                 <div className="inline-flex items-center">
                   <span className="text-xs font-bold tracking-[0.2em] text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-full border border-indigo-100 uppercase">
-                    AIBASS AI
+                    AIBASS
                   </span>
                 </div>
                 
@@ -923,63 +913,87 @@ export const AiInvoicingSoftware = () => {
         </section>
 
         {/* SECTION 4: What Is AI Invoicing Software? */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        <section className="py-16 md:py-24 border-t border-slate-100 bg-transparent">
           <div className="max-w-6xl mx-auto space-y-12">
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               
+              {/* Left Column: Heading, Explanation, Highlight Banner & Smarter Finance */}
               <div className="lg:col-span-5 space-y-5">
                 <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest block">EXPLAINING AI INVOICING</span>
                 <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl leading-tight">
                   What Is AI Invoicing Software?
                 </h2>
                 
-                <div className="p-5 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-2">
-                  <div className="flex items-center gap-2 text-indigo-700 font-extrabold text-xs uppercase tracking-wider">
-                    <Sparkles className="h-4 w-4" /> Smarter Finance
-                  </div>
-                  <p className="text-sm font-semibold text-slate-800 leading-relaxed">
-                    This makes everyday invoicing easier for business owners who want a faster and more connected process.
-                  </p>
-                </div>
-              </div>
-
-              <div className="lg:col-span-7 space-y-6">
-                <div className="space-y-4 text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
+                <div className="space-y-3.5 text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
                   <p>
                     AI invoicing software uses intelligent automation to simplify the creation of customer sales invoices.
                   </p>
                   <p>
                     Traditional invoice software may require users to select multiple menus, enter transaction information manually and update accounting and inventory separately.
                   </p>
-                  <p className="font-semibold text-slate-900 bg-slate-50 p-4 rounded-2xl border border-slate-150">
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border-l-4 border-indigo-600 bg-gradient-to-r from-indigo-50/90 via-indigo-50/40 to-slate-50/60 p-4.5 sm:p-5 border-y border-r border-indigo-100/80 shadow-xs">
+                  <p className="font-semibold text-slate-900 text-sm leading-relaxed">
                     AIBASS invoicing automation software provides a simpler experience. Users can give the platform a text or voice command, provide the required transaction details and allow the software to prepare the invoice.
                   </p>
                 </div>
 
-                <div className="bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.03)] space-y-4">
-                  <h3 className="text-base font-bold text-slate-950">
-                    AIBASS helps businesses:
-                  </h3>
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-blue-50/40 border border-indigo-100/80 shadow-xs space-y-2">
+                  <div className="flex items-center gap-2 text-indigo-700 font-extrabold text-xs uppercase tracking-wider">
+                    <Sparkles className="h-4 w-4 text-indigo-600" /> Smarter Finance
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+                    This makes everyday invoicing easier for business owners who want a faster, error-free, and fully connected accounting process.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Standalone 8-Feature Card */}
+              <div className="lg:col-span-7 flex flex-col justify-center">
+                <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/60 border border-indigo-100/80 p-6 sm:p-8 shadow-[0_20px_40px_-15px_rgba(79,70,229,0.09)] hover:shadow-[0_25px_50px_-12px_rgba(79,70,229,0.15)] transition-all duration-300 space-y-6">
+                  {/* Glowing background accent */}
+                  <div className="absolute -right-12 -top-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-indigo-100/80">
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-950 tracking-tight">
+                      AIBASS helps businesses:
+                    </h3>
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-100/80 px-3.5 py-1.5 rounded-full border border-indigo-200/60 shadow-xs">
+                      Automated Features
+                    </span>
+                  </div>
+                  
+                  {/* Feature Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 relative z-10">
                     {[
-                      "Create customer sales invoices",
-                      "Add products or services",
-                      "Enter quantities and prices",
-                      "Calculate the applicable GST",
-                      "Display a clear tax breakdown",
-                      "Connect invoice and accounting information",
-                      "Update relevant inventory quantities",
-                      "Review the completed invoice"
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                          <Check className="h-3.5 w-3.5 text-indigo-600 font-bold" />
+                      { title: "Create customer sales invoices", icon: FileText },
+                      { title: "Add products or services", icon: Package },
+                      { title: "Enter quantities and prices", icon: Calculator },
+                      { title: "Calculate the applicable GST", icon: Zap },
+                      { title: "Display a clear tax breakdown", icon: Layers },
+                      { title: "Connect invoice & accounting info", icon: RefreshCw },
+                      { title: "Update relevant inventory quantities", icon: TrendingUp },
+                      { title: "Review the completed invoice", icon: ShieldCheck }
+                    ].map((item, idx) => {
+                      const IconComponent = item.icon;
+                      return (
+                        <div 
+                          key={idx} 
+                          className="group flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.025)] hover:border-indigo-300 hover:shadow-md hover:bg-gradient-to-r hover:from-white hover:to-indigo-50/40 transition-all duration-200 hover:-translate-y-0.5"
+                        >
+                          <div className="w-8.5 h-8.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all duration-200 flex items-center justify-center flex-shrink-0 shadow-xs">
+                            <IconComponent className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-indigo-950 transition-colors leading-snug">
+                            {item.title}
+                          </span>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto flex-shrink-0" />
                         </div>
-                        <span className="text-xs font-bold text-slate-800">{item}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1033,7 +1047,6 @@ export const AiInvoicingSoftware = () => {
                 <div className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.04)] space-y-6">
                   
                   <div className="space-y-2">
-                    <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest block">STRUCTURED DATA</span>
                     <h3 className="text-xl font-bold text-slate-950 tracking-tight">
                       Invoice Information
                     </h3>
@@ -1229,7 +1242,7 @@ export const AiInvoicingSoftware = () => {
                   variant="outline"
                   className="rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-bold text-xs sm:text-sm px-6 h-10 flex items-center gap-2"
                 >
-                  Related Product: Explore GST Accounting Software
+                  Explore GST Accounting Software
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -1279,7 +1292,7 @@ export const AiInvoicingSoftware = () => {
                     variant="outline"
                     className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm"
                   >
-                    Related Product: Explore AI Bookkeeping Software
+                    Explore AI Bookkeeping Software
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -1373,7 +1386,7 @@ export const AiInvoicingSoftware = () => {
                     variant="outline"
                     className="rounded-full border-amber-200 text-amber-800 hover:bg-amber-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm"
                   >
-                    Related Product: Explore Inventory Accounting Software
+                    Explore Inventory Accounting Software
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
