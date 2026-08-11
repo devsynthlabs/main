@@ -144,14 +144,24 @@ export const AiAccountingCommands = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
           {/* Column 1: Type Your Command */}
-          <div className="bg-white border border-slate-150 rounded-[32px] p-6 md:p-8 flex flex-col justify-between space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.02)]">
-            <div className="space-y-5">
+          <motion.div 
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.45, delay: 0 }}
+            whileHover={{ y: -6, scale: 1.012 }}
+            className="group relative bg-white border border-slate-150 rounded-[32px] p-6 md:p-8 flex flex-col justify-between space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_45px_rgba(79,70,229,0.08)] hover:border-indigo-200 transition-all duration-300 overflow-hidden cursor-pointer"
+          >
+            {/* Corner accent glow on hover */}
+            <div className="absolute -top-12 -right-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
+
+            <div className="space-y-5 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-mono font-bold text-sm">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-mono font-bold text-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm">
                   &gt;_
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 leading-tight">Type Your Command</h3>
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-indigo-650 transition-colors">Type Your Command</h3>
                   <p className="text-xs text-slate-400 font-medium">Command via text input</p>
                 </div>
               </div>
@@ -222,17 +232,27 @@ export const AiAccountingCommands = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Column 2: Speak Your Command */}
-          <div className="bg-white border border-slate-150 rounded-[32px] p-6 md:p-8 flex flex-col justify-between space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.02)]">
-            <div className="space-y-5">
+          <motion.div 
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.45, delay: 0.12 }}
+            whileHover={{ y: -6, scale: 1.012 }}
+            className="group relative bg-white border border-slate-150 rounded-[32px] p-6 md:p-8 flex flex-col justify-between space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_45px_rgba(79,70,229,0.08)] hover:border-indigo-200 transition-all duration-300 overflow-hidden cursor-pointer"
+          >
+            {/* Corner accent glow on hover */}
+            <div className="absolute -top-12 -right-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
+
+            <div className="space-y-5 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm">
                   <Mic className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 leading-tight">Speak Your Command</h3>
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-indigo-650 transition-colors">Speak Your Command</h3>
                   <p className="text-xs text-slate-400 font-medium">Command via voice input</p>
                 </div>
               </div>
@@ -314,9 +334,11 @@ export const AiAccountingCommands = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
         </div>
+
+        {/* CTA section bottom */}
 
         {/* CTA section bottom */}
         <div className="text-center space-y-4 pt-4">
