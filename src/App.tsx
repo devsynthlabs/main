@@ -27,10 +27,8 @@ import PublicInvoiceView from "./pages/PublicInvoiceView";
 import PublicPurchaseInvoiceView from "./pages/PublicPurchaseInvoiceView";
 import ServerIssues from "./pages/ServerIssues";
 import AiAccountingExplained from "./pages/AiAccountingExplained";
+import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
 import ThankYou from "./pages/ThankYou";
-
-
-
 
 const queryClient = new QueryClient();
 
@@ -46,6 +44,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<AiAccountingExplained />} />
             <Route path="/ai-accounting-software" element={<Index />} />
+            <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
 
             {/* Maintenance Mode Gates */}
             <Route

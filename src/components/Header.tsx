@@ -67,6 +67,20 @@ export const Header = () => {
             >
               Pricing
             </a>
+            <a 
+              href="/ai-invoicing-software"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/ai-invoicing-software");
+              }}
+              className={`text-xs font-bold transition-colors uppercase tracking-[0.15em] whitespace-nowrap ${
+                location.pathname === "/ai-invoicing-software"
+                  ? "text-indigo-600 font-extrabold"
+                  : "text-slate-655 hover:text-slate-950"
+              }`}
+            >
+              AI Invoicing
+            </a>
           </nav>
 
           {/* Action Button & Hamburger */}
@@ -122,6 +136,21 @@ export const Header = () => {
                   className="text-xs font-extrabold text-slate-655 hover:text-slate-950 transition-colors uppercase tracking-[0.15em]"
                 >
                   Pricing
+                </a>
+                <a
+                  href="/ai-invoicing-software"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    navigate("/ai-invoicing-software");
+                  }}
+                  className={`text-xs font-extrabold transition-colors uppercase tracking-[0.15em] ${
+                    location.pathname === "/ai-invoicing-software"
+                      ? "text-indigo-600 font-black"
+                      : "text-slate-655 hover:text-slate-950"
+                  }`}
+                >
+                  AI Invoicing
                 </a>
                 
                 <div className="h-px bg-slate-200/50 my-1" />
