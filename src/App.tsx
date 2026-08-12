@@ -43,6 +43,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AiAccountingExplained />} />
+            <Route path="/product" element={<ProductPage />} />
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
 

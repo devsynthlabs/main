@@ -203,7 +203,7 @@ const Index = () => {
       </main>
 
       {/* Full-width First Section */}
-      <div className="relative mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12">
+      <div id="highlights" className="relative mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12">
         <FirstSection onWatchDemo={() => window.dispatchEvent(new CustomEvent("openTrialModal"))} />
       </div>
 
