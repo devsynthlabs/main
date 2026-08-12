@@ -28,6 +28,7 @@ import PublicPurchaseInvoiceView from "./pages/PublicPurchaseInvoiceView";
 import ServerIssues from "./pages/ServerIssues";
 import AiAccountingExplained from "./pages/AiAccountingExplained";
 import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
+import ProductPage from "./pages/ProductPage";
 import ThankYou from "./pages/ThankYou";
 
 const queryClient = new QueryClient();
