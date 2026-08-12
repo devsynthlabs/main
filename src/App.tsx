@@ -30,6 +30,7 @@ import AiAccountingExplained from "./pages/AiAccountingExplained";
 import ThankYou from "./pages/ThankYou";
 import ProductPage from "./pages/ProductPage";
 import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
+import ThankYou from "./pages/ThankYou";
 
 const queryClient = new QueryClient();
 
