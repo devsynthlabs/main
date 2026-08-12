@@ -6,7 +6,7 @@ import {
   Calculator, 
   BarChart3, 
   Package, 
-  BellRing, 
+  Cloud, 
   TrendingUp, 
   CreditCard 
 } from "lucide-react";
@@ -44,10 +44,10 @@ export const AiAccountingBenefits = () => {
       color: "text-orange-655 bg-orange-50 border-orange-100"
     },
     {
-      title: "Low Stock Reminders",
-      desc: "Identify products that may require replenishment before stock becomes unavailable.",
-      icon: BellRing,
-      color: "text-rose-600 bg-rose-50 border-rose-100"
+      title: "Secure Cloud Infrastructure",
+      desc: "AIBASS runs on AWS infrastructure to support secure cloud-based accounting workflows and reliable access to business financial information.",
+      icon: Cloud,
+      color: "text-sky-600 bg-sky-50 border-sky-100"
     },
     {
       title: "Cash Flow Predictions",

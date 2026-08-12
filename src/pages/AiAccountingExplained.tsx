@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { AiAccountingHero } from "@/components/AiAccountingHero";
+import { AiAccountingRecognition } from "@/components/AiAccountingRecognition";
 import { AiAccountingFeatures } from "@/components/AiAccountingFeatures";
 import { AiAccountingChallenges } from "@/components/AiAccountingChallenges";
 import { AiAccountingCommands } from "@/components/AiAccountingCommands";
@@ -113,6 +114,9 @@ const AiAccountingExplained = () => {
         {/* Section 1: Hero Block */}
         <AiAccountingHero />
 
+        {/* Section 1.5: Recognition Behind AIBASS */}
+        <AiAccountingRecognition />
+
         {/* Section 2: Product Highlights */}
         <section id="highlights" className="py-6 md:py-8 border-t border-slate-100 scroll-mt-24">
           <div className="max-w-6xl mx-auto bg-white border border-slate-200/60 rounded-[32px] p-6 md:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.03)] space-y-6">
@@ -157,9 +161,12 @@ const AiAccountingExplained = () => {
                 users can tell AIBASS what they need using a voice or text command. The platform processes 
                 the instruction and completes the supported action or displays the requested information.
               </p>
-              <p className="font-semibold text-slate-850">
+              <p>
                 This simpler approach helps business owners spend less time navigating accounting software 
                 and more time understanding sales, expenses, stock and financial performance.
+              </p>
+              <p className="font-semibold text-slate-850">
+                AIBASS is developed by Shree Andal AI Software Solutions (OPC) Private Limited, a DPIIT-recognized startup in the AI and Machine Learning sector. This recognition supports our expertise in building practical AI-driven accounting solutions for modern businesses.
               </p>
             </div>
 
