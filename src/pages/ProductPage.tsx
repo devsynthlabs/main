@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { TrialFormModal } from "@/components/TrialFormModal";
+import { AiAccountingCommands } from "@/components/AiAccountingCommands";
 import {
   Accordion,
   AccordionContent,
@@ -524,93 +525,7 @@ export const ProductPage = () => {
         </section>
 
         {/* Section 5: Manage Bookkeeping Through Text or Voice Commands */}
-        <section className="py-8 md:py-12 border-t border-slate-100">
-          <div className="max-w-6xl mx-auto space-y-10">
-            <div className="text-center space-y-4 max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                Manage Bookkeeping Through Text or Voice Commands
-              </h2>
-              <p className="text-base font-medium text-slate-700">
-                AIBASS allows users to communicate with the bookkeeping platform using simple, natural instructions. Users can type their command or speak their instruction instead of searching through multiple accounting modules.
-              </p>
-              <div className="w-12 h-1 bg-indigo-600 rounded-full mx-auto" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Text Command Examples */}
-              <motion.div 
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.45, delay: 0 }}
-                whileHover={{ y: -6, scale: 1.012 }}
-                className="group relative bg-slate-900 text-white rounded-[32px] p-6 sm:p-8 space-y-6 shadow-xl border border-slate-800 hover:border-indigo-500/50 hover:shadow-[0_20px_45px_rgba(79,70,229,0.15)] transition-all duration-300 overflow-hidden cursor-pointer"
-              >
-                {/* Corner accent glow on hover */}
-                <div className="absolute -top-12 -right-12 w-28 h-28 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
-
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-4 relative z-10">
-                  <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-xl font-bold group-hover:text-blue-300 transition-colors">Text Command Examples</h3>
-                </div>
-
-                <div className="space-y-4 relative z-10">
-                  {textCommands.map((cmd, idx) => (
-                    <div key={idx} className="bg-slate-850 p-4 rounded-2xl border border-slate-750 space-y-2 hover:border-slate-650 transition-colors">
-                      <div className="text-xs font-bold uppercase tracking-wider text-blue-400">User command:</div>
-                      <div className="text-sm font-semibold text-white">{cmd.user}</div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-1">AIBASS response:</div>
-                      <div className="text-xs font-medium text-slate-300">{cmd.response}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Voice Command Examples */}
-              <motion.div 
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.45, delay: 0.12 }}
-                whileHover={{ y: -6, scale: 1.012 }}
-                className="group relative bg-slate-900 text-white rounded-[32px] p-6 sm:p-8 space-y-6 shadow-xl border border-slate-800 hover:border-purple-500/50 hover:shadow-[0_20px_45px_rgba(168,85,247,0.15)] transition-all duration-300 overflow-hidden cursor-pointer"
-              >
-                {/* Corner accent glow on hover */}
-                <div className="absolute -top-12 -right-12 w-28 h-28 bg-purple-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
-
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-4 relative z-10">
-                  <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm">
-                    <Mic className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-xl font-bold group-hover:text-purple-300 transition-colors">Voice Command Examples</h3>
-                </div>
-
-                <div className="space-y-4 relative z-10">
-                  {voiceCommands.map((cmd, idx) => (
-                    <div key={idx} className="bg-slate-850 p-4 rounded-2xl border border-slate-750 space-y-2 hover:border-slate-650 transition-colors">
-                      <div className="text-xs font-bold uppercase tracking-wider text-purple-400">User command:</div>
-                      <div className="text-sm font-semibold text-white">{cmd.user}</div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 pt-1">AIBASS response:</div>
-                      <div className="text-xs font-medium text-slate-300">{cmd.response}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-
-            <div className="text-center pt-2">
-              <Button 
-                onClick={openTrialModal}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-12 px-8 rounded-full inline-flex items-center gap-2 group transition-all"
-              >
-                Experience AI Bookkeeping Commands
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </div>
-          </div>
-        </section>
+        <AiAccountingCommands />
 
         {/* Section 6: How AIBASS Automates Bookkeeping */}
         <section className="py-8 md:py-12 border-t border-slate-100">
