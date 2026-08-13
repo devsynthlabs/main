@@ -26,6 +26,7 @@ import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { TrialFormModal } from "@/components/TrialFormModal";
+import { AiInvoicingRecognitionBanner } from "@/components/AiInvoicingRecognitionBanner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Interactive sample prompts for the AI Invoice Simulator
@@ -701,6 +702,9 @@ export const AiInvoicingSoftware = () => {
             </div>
           </div>
         </section>
+
+        {/* RECOGNITION & INFRASTRUCTURE BANNER */}
+        <AiInvoicingRecognitionBanner />
 
         {/* PRODUCT HIGHLIGHTS SECTION */}
         <section id="highlights" className="py-6 md:py-8 border-t border-slate-100 scroll-mt-24">
