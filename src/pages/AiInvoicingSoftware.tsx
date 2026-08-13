@@ -536,13 +536,23 @@ export const AiInvoicingSoftware = () => {
 
       <main className="relative z-10 mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12 pt-28 pb-16">
         
-        {/* HERO SECTION */}
-        <section className="relative items-center gap-10 py-6 lg:py-12 bg-transparent">
+        {/* HERO SECTION - Slide Left + Scale Up Right */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="relative items-center gap-10 py-6 lg:py-12 bg-transparent"
+        >
           <div className="max-w-[1380px] mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
               
-              {/* Left Content */}
-              <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
+              {/* Left Content - Slide in from Left */}
+              <motion.div 
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="lg:col-span-5 flex flex-col justify-center space-y-6"
+              >
                 <div className="inline-flex items-center">
                   <span className="text-xs font-bold tracking-[0.2em] text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-full border border-indigo-100 uppercase">
                     AIBASS
@@ -565,7 +575,7 @@ export const AiInvoicingSoftware = () => {
                 <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                   <Button 
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                    className="w-full sm:w-auto h-12 rounded-full bg-slate-950 px-6 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto h-12 rounded-full bg-slate-950 px-6 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     Start 30 Day Free Trial
                     <ArrowRight className="h-4 w-4" />
@@ -573,15 +583,20 @@ export const AiInvoicingSoftware = () => {
                   <Button 
                     variant="outline"
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                    className="w-full sm:w-auto h-12 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-6 text-sm transition-all hover:-translate-y-0.5"
+                    className="w-full sm:w-auto h-12 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold px-6 text-sm transition-all hover:-translate-y-0.5 cursor-pointer"
                   >
                     Book a Free Demo
                   </Button>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Right Interface Mockup */}
-              <div className="lg:col-span-7 relative flex justify-center items-center">
+              {/* Right Interface Mockup - Scale & Float up */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                className="lg:col-span-7 relative flex justify-center items-center"
+              >
                 {/* Main Window Mockup */}
                 <div className="w-full max-w-3xl bg-white/80 border border-slate-200/60 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl overflow-hidden flex flex-col aspect-[1.35] min-h-[460px] max-h-[520px]">
                   
@@ -697,54 +712,85 @@ export const AiInvoicingSoftware = () => {
                     </div>
                   </motion.div>
                 </div>
-              </div>
+              </motion.div>
 
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* RECOGNITION & INFRASTRUCTURE BANNER */}
         <AiInvoicingRecognitionBanner />
 
-        {/* PRODUCT HIGHLIGHTS SECTION */}
-        <section id="highlights" className="py-6 md:py-8 border-t border-slate-100 scroll-mt-24">
-          <div className="max-w-6xl mx-auto bg-white border border-slate-200/60 rounded-[32px] p-6 md:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.03)] space-y-6">
-            <h3 className="text-xl font-bold text-slate-900 tracking-tight text-center">
-              Product Highlights
-            </h3>
-            <div className="w-12 h-1 bg-indigo-600 rounded-full mx-auto" />
-            
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 pt-2 w-full">
+        {/* PRODUCT HIGHLIGHTS SECTION - Scale In Stagger */}
+        <motion.section 
+          initial={{ opacity: 0, scale: 0.95, y: 25 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          id="highlights" 
+          className="py-6 md:py-8 scroll-mt-24"
+        >
+          <div className="max-w-6xl mx-auto bg-gradient-to-b from-[#F2F8FF] via-[#EBF4FE] to-[#F5F9FF] border border-[#D0E3F7] rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(37,99,235,0.05)] space-y-6">
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Product Highlights
+              </h3>
+              <div className="w-12 h-1 bg-indigo-600 rounded-full mx-auto" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pt-2">
               {[
-                { text: "Text and voice invoice commands", icon: Mic, bgClass: "bg-blue-50 text-blue-600 border-blue-100" },
-                { text: "Automatic sales invoice creation", icon: FileText, bgClass: "bg-emerald-50 text-emerald-600 border-emerald-100" },
-                { text: "CGST and SGST calculation", icon: Calculator, bgClass: "bg-purple-50 text-purple-600 border-purple-100" },
-                { text: "IGST calculation", icon: Calculator, bgClass: "bg-indigo-50 text-indigo-600 border-indigo-100" },
-                { text: "Connected accounting records", icon: TrendingUp, bgClass: "bg-amber-50 text-amber-600 border-amber-100" },
-                { text: "Sales based inventory updates", icon: Package, bgClass: "bg-rose-50 text-rose-600 border-rose-100" }
+                { text: "Text and voice invoice commands", icon: Mic, color: "bg-blue-50 text-blue-600 border-blue-100/90" },
+                { text: "Automatic sales invoice creation", icon: FileText, color: "bg-emerald-50 text-emerald-600 border-emerald-100/90" },
+                { text: "CGST and SGST calculation", icon: Calculator, color: "bg-purple-50 text-purple-600 border-purple-100/90" },
+                { text: "IGST calculation", icon: Calculator, color: "bg-indigo-50 text-indigo-600 border-indigo-100/90" },
+                { text: "Connected accounting records", icon: TrendingUp, color: "bg-amber-50 text-amber-600 border-amber-100/90" },
+                { text: "Sales based inventory updates", icon: Package, color: "bg-rose-50 text-rose-600 border-rose-100/90" }
               ].map((highlight, index) => {
                 const Icon = highlight.icon;
                 return (
-                  <div key={index} className="flex items-center gap-2 bg-slate-50/50 hover:bg-slate-50 transition-colors duration-200 px-3.5 py-2 rounded-2xl border border-slate-100 w-full md:w-auto">
-                    <div className={`p-1.5 rounded-xl border ${highlight.bgClass} flex items-center justify-center flex-shrink-0`}>
-                      <Icon className="h-4 w-4" />
+                  <motion.div 
+                    key={index} 
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: index * 0.07 }}
+                    whileHover={{ y: -3, scale: 1.02 }}
+                    className="group bg-white/95 backdrop-blur-sm border border-slate-200/90 rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex items-center gap-3.5"
+                  >
+                    <div className={`p-2.5 rounded-xl border ${highlight.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                      <Icon className="h-4.5 w-4.5" />
                     </div>
-                    <span className="text-xs lg:text-sm font-bold text-slate-700 whitespace-nowrap">{highlight.text}</span>
-                  </div>
+                    <span className="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-slate-950 transition-colors leading-snug">
+                      {highlight.text}
+                    </span>
+                  </motion.div>
                 );
               })}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 2: Turn a Simple Command into a Complete Sales Invoice */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 2: Turn a Simple Command into a Complete Sales Invoice - Split Entrance */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               
-              {/* Left Column: Text & Example Command */}
-              <div className="lg:col-span-6 space-y-6">
+              {/* Left Column: Slide from Left */}
+              <motion.div 
+                initial={{ opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="lg:col-span-6 space-y-6"
+              >
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider border border-indigo-100">
                   <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                   Effortless Invoice Generation
@@ -783,16 +829,22 @@ export const AiInvoicingSoftware = () => {
                 <div className="pt-2">
                   <Button 
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                    className="h-12 px-7 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm sm:text-base shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-2 group"
+                    className="h-12 px-7 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-sm sm:text-base shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-2 group cursor-pointer"
                   >
                     Experience AI Invoice Creation
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Right Column: Invoice Elements Card */}
-              <div className="lg:col-span-6">
+              {/* Right Column: Slide from Right */}
+              <motion.div 
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+                className="lg:col-span-6"
+              >
                 <div className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.04)] space-y-6">
                   
                   <div className="space-y-2">
@@ -836,24 +888,36 @@ export const AiInvoicingSoftware = () => {
                   </div>
 
                 </div>
-              </div>
+              </motion.div>
 
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 3: Why Businesses Choose AIBASS AI Invoicing */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 3: Why Businesses Choose AIBASS AI Invoicing - Staggered Card Pop */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
-            <div className="space-y-4 text-center max-w-3xl mx-auto">
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="space-y-4 text-center max-w-3xl mx-auto"
+            >
               <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest">Key Business Benefits</span>
               <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 Why Businesses Choose AIBASS AI Invoicing
               </h2>
               <div className="w-12 h-1 bg-indigo-600 rounded-full mx-auto" />
-            </div>
+            </motion.div>
 
             {/* Benefits Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -897,8 +961,13 @@ export const AiInvoicingSoftware = () => {
               ].map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={index}
+                    initial={{ opacity: 0, y: 35, scale: 0.96 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: index * 0.08 }}
+                    whileHover={{ y: -4, scale: 1.02 }}
                     className="bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] hover:shadow-[0_15px_35px_rgba(99,102,241,0.06)] hover:border-indigo-200 transition-all flex flex-col text-left space-y-4"
                   >
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${item.color} shadow-sm`}>
@@ -908,22 +977,34 @@ export const AiInvoicingSoftware = () => {
                       <h3 className="text-lg font-bold text-slate-900 leading-snug">{item.title}</h3>
                       <p className="text-sm text-slate-650 font-medium leading-relaxed">{item.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 4: What Is AI Invoicing Software? */}
-        <section className="py-16 md:py-24 border-t border-slate-100 bg-transparent">
+        {/* SECTION 4: What Is AI Invoicing Software? - Zoom Card Reveal */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-16 md:py-24 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
               
-              {/* Left Column: Heading, Explanation, Highlight Banner & Smarter Finance */}
-              <div className="lg:col-span-5 space-y-5">
+              {/* Left Column: Slide In */}
+              <motion.div 
+                initial={{ opacity: 0, x: -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="lg:col-span-5 space-y-5"
+              >
                 <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-widest block">EXPLAINING AI INVOICING</span>
                 <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl leading-tight">
                   What Is AI Invoicing Software?
@@ -952,10 +1033,16 @@ export const AiInvoicingSoftware = () => {
                     This makes everyday invoicing easier for business owners who want a faster, error-free, and fully connected accounting process.
                   </p>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Right Column: Standalone 8-Feature Card */}
-              <div className="lg:col-span-7 flex flex-col justify-center">
+              {/* Right Column: Scale/Zoom In */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+                className="lg:col-span-7 flex flex-col justify-center"
+              >
                 <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-b from-white via-indigo-50/20 to-slate-50/60 border border-indigo-100/80 p-6 sm:p-8 shadow-[0_20px_40px_-15px_rgba(79,70,229,0.09)] hover:shadow-[0_25px_50px_-12px_rgba(79,70,229,0.15)] transition-all duration-300 space-y-6">
                   {/* Glowing background accent */}
                   <div className="absolute -right-12 -top-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -1000,18 +1087,24 @@ export const AiInvoicingSoftware = () => {
                     })}
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
         {/* SECTION 5: Create Invoices Using Text or Voice Commands (Interactive Animated) */}
         <AiCommandInteractiveSection />
 
-        {/* SECTION 6: Automatic Sales Invoice Creation */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 6: Automatic Sales Invoice Creation - Vertical Lift */}
+        <motion.section 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -1098,10 +1191,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 7: Automatic GST Calculation */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 7: Automatic GST Calculation - Dual Slide from Left and Right */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1119,8 +1218,14 @@ export const AiInvoicingSoftware = () => {
             {/* Intrastate & Interstate 2-Column Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               
-              {/* Intrastate GST Invoices */}
-              <div className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+              {/* Intrastate GST Invoices - Slide Left */}
+              <motion.div 
+                initial={{ opacity: 0, x: -45 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between"
+              >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1158,10 +1263,16 @@ export const AiInvoicingSoftware = () => {
                 <div className="pt-2 border-t border-slate-100 text-xs font-bold text-purple-600">
                   ✓ Automatically splits tax into CGST + SGST
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Interstate GST Invoices */}
-              <div className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+              {/* Interstate GST Invoices - Slide Right */}
+              <motion.div 
+                initial={{ opacity: 0, x: 45 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
+                className="bg-white border border-slate-200/80 rounded-[32px] p-6 sm:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between"
+              >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1197,7 +1308,7 @@ export const AiInvoicingSoftware = () => {
                 <div className="pt-2 border-t border-slate-100 text-xs font-bold text-indigo-600">
                   ✓ Automatically applies integrated IGST rate
                 </div>
-              </div>
+              </motion.div>
 
             </div>
 
@@ -1253,10 +1364,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 8: Connect Invoices with Accounting Records */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 8: Connect Invoices with Accounting Records - Blur & Rise */}
+        <motion.section 
+          initial={{ opacity: 0, y: 50, filter: "blur(6px)" }}
+          whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -1294,7 +1411,7 @@ export const AiInvoicingSoftware = () => {
                   <Button
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
                     variant="outline"
-                    className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm"
+                    className="rounded-full border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm cursor-pointer"
                   >
                     Explore AI Bookkeeping Software
                     <ArrowRight className="h-4 w-4" />
@@ -1353,10 +1470,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 9: Update Inventory After Product Sales */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 9: Update Inventory After Product Sales - Scale Reveal */}
+        <motion.section 
+          initial={{ opacity: 0, scale: 0.92, y: 25 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.65, ease: "easeOut" }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -1388,7 +1511,7 @@ export const AiInvoicingSoftware = () => {
                   <Button
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
                     variant="outline"
-                    className="rounded-full border-amber-200 text-amber-800 hover:bg-amber-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm"
+                    className="rounded-full border-amber-200 text-amber-800 hover:bg-amber-50 font-bold text-xs sm:text-sm px-6 h-11 flex items-center gap-2 shadow-sm cursor-pointer"
                   >
                     Explore Inventory Accounting Software
                     <ArrowRight className="h-4 w-4" />
@@ -1440,10 +1563,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 10: Solve Common Invoicing Problems */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 10: Solve Common Invoicing Problems - Staggered 3D Tilt Cards */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1496,9 +1625,14 @@ export const AiInvoicingSoftware = () => {
               ].map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={index}
-                    className="bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] flex flex-col space-y-4 text-left hover:shadow-[0_15px_35px_rgba(99,102,241,0.04)] transition-all"
+                    initial={{ opacity: 0, y: 35, rotateX: 8 }}
+                    whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.09 }}
+                    whileHover={{ y: -4 }}
+                    className="bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] flex flex-col space-y-4 text-left hover:shadow-[0_15px_35px_rgba(99,102,241,0.06)] hover:border-indigo-200 transition-all"
                   >
                     <div className="flex items-center gap-3.5">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${item.color}`}>
@@ -1517,16 +1651,22 @@ export const AiInvoicingSoftware = () => {
                         <p className="text-slate-900 font-semibold leading-relaxed mt-1">{item.solution}</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 11: How AIBASS Invoicing Works */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 11: How AIBASS Invoicing Works - Diagonal Sequential Steps */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1593,8 +1733,13 @@ export const AiInvoicingSoftware = () => {
               ].map((step, idx) => {
                 const Icon = step.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={idx}
+                    initial={{ opacity: 0, x: -25, y: 25 }}
+                    whileInView={{ opacity: 1, x: 0, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: idx * 0.08 }}
+                    whileHover={{ scale: 1.02 }}
                     className={`bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] hover:border-indigo-200 transition-all flex flex-col justify-between space-y-4 ${
                       idx === 6 ? "md:col-span-2 md:w-3/4 md:mx-auto lg:w-full lg:col-span-1 lg:col-start-2" : ""
                     }`}
@@ -1610,7 +1755,7 @@ export const AiInvoicingSoftware = () => {
                       <h3 className="text-base font-bold text-slate-950">{step.title}</h3>
                       <p className="text-xs sm:text-sm font-medium text-slate-650 leading-relaxed">{step.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1627,10 +1772,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 12: Invoicing That Connects with Other AIBASS Products */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 12: Invoicing That Connects with Other AIBASS Products - Staggered Card Lift */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1683,8 +1834,12 @@ export const AiInvoicingSoftware = () => {
               ].map((product, idx) => {
                 const Icon = product.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={idx}
+                    initial={{ opacity: 0, y: 40, scale: 0.96 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: idx * 0.1 }}
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
                     className="bg-white border border-slate-200/80 rounded-[32px] p-8 sm:p-9 shadow-[0_10px_35px_rgba(15,23,42,0.03)] hover:shadow-[0_20px_45px_rgba(15,23,42,0.08)] hover:border-indigo-300 transition-all duration-300 relative group flex flex-col justify-between space-y-6 overflow-hidden text-left cursor-pointer"
                   >
@@ -1701,7 +1856,7 @@ export const AiInvoicingSoftware = () => {
                         </div>
                       </div>
 
-                      <p className="text-sm font-medium text-slate-600 leading-relaxed sm:min-h-[48px]">
+                      <p className="text-sm font-medium text-slate-660 leading-relaxed sm:min-h-[48px]">
                         {product.desc}
                       </p>
                     </div>
@@ -1709,22 +1864,28 @@ export const AiInvoicingSoftware = () => {
                     <div className="pt-4 border-t border-slate-150/60">
                       <Button
                         onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                        className="w-full sm:w-auto rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm px-6 h-11 flex items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all duration-200 group/btn"
+                        className="w-full sm:w-auto rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm px-6 h-11 flex items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all duration-200 group/btn cursor-pointer"
                       >
                         <span>{product.linkText}</span>
                         <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1.5" />
                       </Button>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 13: Benefits of AIBASS AI Invoicing Software */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 13: Benefits of AIBASS AI Invoicing Software - Diagonal Slide Entrance */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1784,8 +1945,13 @@ export const AiInvoicingSoftware = () => {
               ].map((item, idx) => {
                 const Icon = item.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={idx}
+                    initial={{ opacity: 0, x: -30, y: 30 }}
+                    whileInView={{ opacity: 1, x: 0, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: idx * 0.07 }}
+                    whileHover={{ y: -4 }}
                     className={`bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] hover:shadow-[0_15px_35px_rgba(99,102,241,0.05)] hover:border-indigo-200 transition-all flex flex-col space-y-4 text-left ${
                       idx === 6 ? "md:col-span-2 md:w-3/4 md:mx-auto lg:w-full lg:col-span-1 lg:col-start-2" : ""
                     }`}
@@ -1797,16 +1963,22 @@ export const AiInvoicingSoftware = () => {
                       <h3 className="text-lg font-bold text-slate-900 leading-snug">{item.title}</h3>
                       <p className="text-sm text-slate-650 font-medium leading-relaxed">{item.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 14: AI Invoicing Software for Different Businesses */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 14: AI Invoicing Software for Different Businesses - Scale Pop */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.5 }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-7xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1860,8 +2032,13 @@ export const AiInvoicingSoftware = () => {
               ].map((biz, idx) => {
                 const Icon = biz.icon;
                 return (
-                  <div 
+                  <motion.div 
                     key={idx}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: idx * 0.08 }}
+                    whileHover={{ scale: 1.02 }}
                     className="bg-white border border-slate-200/80 rounded-[28px] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.02)] hover:shadow-[0_15px_35px_rgba(99,102,241,0.05)] hover:border-indigo-200 transition-all flex flex-col space-y-4 text-left group"
                   >
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${biz.color} shadow-sm transition-transform group-hover:scale-105`}>
@@ -1871,16 +2048,22 @@ export const AiInvoicingSoftware = () => {
                       <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">{biz.title}</h3>
                       <p className="text-sm text-slate-650 font-medium leading-relaxed">{biz.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 15: Manual Invoicing Versus AIBASS */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 15: Manual Invoicing Versus AIBASS - Comparison Table Rise */}
+        <motion.section 
+          initial={{ opacity: 0, y: 45 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.75, ease: "easeOut" }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-6xl mx-auto space-y-12">
             
             {/* Header */}
@@ -1951,10 +2134,16 @@ export const AiInvoicingSoftware = () => {
             </div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 16: Start Creating GST Sales Invoices with AIBASS (Bottom CTA Banner) */}
-        <section className="py-6 md:py-8 border-t border-slate-100 bg-transparent">
+        {/* SECTION 16: Start Creating GST Sales Invoices with AIBASS (Bottom CTA Banner) - Zoom Glow Reveal */}
+        <motion.section 
+          initial={{ opacity: 0, scale: 0.92, y: 30 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="py-6 md:py-8 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-[1380px] mx-auto px-4 sm:px-8 lg:px-12">
             <div className="relative overflow-hidden rounded-[32px] border border-slate-250 bg-white px-8 py-12 text-center shadow-[0_12px_45px_rgba(15,23,42,0.04)] md:py-16">
               
@@ -1984,7 +2173,7 @@ export const AiInvoicingSoftware = () => {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                   <Button
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                    className="w-full sm:w-auto bg-slate-950 hover:bg-slate-850 text-white font-bold h-12 px-8 rounded-full text-xs shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center"
+                    className="w-full sm:w-auto bg-slate-950 hover:bg-slate-850 text-white font-bold h-12 px-8 rounded-full text-xs shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center cursor-pointer"
                   >
                     Start 30 Day Free Trial
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -1992,7 +2181,7 @@ export const AiInvoicingSoftware = () => {
                   
                   <Button
                     onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                    className="w-full sm:w-auto border border-slate-300 bg-white/50 hover:bg-slate-100/50 text-slate-750 font-bold h-12 px-8 rounded-full text-xs transition-all hover:-translate-y-0.5"
+                    className="w-full sm:w-auto border border-slate-300 bg-white/50 hover:bg-slate-100/50 text-slate-750 font-bold h-12 px-8 rounded-full text-xs transition-all hover:-translate-y-0.5 cursor-pointer"
                   >
                     Book a Free Demo
                   </Button>
@@ -2001,10 +2190,16 @@ export const AiInvoicingSoftware = () => {
 
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* SECTION 17: Frequently Asked Questions (FINAL SECTION) */}
-        <section className="py-12 md:py-16 border-t border-slate-100 bg-transparent">
+        {/* SECTION 17: Frequently Asked Questions (FINAL SECTION) - Smooth Upward Fade */}
+        <motion.section 
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
+          transition={{ duration: 0.65, ease: "easeOut" }}
+          className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
+        >
           <div className="max-w-4xl mx-auto space-y-12">
             
             {/* Header */}
@@ -2082,13 +2277,13 @@ export const AiInvoicingSoftware = () => {
               ].map((faq, idx) => (
                 <AccordionItem 
                   key={idx} 
-                  value={`faq-${idx}`} 
-                  className="border border-slate-200/80 rounded-2xl bg-white px-6 py-1 shadow-sm hover:border-indigo-200 transition-all"
+                  value={`item-${idx}`}
+                  className="bg-white border border-slate-200/80 rounded-2xl px-6 py-1 shadow-xs data-[state=open]:border-indigo-300 data-[state=open]:shadow-sm transition-all"
                 >
-                  <AccordionTrigger className="text-slate-950 font-bold text-sm sm:text-base hover:no-underline text-left py-4">
+                  <AccordionTrigger className="text-left font-bold text-slate-900 text-sm sm:text-base hover:no-underline py-4">
                     {faq.q}
                   </AccordionTrigger>
-                  <AccordionContent className="text-slate-650 text-xs sm:text-sm font-medium leading-relaxed pb-4">
+                  <AccordionContent className="text-slate-650 font-medium text-xs sm:text-sm leading-relaxed pb-4">
                     {faq.a}
                   </AccordionContent>
                 </AccordionItem>
@@ -2096,7 +2291,7 @@ export const AiInvoicingSoftware = () => {
             </Accordion>
 
           </div>
-        </section>
+        </motion.section>
 
       </main>
 

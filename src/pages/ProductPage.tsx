@@ -19,7 +19,12 @@ import {
   Clock,
   Layers,
   HelpCircle,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  Star,
+  FileText,
+  IndianRupee,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -333,61 +338,200 @@ export const ProductPage = () => {
       <main className="relative z-10 mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12 pb-16 pt-24">
         
         {/* Section 1: Hero Block */}
-        <section className="py-12 md:py-16 text-center space-y-6 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-650 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="h-4 w-4 text-indigo-600" />
-            AIBASS AI Bookkeeping Software Product Page
-          </div>
+        <section className="relative py-8 md:py-16 overflow-hidden">
           
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-950 leading-tight">
-            AI Bookkeeping Software for Clearer Financial Management
-          </h1>
-          
-          <div className="max-w-3xl mx-auto space-y-4 text-left pt-2">
-            <div className="flex items-start gap-3.5">
-              <div className="p-1.5 rounded-full bg-indigo-100/80 text-indigo-600 shrink-0 mt-1">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <p className="text-base sm:text-lg font-medium text-slate-700 leading-relaxed">
-                Automate bookkeeping, organise financial records and access important business information from one connected AI platform.
-              </p>
-            </div>
-            
-            <div className="flex items-start gap-3.5">
-              <div className="p-1.5 rounded-full bg-indigo-100/80 text-indigo-600 shrink-0 mt-1">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <p className="text-base sm:text-lg font-medium text-slate-700 leading-relaxed">
-                AIBASS helps businesses manage transactions, invoices, income, expenses and financial reports with less repeated manual work.
-              </p>
-            </div>
-            
-            <div className="flex items-start gap-3.5">
-              <div className="p-1.5 rounded-full bg-indigo-100/80 text-indigo-600 shrink-0 mt-1">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <p className="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed">
-                Use simple text or voice commands to access supported bookkeeping activities, monthly statements and current financial information.
-              </p>
-            </div>
+          {/* Background Glow & Wavy Accent */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-br from-indigo-200/40 via-blue-100/30 to-purple-100/20 blur-3xl rounded-full opacity-70" />
+            <svg className="absolute right-0 top-0 h-full w-1/2 opacity-25 text-indigo-300 pointer-events-none" viewBox="0 0 500 500" fill="none" preserveAspectRatio="none">
+              <path d="M0,80 C150,180 350,20 500,120 L500,500 L0,500 Z" fill="url(#hero-wavy-gradient-product)" />
+              <defs>
+                <linearGradient id="hero-wavy-gradient-product" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#e0e7ff" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#c7d2fe" stopOpacity="0.05" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
 
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
-            <Button 
-              onClick={openTrialModal}
-              className="bg-indigo-600 hover:bg-indigo-755 text-white font-semibold h-12 px-8 rounded-full flex items-center gap-2 group transition-all shadow-md hover:shadow-indigo-200"
-            >
-              Start 30 Day Free Trial
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center max-w-7xl mx-auto">
             
-            <Button 
-              onClick={openTrialModal}
-              variant="outline"
-              className="border-slate-300 hover:border-slate-400 bg-white/80 text-slate-900 font-semibold h-12 px-8 rounded-full flex items-center gap-2 transition-all shadow-sm"
-            >
-              Book a Free Demo
-            </Button>
+            {/* Left Column: Headline, New Booking Description, Feature Pills, CTA Buttons */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              
+              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight text-slate-950 leading-[1.12]">
+                AI Based Accounting Software Built for{" "}
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Modern Businesses
+                </span>
+              </h1>
+              
+              <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal max-w-2xl">
+                AI Booking Software that simplifies scheduling, bookings, and customer management. Automate appointment scheduling, manage bookings, reduce no-shows, and give customers an easier way to book your services.
+              </p>
+
+              {/* Feature Pills */}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-2.5 flex items-center gap-2.5 shadow-sm text-xs sm:text-sm font-semibold text-slate-800 hover:border-indigo-300 transition-all">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Mic className="h-3.5 w-3.5" />
+                  </div>
+                  <span>Voice & Text Commands</span>
+                </div>
+
+                <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-2.5 flex items-center gap-2.5 shadow-sm text-xs sm:text-sm font-semibold text-slate-800 hover:border-indigo-300 transition-all">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
+                  <span>AI Powered Automation</span>
+                </div>
+
+                <div className="bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-2.5 flex items-center gap-2.5 shadow-sm text-xs sm:text-sm font-semibold text-slate-800 hover:border-indigo-300 transition-all">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  </div>
+                  <span>Secure & Reliable</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex flex-wrap items-center gap-4">
+                <Button 
+                  onClick={openTrialModal}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 sm:h-13 px-7 sm:px-8 rounded-2xl flex items-center gap-2.5 transition-all shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 hover:scale-[1.01] text-sm sm:text-base cursor-pointer"
+                >
+                  Start 30 Day Free Trial
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                
+                <Button 
+                  onClick={openTrialModal}
+                  variant="outline"
+                  className="border-2 border-indigo-200/90 hover:border-indigo-400 bg-white text-slate-900 font-bold h-12 sm:h-13 px-7 sm:px-8 rounded-2xl flex items-center gap-2.5 transition-all shadow-xs hover:bg-slate-50 text-sm sm:text-base cursor-pointer"
+                >
+                  Book a Free Demo
+                  <Calendar className="h-4 w-4 text-indigo-600" />
+                </Button>
+              </div>
+
+              {/* Footer Subtext */}
+              <div className="flex items-center gap-2.5 text-xs font-medium text-slate-500 pt-1">
+                <div className="w-4 h-4 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-700 text-[10px] font-bold">
+                  ✓
+                </div>
+                <span>No credit card required</span>
+                <span className="text-slate-300">•</span>
+                <span>Cancel anytime</span>
+              </div>
+
+            </div>
+
+            {/* Right Column: Award Badge Graphic matching Image 2 visual */}
+            <div className="lg:col-span-5 flex justify-center items-center relative py-4">
+              <div className="relative w-full max-w-[420px] flex flex-col items-center justify-center">
+                
+                {/* Floating Glass Icon 1 - Top Right */}
+                <motion.div 
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -top-3 -right-2 z-20 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-blue-200/80 shadow-lg flex items-center justify-center text-blue-600"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                </motion.div>
+
+                {/* Floating Glass Icon 2 - Middle Right */}
+                <motion.div 
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                  className="absolute top-1/2 -right-6 z-20 w-11 h-11 rounded-full bg-white/80 backdrop-blur-md border border-indigo-200/80 shadow-lg flex items-center justify-center text-indigo-600"
+                >
+                  <IndianRupee className="h-5 w-5" />
+                </motion.div>
+
+                {/* Floating Glass Icon 3 - Bottom Left */}
+                <motion.div 
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute -bottom-2 -left-4 z-20 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-sky-200/80 shadow-lg flex items-center justify-center text-sky-600"
+                >
+                  <FileText className="h-5 w-5" />
+                </motion.div>
+
+                {/* Main Award Shield Badge */}
+                <div className="relative w-full flex flex-col items-center">
+                  
+                  {/* Laurels & Medal Container */}
+                  <div className="relative flex items-center justify-center w-full">
+                    
+                    {/* Left Laurel */}
+                    <img 
+                      src="/images/Vector.png" 
+                      alt="Laurel Left" 
+                      className="absolute -left-6 sm:-left-8 top-12 w-16 sm:w-20 h-auto object-contain z-10 opacity-90 drop-shadow-md" 
+                    />
+
+                    {/* Central 3D Shield Badge */}
+                    <div className="relative z-10 w-full max-w-[280px] sm:max-w-[310px] rounded-[36px] bg-gradient-to-b from-[#1c2230] via-[#0f131d] to-[#0a0d14] p-6 sm:p-7 border-2 border-amber-400/80 shadow-[0_20px_50px_rgba(15,23,42,0.35)] text-center text-white space-y-3 overflow-hidden">
+                      
+                      {/* Subtle Inner Glow */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-indigo-500/10 pointer-events-none" />
+
+                      {/* Top Gold Star */}
+                      <div className="flex justify-center">
+                        <Star className="h-7 w-7 fill-amber-400 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
+                      </div>
+
+                      {/* Award Title */}
+                      <div className="space-y-1">
+                        <h3 className="text-base sm:text-lg font-black tracking-wider uppercase text-amber-200 leading-tight">
+                          AI COMPANY <br />
+                          OF THE YEAR
+                        </h3>
+                        <p className="text-xs sm:text-sm font-bold tracking-widest text-amber-400/90 uppercase">
+                          – ACCOUNTING SOFTWARE 2026
+                        </p>
+                      </div>
+
+                      {/* Horizontal Gold Line */}
+                      <div className="w-20 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto my-2" />
+
+                      {/* Recognition Subtext */}
+                      <div className="space-y-0.5 pt-0.5">
+                        <p className="text-[11px] sm:text-xs text-slate-300 font-medium tracking-wide">
+                          Recognized by
+                        </p>
+                        <p className="text-xs sm:text-sm font-extrabold tracking-wide">
+                          <span className="text-red-500">SiliconIndia</span>{" "}
+                          <span className="text-white">Magazine</span>
+                        </p>
+                      </div>
+
+                    </div>
+
+                    {/* Right Laurel */}
+                    <img 
+                      src="/images/Vector-1.png" 
+                      alt="Laurel Right" 
+                      className="absolute -right-6 sm:-right-8 top-12 w-16 sm:w-20 h-auto object-contain z-10 opacity-90 drop-shadow-md" 
+                    />
+
+                  </div>
+
+                  {/* 2-Tier Golden Pedestal Stand */}
+                  <div className="w-full max-w-[290px] sm:max-w-[320px] relative -mt-3 z-0 flex flex-col items-center">
+                    {/* Top Tier */}
+                    <div className="w-[85%] h-5 bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 rounded-t-lg shadow-md border-t border-amber-200/60" />
+                    {/* Bottom Base Tier */}
+                    <div className="w-full h-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-b-2xl shadow-2xl border-t-2 border-amber-500/80 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-r from-amber-600/30 via-amber-400/50 to-amber-600/30 rounded-b-2xl" />
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </section>
 
