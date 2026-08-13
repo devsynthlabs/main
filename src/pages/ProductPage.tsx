@@ -338,23 +338,9 @@ export const ProductPage = () => {
       <main className="relative z-10 mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12 pb-16 pt-24">
         
         {/* Section 1: Hero Block */}
-        <section className="relative py-8 md:py-16 overflow-hidden">
+        <section className="relative py-8 md:py-16">
           
-          {/* Background Glow & Wavy Accent */}
-          <div className="absolute inset-0 pointer-events-none z-0">
-            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-br from-indigo-200/40 via-blue-100/30 to-purple-100/20 blur-3xl rounded-full opacity-70" />
-            <svg className="absolute right-0 top-0 h-full w-1/2 opacity-25 text-indigo-300 pointer-events-none" viewBox="0 0 500 500" fill="none" preserveAspectRatio="none">
-              <path d="M0,80 C150,180 350,20 500,120 L500,500 L0,500 Z" fill="url(#hero-wavy-gradient-product)" />
-              <defs>
-                <linearGradient id="hero-wavy-gradient-product" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#e0e7ff" stopOpacity="0.5" />
-                  <stop offset="100%" stopColor="#c7d2fe" stopOpacity="0.05" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center max-w-7xl mx-auto">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 items-center max-w-7xl mx-auto">
             
             {/* Left Column: Headline, New Booking Description, Feature Pills, CTA Buttons */}
             <div className="lg:col-span-7 space-y-6 text-left">
@@ -426,109 +412,43 @@ export const ProductPage = () => {
 
             </div>
 
-            {/* Right Column: Award Badge Graphic matching Image 2 visual */}
-            <div className="lg:col-span-5 flex justify-center items-center relative py-4">
-              <div className="relative w-full max-w-[420px] flex flex-col items-center justify-center">
-                
-                {/* Floating Glass Icon 1 - Top Right */}
+            {/* Right Column: Award Badge Graphic with Floating Glass Badges */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-start items-center relative py-4 lg:-ml-4">
+              <div className="relative w-full max-w-[500px] sm:max-w-[580px] flex items-center justify-center lg:justify-start">
+
+                {/* Floating Glass Icon 1 - Top Right (Chart) */}
                 <motion.div 
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -top-3 -right-2 z-20 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-blue-200/80 shadow-lg flex items-center justify-center text-blue-600"
+                  className="absolute top-2 -right-1 sm:-right-3 z-20 w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-white/95 backdrop-blur-md border border-blue-200/80 shadow-[0_8px_25px_rgba(37,99,235,0.15)] flex items-center justify-center text-blue-600"
                 >
-                  <BarChart3 className="h-5 w-5" />
+                  <BarChart3 className="h-7 w-7 sm:h-8 sm:w-8 stroke-[2.2]" />
                 </motion.div>
 
-                {/* Floating Glass Icon 2 - Middle Right */}
+                {/* Floating Glass Icon 2 - Bottom Right (Rupee Symbol) */}
                 <motion.div 
                   animate={{ y: [0, 8, 0] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                  className="absolute top-1/2 -right-6 z-20 w-11 h-11 rounded-full bg-white/80 backdrop-blur-md border border-indigo-200/80 shadow-lg flex items-center justify-center text-indigo-600"
+                  className="absolute bottom-20 -right-1 sm:-right-3 z-20 w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-white/95 backdrop-blur-md border border-blue-200/80 shadow-[0_8px_25px_rgba(37,99,235,0.15)] flex items-center justify-center text-blue-600"
                 >
-                  <IndianRupee className="h-5 w-5" />
+                  <IndianRupee className="h-7 w-7 sm:h-8 sm:w-8 stroke-[2.2]" />
                 </motion.div>
 
-                {/* Floating Glass Icon 3 - Bottom Left */}
+                {/* Floating Glass Icon 3 - Bottom Left (Document / File Text) */}
                 <motion.div 
                   animate={{ y: [0, -6, 0] }}
                   transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                  className="absolute -bottom-2 -left-4 z-20 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-sky-200/80 shadow-lg flex items-center justify-center text-sky-600"
+                  className="absolute bottom-6 -left-6 sm:-left-12 z-20 w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-white/95 backdrop-blur-md border border-blue-200/80 shadow-[0_8px_25px_rgba(37,99,235,0.15)] flex items-center justify-center text-blue-600"
                 >
-                  <FileText className="h-5 w-5" />
+                  <FileText className="h-7 w-7 sm:h-8 sm:w-8 stroke-[2.2]" />
                 </motion.div>
 
-                {/* Main Award Shield Badge */}
-                <div className="relative w-full flex flex-col items-center">
-                  
-                  {/* Laurels & Medal Container */}
-                  <div className="relative flex items-center justify-center w-full">
-                    
-                    {/* Left Laurel */}
-                    <img 
-                      src="/images/Vector.png" 
-                      alt="Laurel Left" 
-                      className="absolute -left-6 sm:-left-8 top-12 w-16 sm:w-20 h-auto object-contain z-10 opacity-90 drop-shadow-md" 
-                    />
-
-                    {/* Central 3D Shield Badge */}
-                    <div className="relative z-10 w-full max-w-[280px] sm:max-w-[310px] rounded-[36px] bg-gradient-to-b from-[#1c2230] via-[#0f131d] to-[#0a0d14] p-6 sm:p-7 border-2 border-amber-400/80 shadow-[0_20px_50px_rgba(15,23,42,0.35)] text-center text-white space-y-3 overflow-hidden">
-                      
-                      {/* Subtle Inner Glow */}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-indigo-500/10 pointer-events-none" />
-
-                      {/* Top Gold Star */}
-                      <div className="flex justify-center">
-                        <Star className="h-7 w-7 fill-amber-400 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
-                      </div>
-
-                      {/* Award Title */}
-                      <div className="space-y-1">
-                        <h3 className="text-base sm:text-lg font-black tracking-wider uppercase text-amber-200 leading-tight">
-                          AI COMPANY <br />
-                          OF THE YEAR
-                        </h3>
-                        <p className="text-xs sm:text-sm font-bold tracking-widest text-amber-400/90 uppercase">
-                          – ACCOUNTING SOFTWARE 2026
-                        </p>
-                      </div>
-
-                      {/* Horizontal Gold Line */}
-                      <div className="w-20 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto my-2" />
-
-                      {/* Recognition Subtext */}
-                      <div className="space-y-0.5 pt-0.5">
-                        <p className="text-[11px] sm:text-xs text-slate-300 font-medium tracking-wide">
-                          Recognized by
-                        </p>
-                        <p className="text-xs sm:text-sm font-extrabold tracking-wide">
-                          <span className="text-red-500">SiliconIndia</span>{" "}
-                          <span className="text-white">Magazine</span>
-                        </p>
-                      </div>
-
-                    </div>
-
-                    {/* Right Laurel */}
-                    <img 
-                      src="/images/Vector-1.png" 
-                      alt="Laurel Right" 
-                      className="absolute -right-6 sm:-right-8 top-12 w-16 sm:w-20 h-auto object-contain z-10 opacity-90 drop-shadow-md" 
-                    />
-
-                  </div>
-
-                  {/* 2-Tier Golden Pedestal Stand */}
-                  <div className="w-full max-w-[290px] sm:max-w-[320px] relative -mt-3 z-0 flex flex-col items-center">
-                    {/* Top Tier */}
-                    <div className="w-[85%] h-5 bg-gradient-to-r from-amber-700 via-amber-300 to-amber-700 rounded-t-lg shadow-md border-t border-amber-200/60" />
-                    {/* Bottom Base Tier */}
-                    <div className="w-full h-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-b-2xl shadow-2xl border-t-2 border-amber-500/80 flex items-center justify-center">
-                      <div className="w-full h-full bg-gradient-to-r from-amber-600/30 via-amber-400/50 to-amber-600/30 rounded-b-2xl" />
-                    </div>
-                  </div>
-
-                </div>
-
+                {/* Golden Award Image */}
+                <img 
+                  src="/images/Award Golden.png" 
+                  alt="AI Company of the Year 2026 Award - SiliconIndia Recognition" 
+                  className="relative z-10 w-full h-auto object-contain drop-shadow-2xl hover:scale-[1.02] transition-transform duration-300"
+                />
               </div>
             </div>
 
