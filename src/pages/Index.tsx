@@ -23,6 +23,7 @@ import {
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
 import FirstSection from "@/components/FirstSection";
+import CompanyOverviewSection from "@/components/CompanyOverviewSection";
 import SecondSection from "@/components/SecondSection";
 import ThirdSection from "@/components/ThirdSection";
 import FourthSection from "@/components/FourthSection";
@@ -201,6 +202,11 @@ const Index = () => {
       <main className="relative mx-auto max-w-7xl px-5 sm:px-6">
         <HeroSection onWatchDemo={() => window.dispatchEvent(new CustomEvent("openTrialModal"))} />
       </main>
+
+      {/* Full-width Company Overview Section */}
+      <div id="overview" className="relative w-full mt-8">
+        <CompanyOverviewSection onExplore={() => window.dispatchEvent(new CustomEvent("openTrialModal"))} />
+      </div>
 
       {/* Full-width First Section */}
       <div id="highlights" className="relative mx-auto max-w-[1380px] w-full px-4 sm:px-8 lg:px-12">
