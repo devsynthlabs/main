@@ -105,7 +105,7 @@ export const Header = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-max min-w-[290px] rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50"
+                    className="absolute right-0 top-full mt-2 w-max min-w-[220px] rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50"
                   >
                     <div className="flex flex-col gap-1">
                       <button
@@ -113,13 +113,13 @@ export const Header = () => {
                           setProductDropdownOpen(false);
                           navigate("/ai-invoicing-software");
                         }}
-                        className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all hover:bg-indigo-50/70 group cursor-pointer"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-all hover:bg-indigo-50/70 group cursor-pointer"
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100/70 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-xs">
                           <FileText className="h-4 w-4" />
                         </div>
                         <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
-                          AI Invoicing Software Product Page
+                          AI Invoicing Software
                         </span>
                       </button>
 
@@ -128,13 +128,13 @@ export const Header = () => {
                           setProductDropdownOpen(false);
                           navigate("/product");
                         }}
-                        className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-left transition-all hover:bg-emerald-50/70 group cursor-pointer"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-all hover:bg-indigo-50/70 group cursor-pointer"
                       >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100/70 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-xs">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100/70 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-xs">
                           <BookOpen className="h-4 w-4" />
                         </div>
-                        <span className="text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition-colors whitespace-nowrap">
-                          AIBASS AI Bookkeeping Software Product Page
+                        <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
+                          AI Bookkeeping Software
                         </span>
                       </button>
                     </div>
@@ -228,17 +228,17 @@ export const Header = () => {
                           className="flex items-center gap-2.5 text-xs font-bold text-slate-800 hover:text-indigo-600 py-1.5 text-left cursor-pointer"
                         >
                           <FileText className="h-4 w-4 text-indigo-600 shrink-0" />
-                          <span>AI Invoicing Software Product Page</span>
+                          <span>AI Invoicing Software</span>
                         </button>
                         <button
                           onClick={() => {
                             setMobileMenuOpen(false);
                             navigate("/product");
                           }}
-                          className="flex items-center gap-2.5 text-xs font-bold text-slate-800 hover:text-emerald-600 py-1.5 text-left cursor-pointer"
+                          className="flex items-center gap-2.5 text-xs font-bold text-slate-800 hover:text-indigo-600 py-1.5 text-left cursor-pointer"
                         >
-                          <BookOpen className="h-4 w-4 text-emerald-600 shrink-0" />
-                          <span>AIBASS AI Bookkeeping Software Product Page</span>
+                          <BookOpen className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <span>AI Bookkeeping Software</span>
                         </button>
                       </motion.div>
                     )}
