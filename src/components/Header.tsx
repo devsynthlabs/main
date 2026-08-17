@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Menu, X, ChevronDown, FileText, BookOpen } from "lucide-react";
+import { Sparkles, Menu, X, ChevronDown, FileText, BookOpen, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 
@@ -105,7 +105,7 @@ export const Header = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-max min-w-[220px] rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50"
+                    className="absolute right-0 top-full mt-2 w-max min-w-[240px] rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-2xl backdrop-blur-xl z-50"
                   >
                     <div className="flex flex-col gap-1">
                       <button
@@ -135,6 +135,21 @@ export const Header = () => {
                         </div>
                         <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
                           AI Bookkeeping Software
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProductDropdownOpen(false);
+                          navigate("/ai-financial-reporting-software");
+                        }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-all hover:bg-indigo-50/70 group cursor-pointer"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100/70 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-xs">
+                          <BarChart3 className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
+                          AI Financial Reporting Software
                         </span>
                       </button>
                     </div>
@@ -239,6 +254,16 @@ export const Header = () => {
                         >
                           <BookOpen className="h-4 w-4 text-indigo-600 shrink-0" />
                           <span>AI Bookkeeping Software</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate("/ai-financial-reporting-software");
+                          }}
+                          className="flex items-center gap-2.5 text-xs font-bold text-slate-800 hover:text-indigo-600 py-1.5 text-left cursor-pointer"
+                        >
+                          <BarChart3 className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <span>AI Financial Reporting Software</span>
                         </button>
                       </motion.div>
                     )}

@@ -28,6 +28,7 @@ import PublicPurchaseInvoiceView from "./pages/PublicPurchaseInvoiceView";
 import ServerIssues from "./pages/ServerIssues";
 import AiAccountingExplained from "./pages/AiAccountingExplained";
 import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
+import AiFinancialReportingSoftware from "./pages/AiFinancialReportingSoftware";
 import ProductPage from "./pages/ProductPage";
 import ThankYou from "./pages/ThankYou";
 
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/product" element={<ProductPage />} />
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
+            <Route path="/ai-financial-reporting-software" element={<AiFinancialReportingSoftware />} />
 
             {/* Maintenance Mode Gates */}
             <Route
