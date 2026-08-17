@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Sparkles, Menu, X, ChevronDown, FileText, BookOpen, BarChart3, TrendingUp } from "lucide-react";
+import { Sparkles, Menu, X, ChevronDown, FileText, BookOpen, BarChart3, TrendingUp, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 
@@ -167,6 +167,21 @@ export const Header = () => {
                           Cash Flow Forecasting Software
                         </span>
                       </button>
+
+                      <button
+                        onClick={() => {
+                          setProductDropdownOpen(false);
+                          navigate("/gst-accounting-software");
+                        }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-all hover:bg-indigo-50/70 group cursor-pointer"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100/70 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-xs">
+                          <Calculator className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors whitespace-nowrap">
+                          GST Accounting Software
+                        </span>
+                      </button>
                     </div>
                   </motion.div>
                 )}
@@ -289,6 +304,16 @@ export const Header = () => {
                         >
                           <TrendingUp className="h-4 w-4 text-indigo-600 shrink-0" />
                           <span>Cash Flow Forecasting Software</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate("/gst-accounting-software");
+                          }}
+                          className="flex items-center gap-2.5 text-xs font-bold text-slate-800 hover:text-indigo-600 py-1.5 text-left cursor-pointer"
+                        >
+                          <Calculator className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <span>GST Accounting Software</span>
                         </button>
                       </motion.div>
                     )}
