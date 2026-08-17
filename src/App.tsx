@@ -31,6 +31,7 @@ import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
 import AiFinancialReportingSoftware from "./pages/AiFinancialReportingSoftware";
 import ProductPage from "./pages/ProductPage";
 import ThankYou from "./pages/ThankYou";
+import CashFlowForecastingSoftware from "./pages/CashFlowForecastingSoftware";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,8 @@ const App = () => {
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
             <Route path="/ai-financial-reporting-software" element={<AiFinancialReportingSoftware />} />
+            <Route path="/products/cash-flow-forecasting-software/" element={<CashFlowForecastingSoftware />} />
+            <Route path="/products/cash-flow-forecasting-software" element={<CashFlowForecastingSoftware />} />
 
             {/* Maintenance Mode Gates */}
             <Route
