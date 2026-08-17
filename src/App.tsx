@@ -29,6 +29,7 @@ import ServerIssues from "./pages/ServerIssues";
 import AiAccountingExplained from "./pages/AiAccountingExplained";
 import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
 import ProductPage from "./pages/ProductPage";
+import GstAccountingSoftware from "./pages/GstAccountingSoftware";
 import ThankYou from "./pages/ThankYou";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/product" element={<ProductPage />} />
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
+            <Route path="/gst-accounting-software" element={<GstAccountingSoftware />} />
 
             {/* Maintenance Mode Gates */}
             <Route
