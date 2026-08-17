@@ -48,18 +48,36 @@ const CASH_FLOW_COMMANDS = [
     prompt: "\"Show my cash flow forecast.\"",
     response:
       "AIBASS provides the available cash flow forecast based on the relevant bookkeeping information.",
+    voicePrompt: "\"Show potential cash shortages.\"",
+    voiceResponse:
+      "AIBASS presents available forecast information that can help users understand possible periods of tighter cash availability.",
   },
   {
     title: "Three Month View",
     prompt: "\"Show my cash flow forecast for the next three months.\"",
     response:
       "AIBASS presents the available prediction for the requested supported period.",
+    voicePrompt: "\"Check my 3-month cash flow outlook.\"",
+    voiceResponse:
+      "AIBASS analyzes upcoming receivables and payables for the next 90-day projection.",
   },
   {
     title: "Annual Outlook",
     prompt: "\"Show my cash flow forecast for the next year.\"",
     response:
       "AIBASS provides the available forecast for the selected annual period.",
+    voicePrompt: "\"What is my expected cash runway this year?\"",
+    voiceResponse:
+      "AIBASS provides the available forecast and estimated runway based on your recurring expenses.",
+  },
+  {
+    title: "Cash Shortages",
+    prompt: "\"Warn me about upcoming cash pressure.\"",
+    response:
+      "AIBASS highlights periods where projected outgoing expenses exceed incoming receivables.",
+    voicePrompt: "\"Warn me about any upcoming cash pressure.\"",
+    voiceResponse:
+      "AIBASS flags potential deficit weeks based on planned outflows and expected client payments.",
   },
 ];
 
@@ -70,49 +88,83 @@ const AiCommandInteractiveSection = () => {
   const [textStage, setTextStage] = useState<"typing" | "thinking" | "done">("typing");
   const [voiceTypedText, setVoiceTypedText] = useState("");
   const [voiceStage, setVoiceStage] = useState<"listening" | "thinking" | "done">("listening");
-
-  const fullVoiceCommand = "\"Show potential cash shortages.\"";
+  const [animTrigger, setAnimTrigger] = useState(0);
 
   const triggerAnimation = () => {
+    setAnimTrigger((prev) => prev + 1);
+  };
+
+  const handleSelectCmd = (index: number) => {
+    setActiveCmd(index);
+    setAnimTrigger((prev) => prev + 1);
+  };
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let isMounted = true;
+    let typeInterval: NodeJS.Timeout | null = null;
+    let voiceInterval: NodeJS.Timeout | null = null;
+    let thinkingTimeout: NodeJS.Timeout | null = null;
+    let voiceThinkingTimeout: NodeJS.Timeout | null = null;
+
     const cmd = CASH_FLOW_COMMANDS[activeCmd];
+    
+    // Reset states
     setTypedText("");
     setTextStage("typing");
     setVoiceTypedText("");
     setVoiceStage("listening");
 
-    let textIndex = 0;
-    const typeInterval = setInterval(() => {
-      if (textIndex <= cmd.prompt.length) {
-        setTypedText(cmd.prompt.slice(0, textIndex));
-        textIndex++;
+    // Typewriter for Text Command
+    let textIdx = 0;
+    typeInterval = setInterval(() => {
+      if (!isMounted) return;
+      if (textIdx <= cmd.prompt.length) {
+        setTypedText(cmd.prompt.slice(0, textIdx));
+        textIdx++;
       } else {
-        clearInterval(typeInterval);
+        if (typeInterval) clearInterval(typeInterval);
         setTextStage("thinking");
-        setTimeout(() => setTextStage("done"), 1200);
+        thinkingTimeout = setTimeout(() => {
+          if (!isMounted) return;
+          setTextStage("done");
+        }, 800);
       }
-    }, 38);
+    }, 30);
 
-    let voiceIndex = 0;
-    const voiceInterval = setInterval(() => {
-      if (voiceIndex <= fullVoiceCommand.length) {
-        setVoiceTypedText(fullVoiceCommand.slice(0, voiceIndex));
-        voiceIndex++;
+    // Typewriter for Voice Command
+    let voiceIdx = 0;
+    voiceInterval = setInterval(() => {
+      if (!isMounted) return;
+      if (voiceIdx <= cmd.voicePrompt.length) {
+        setVoiceTypedText(cmd.voicePrompt.slice(0, voiceIdx));
+        voiceIdx++;
       } else {
-        clearInterval(voiceInterval);
+        if (voiceInterval) clearInterval(voiceInterval);
         setVoiceStage("thinking");
-        setTimeout(() => setVoiceStage("done"), 1200);
+        voiceThinkingTimeout = setTimeout(() => {
+          if (!isMounted) return;
+          setVoiceStage("done");
+        }, 800);
       }
-    }, 38);
-  };
+    }, 30);
 
-  useEffect(() => {
-    if (isInView) triggerAnimation();
-  }, [isInView, activeCmd]);
+    return () => {
+      isMounted = false;
+      if (typeInterval) clearInterval(typeInterval);
+      if (voiceInterval) clearInterval(voiceInterval);
+      if (thinkingTimeout) clearTimeout(thinkingTimeout);
+      if (voiceThinkingTimeout) clearTimeout(voiceThinkingTimeout);
+    };
+  }, [isInView, activeCmd, animTrigger]);
+
+  const currentCmd = CASH_FLOW_COMMANDS[activeCmd];
 
   return (
     <motion.section
       onViewportEnter={() => setIsInView(true)}
-      viewport={{ once: false, amount: 0.2 }}
+      viewport={{ once: true, amount: 0.2 }}
       className="py-12 md:py-16 border-t border-slate-100 bg-transparent"
     >
       <div className="max-w-7xl mx-auto space-y-12">
@@ -125,7 +177,7 @@ const AiCommandInteractiveSection = () => {
             <button
               onClick={triggerAnimation}
               title="Replay AI Animation"
-              className="p-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+              className="p-1.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
@@ -144,10 +196,10 @@ const AiCommandInteractiveSection = () => {
           {CASH_FLOW_COMMANDS.map((cmd, i) => (
             <button
               key={i}
-              onClick={() => setActiveCmd(i)}
-              className={`text-xs font-bold px-4 py-2 rounded-full border transition-all ${
+              onClick={() => handleSelectCmd(i)}
+              className={`text-xs font-bold px-4 py-2 rounded-full border transition-all cursor-pointer ${
                 activeCmd === i
-                  ? "bg-indigo-600 text-white border-indigo-600"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
                   : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300"
               }`}
             >
@@ -220,7 +272,7 @@ const AiCommandInteractiveSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-xs font-medium text-slate-700 leading-relaxed"
                   >
-                    {CASH_FLOW_COMMANDS[activeCmd].response}
+                    {currentCmd.response}
                   </motion.p>
                 ) : (
                   <div className="flex items-center gap-2 text-xs text-slate-400 italic py-2">
@@ -299,7 +351,7 @@ const AiCommandInteractiveSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-xs font-medium text-slate-700 leading-relaxed"
                   >
-                    AIBASS presents available forecast information that can help users understand possible periods of tighter cash availability.
+                    {currentCmd.voiceResponse}
                   </motion.p>
                 ) : (
                   <div className="flex items-center gap-2 text-xs text-slate-400 italic py-2">

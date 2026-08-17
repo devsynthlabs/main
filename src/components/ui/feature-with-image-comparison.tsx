@@ -92,11 +92,19 @@ export function Feature({
   badge = "COMPARISON",
   title = "Cash Flow Forecast vs Cash Flow Statement",
   description = "A cash flow statement and a cash flow forecast provide different types of financial visibility.",
+  leftTitle = "Cash Flow Statement",
+  leftSubtitle = "Verified Bookkeeping & Audited Records",
+  rightTitle = "Cash Flow Forecast",
+  rightSubtitle = "Category-wise Projections • Up to 1 Year",
   className,
 }: {
   badge?: string;
   title?: string;
   description?: string;
+  leftTitle?: string;
+  leftSubtitle?: string;
+  rightTitle?: string;
+  rightSubtitle?: string;
   className?: string;
 }) {
   const [activeTab, setActiveTab] = useState<"compare" | "statement" | "forecast">("compare");
@@ -260,15 +268,17 @@ export function Feature({
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-bold text-white tracking-tight">
-                          Cash Flow Statement
+                          {leftTitle}
                         </h3>
                         <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
                           Historical
                         </span>
                       </div>
-                      <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                        Verified Bookkeeping & Audited Records
-                      </p>
+                      {leftSubtitle && (
+                        <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                          {leftSubtitle}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -343,15 +353,17 @@ export function Feature({
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-bold text-white tracking-tight">
-                          Cash Flow Forecast
+                          {rightTitle}
                         </h3>
                         <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-indigo-500/40 text-indigo-100 border border-indigo-400/50 shadow-xs">
                           AI Predictive
                         </span>
                       </div>
-                      <p className="text-xs font-semibold text-indigo-200 mt-0.5">
-                        Category-wise Projections • Up to 1 Year
-                      </p>
+                      {rightSubtitle && (
+                        <p className="text-xs font-semibold text-indigo-200 mt-0.5">
+                          {rightSubtitle}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

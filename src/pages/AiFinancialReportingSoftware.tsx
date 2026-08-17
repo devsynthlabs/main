@@ -5,7 +5,7 @@ import {
   BarChart3, 
   Sparkles, 
   ArrowRight, 
-  CheckCircle2, 
+  CheckCircle2,
   ShieldCheck, 
   Zap, 
   TrendingUp, 
@@ -14,7 +14,6 @@ import {
   ArrowUp,
   Layers,
   Check,
-  Building2,
   PieChart,
   LineChart,
   FileSpreadsheet,
@@ -43,7 +42,8 @@ import {
   HardHat,
   Cloud,
   Server,
-  Eye
+  Eye,
+  type LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,7 +61,7 @@ interface ReportCategory {
   id: string;
   category: string;
   badge: string;
-  icon: any;
+  icon: LucideIcon;
   iconBg: string;
   badgeColor: string;
   accentBorder: string;
@@ -1289,10 +1289,6 @@ export const AiFinancialReportingSoftware = () => {
           <div className="bg-white border border-slate-200/80 rounded-[32px] p-6 md:p-10 shadow-[0_15px_40px_rgba(0,0,0,0.03)] space-y-6">
             
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                Key Features Included
-              </div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Product Highlights
               </h2>
@@ -1375,9 +1371,9 @@ export const AiFinancialReportingSoftware = () => {
               <div className="lg:col-span-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-indigo-600" />
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                      Step 1: Input Data Sources
+                    <span className="h-2.5 w-2.5 rounded-full bg-indigo-600" />
+                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
+                      Input Data Sources
                     </span>
                   </div>
                   <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
@@ -1449,9 +1445,9 @@ export const AiFinancialReportingSoftware = () => {
               <div className="lg:col-span-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                      Step 2: Structured Insights
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">
+                      Structured Insights
                     </span>
                   </div>
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1532,11 +1528,6 @@ export const AiFinancialReportingSoftware = () => {
             
             {/* Header Block */}
             <div className="text-center space-y-3 max-w-3xl mx-auto">
-              <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100">
-                <Award className="h-3.5 w-3.5 text-indigo-600" />
-                Industry Recognition & Trust
-              </div>
-
               <h2 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl leading-tight">
                 Financial Reporting Backed by{" "}
                 <span className="bg-gradient-to-r from-indigo-600 via-sky-600 to-purple-600 bg-clip-text text-transparent">
@@ -1611,26 +1602,6 @@ export const AiFinancialReportingSoftware = () => {
               </div>
             </div>
 
-            {/* Recognition Badges Footer Pill */}
-            <div className="pt-2 text-center">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 sm:gap-3 bg-slate-50/90 border border-slate-200/80 rounded-full px-5 py-2 text-xs font-bold text-slate-700 shadow-2xs">
-                <span className="flex items-center gap-1.5 text-blue-700">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
-                  DPIIT Recognized Startup
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center gap-1.5 text-indigo-700">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600" />
-                  AI & Machine Learning Sector
-                </span>
-                <span className="text-slate-300 hidden sm:inline">•</span>
-                <span className="flex items-center gap-1.5 text-amber-700">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-600" />
-                  AI Company of the Year – Accounting Software 2026
-                </span>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
@@ -1646,10 +1617,6 @@ export const AiFinancialReportingSoftware = () => {
           
           {/* Section Header */}
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-            <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              Connected AI Platform
-            </span>
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
               AI Financial Reporting Software Features
             </h2>
@@ -2277,11 +2244,6 @@ export const AiFinancialReportingSoftware = () => {
           
           {/* Section Header */}
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100">
-              <Building2 className="h-3.5 w-3.5 text-indigo-600" />
-              Tailored Industry Solutions
-            </div>
-
             <h2 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl leading-tight">
               AI Financial Reporting for{" "}
               <span className="bg-gradient-to-r from-indigo-600 via-sky-600 to-purple-600 bg-clip-text text-transparent">
