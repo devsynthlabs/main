@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
+import Autoplay, { AutoplayType } from 'embla-carousel-autoplay';
 import { Loader2 } from 'lucide-react';
 
 interface PackageInfo {
@@ -63,7 +63,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
     // Custom logic to resume autoplay after 5 seconds of inactivity
     let resumeTimeout: NodeJS.Timeout;
     const onPointerDown = () => {
-      const autoplay = emblaApi?.plugins()?.autoplay;
+      const autoplay = emblaApi?.plugins()?.autoplay as AutoplayType | undefined;
       if (!autoplay) return;
       
       // The plugin stops automatically on interaction. We just need to schedule a resume.
