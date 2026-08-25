@@ -1028,7 +1028,7 @@ export const CashFlowForecastingSoftware = () => {
                   title: "AI Financial Reporting Software",
                   desc: "Review profit and loss statements, balance sheet information, category-wise financial views and available cash flow information.",
                   cta: "Explore AI Financial Reporting Software",
-                  route: "/",
+                  route: "/ai-financial-reporting-software",
                   color: "emerald",
                 },
                 {
@@ -1036,15 +1036,15 @@ export const CashFlowForecastingSoftware = () => {
                   title: "GST Accounting Software",
                   desc: "Keep supported GST-related transaction information connected with invoicing and financial records.",
                   cta: "Explore GST Accounting Software",
-                  route: "/",
+                  route: "/gst-accounting-software",
                   color: "purple",
                 },
                 {
                   icon: <Package className="h-5 w-5" />,
-                  title: "Inventory Management",
+                  title: "AI Inventory Management Software",
                   desc: "Connect supported purchases and sales with relevant inventory and financial information.",
-                  cta: "Explore Inventory Management",
-                  route: "/",
+                  cta: "Explore AI Inventory Management",
+                  route: "/ai-inventory-management-software",
                   color: "amber",
                 },
               ].map((item, i) => (

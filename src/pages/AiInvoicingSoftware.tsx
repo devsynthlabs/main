@@ -1811,15 +1811,15 @@ export const AiInvoicingSoftware = () => {
                   title: "GST Accounting",
                   desc: "Calculate applicable CGST, SGST and IGST during supported invoice creation.",
                   linkText: "Explore GST Accounting Software",
-                  path: "/tax-gst",
+                  path: "/gst-accounting-software",
                   icon: Calculator,
                   color: "text-purple-600 bg-purple-50 border-purple-100"
                 },
                 {
-                  title: "Inventory Management",
+                  title: "AI Inventory Management",
                   desc: "Reduce stock quantities based on products recorded in completed sales invoices.",
-                  linkText: "Explore Inventory Accounting Software",
-                  path: "/inventory",
+                  linkText: "Explore AI Inventory Management Software",
+                  path: "/ai-inventory-management-software",
                   icon: Package,
                   color: "text-amber-600 bg-amber-50 border-amber-100"
                 },
@@ -1827,7 +1827,7 @@ export const AiInvoicingSoftware = () => {
                   title: "Financial Reporting",
                   desc: "Use recorded accounting information to review monthly profit and loss, balance sheet information and category wise financial views.",
                   linkText: "Explore Financial Reporting Software",
-                  path: "/profit-loss",
+                  path: "/ai-financial-reporting-software",
                   icon: Layers,
                   color: "text-emerald-600 bg-emerald-50 border-emerald-100"
                 }

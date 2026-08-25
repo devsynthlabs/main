@@ -492,14 +492,14 @@ export const GstAccountingSoftware = () => {
     {
       title: "AI Financial Reporting Software",
       desc: "Turn available financial information into monthly profit and loss statements, balance sheet information and category wise reports.",
-      link: "/product",
+      link: "/ai-financial-reporting-software",
       cta: "Explore AI Financial Reporting Software"
     },
     {
-      title: "Inventory Management Software",
+      title: "AI Inventory Management Software",
       desc: "Connect supported purchases and sales with relevant stock quantities and inventory information.",
-      link: "/inventory",
-      cta: "Explore Inventory Management Software"
+      link: "/ai-inventory-management-software",
+      cta: "Explore AI Inventory Management Software"
     }
   ];
 

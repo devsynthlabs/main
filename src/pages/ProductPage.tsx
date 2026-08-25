@@ -245,10 +245,10 @@ export const ProductPage = () => {
   ];
 
   const connectedProducts = [
-    { title: "AI Invoicing Software", desc: "Create supported customer sales invoices using text or voice commands.", route: "/invoice" },
-    { title: "GST Accounting Software", desc: "Calculate applicable CGST, SGST and IGST for supported sales transactions.", route: "/tax-gst" },
-    { title: "Inventory Management Software", desc: "Track stock quantities and connect purchases and sales with relevant inventory records.", route: "/inventory" },
-    { title: "Cash Flow Forecasting Software", desc: "Review current cash movement and estimate future cash availability.", route: "/cashflow" },
+    { title: "AI Invoicing Software", desc: "Create supported customer sales invoices using text or voice commands.", route: "/ai-invoicing-software" },
+    { title: "GST Accounting Software", desc: "Calculate applicable CGST, SGST and IGST for supported sales transactions.", route: "/gst-accounting-software" },
+    { title: "AI Inventory Management Software", desc: "Track stock quantities and connect purchases and sales with relevant inventory records.", route: "/ai-inventory-management-software" },
+    { title: "Cash Flow Forecasting Software", desc: "Review current cash movement and estimate future cash availability.", route: "/products/cash-flow-forecasting-software/" },
     { title: "Payroll Management", desc: "Organise supported salary calculations, deductions and payroll information.", route: "/payroll" },
     { title: "Fraud Monitoring", desc: "Identify unusual financial activity that may require authorised user review.", route: "/fraud-detection" },
     { title: "Civil Engineering Project Scheduling", desc: "Organise project timelines, resources, budgets and critical activities for construction and civil engineering projects.", route: "/civil-engineering" }

@@ -29,6 +29,7 @@ import ServerIssues from "./pages/ServerIssues";
 import AiAccountingExplained from "./pages/AiAccountingExplained";
 import AiInvoicingSoftware from "./pages/AiInvoicingSoftware";
 import AiFinancialReportingSoftware from "./pages/AiFinancialReportingSoftware";
+import AiInventoryManagementSoftware from "./pages/AiInventoryManagementSoftware";
 import ProductPage from "./pages/ProductPage";
 import GstAccountingSoftware from "./pages/GstAccountingSoftware";
 import ThankYou from "./pages/ThankYou";
@@ -50,6 +51,9 @@ const App = () => {
             <Route path="/product" element={<ProductPage />} />
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
+            <Route path="/ai-inventory-management-software" element={<AiInventoryManagementSoftware />} />
+            <Route path="/products/ai-inventory-management-software" element={<AiInventoryManagementSoftware />} />
+            <Route path="/products/ai-inventory-management-software/" element={<AiInventoryManagementSoftware />} />
             <Route path="/ai-financial-reporting-software" element={<AiFinancialReportingSoftware />} />
             <Route path="/products/cash-flow-forecasting-software/" element={<CashFlowForecastingSoftware />} />
             <Route path="/products/cash-flow-forecasting-software" element={<CashFlowForecastingSoftware />} />

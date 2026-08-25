@@ -721,8 +721,8 @@ export const AiFinancialReportingSoftware = () => {
         "Supported purchases and sales can update relevant stock quantities and inventory related financial information.",
         "This helps users understand how inventory activity influences expenses, revenue and business performance."
       ],
-      ctaText: "Explore Inventory Management Software",
-      ctaLink: "/inventory"
+      ctaText: "Explore AI Inventory Management Software",
+      ctaLink: "/ai-inventory-management-software"
     },
     {
       id: "payroll-information",
