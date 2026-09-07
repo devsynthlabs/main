@@ -106,18 +106,26 @@ const HeroSection = ({ onWatchDemo }: HeroSectionProps) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="liquid-pill mb-8 inline-flex items-center gap-2.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm backdrop-blur-md dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300"
+          className="mb-8 inline-flex items-center"
         >
-          <Sparkles className="h-4 w-4" />
-          AIBASS Intelligent Finance
+          <p className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/50 px-3.5 py-1.5 text-xs font-bold tracking-wide text-indigo-600">
+            <Sparkles className="h-4 w-4 shrink-0 text-indigo-600" />
+            <span>AIBASS Intelligent Finance</span>
+          </p>
         </motion.div>
 
         <h1 className="text-balance text-3xl font-bold leading-[1.2] tracking-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-[52px]">
-          AI Accounting Software for <span className="bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">Smarter</span> Business Management
+          AI Accounting Software
         </h1>
 
-        <p className="mt-5 max-w-2xl text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
-          Manage bookkeeping, sales invoices, GST calculations, inventory, financial reports and cash-flow predictions through one intelligent accounting platform. With AIBASS, you can give the AI a command through voice or text and access the business information or accounting action you need.
+        <p className="mt-3 text-lg font-bold tracking-tight text-slate-900 sm:text-xl lg:text-2xl">
+          <span className="bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+            Built for Indian Small Businesses
+          </span>
+        </p>
+
+        <p className="mt-4 max-w-2xl text-sm font-medium leading-relaxed text-slate-700 sm:text-base">
+          Automate bookkeeping, GST invoicing, inventory tracking and financial reports with AI. Simply use voice or text commands to manage your business accounts faster.
         </p>
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">

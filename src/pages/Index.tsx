@@ -23,7 +23,7 @@ import {
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
 import FirstSection from "@/components/FirstSection";
-import CompanyOverviewSection from "@/components/CompanyOverviewSection";
+import { AiAccountingRecognition } from "@/components/AiAccountingRecognition";
 import SecondSection from "@/components/SecondSection";
 import ThirdSection from "@/components/ThirdSection";
 import FourthSection from "@/components/FourthSection";
@@ -203,9 +203,14 @@ const Index = () => {
         <HeroSection onWatchDemo={() => window.dispatchEvent(new CustomEvent("openTrialModal"))} />
       </main>
 
-      {/* Full-width Company Overview Section */}
-      <div id="overview" className="relative w-full mt-8">
-        <CompanyOverviewSection onExplore={() => window.dispatchEvent(new CustomEvent("openTrialModal"))} />
+      {/* Recognition Behind AIBASS Section */}
+      <div id="overview" className="relative w-full mt-4">
+        <AiAccountingRecognition />
+      </div>
+
+      {/* Full-width Second Section (Tell AIBASS What You Need) */}
+      <div className="relative mx-auto max-w-7xl w-full px-4 sm:px-8 lg:px-12 mt-8">
+        <SecondSection />
       </div>
 
       {/* Full-width First Section */}
@@ -216,11 +221,6 @@ const Index = () => {
       {/* Full-width Third Section */}
       <div id="features" className="relative mx-auto max-w-7xl w-full px-4 sm:px-8 lg:px-12 mt-2">
         <ThirdSection />
-      </div>
-
-      {/* Full-width Second Section */}
-      <div className="relative mx-auto max-w-7xl w-full px-4 sm:px-8 lg:px-12 mt-12">
-        <SecondSection />
       </div>
 
       {/* Full-width Fourth Section */}
