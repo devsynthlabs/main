@@ -61,7 +61,7 @@ jobs:
             sudo -u ubuntu -H bash -lc "
               set -euo pipefail
 
-              cd \$APP_DIR
+              cd /home/ubuntu/main
 
               echo 'Fetching latest main...'
               git fetch origin main
