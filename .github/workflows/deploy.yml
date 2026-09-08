@@ -15,256 +15,163 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
 
-    env:
-      APP_DIR: /home/ubuntu/main
-      WEB_DIR: /var/www/financial-automation
-      DEPLOY_SHA: ${{ github.sha }}
-
     steps:
-      - name:  Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name:  Setup SSH
+      - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name:  Add Server to Known Hosts
+      - name: Add Server to Known Hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
 
-      - name:  Create Backup
+      - name: Deploy to AWS
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
-          ssh root@${{ secrets.SERVER_IP }} '
-            if [ -x /root/backup-app.sh ]; then
-              /root/backup-app.sh
-            else
-              echo "Backup script not found - continuing"
-            fi
-          '
+          ssh root@"$SERVER_IP" \
+            "DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'ENDSSH'
+          set -euo pipefail
 
-      - name:  Deploy Exact Commit
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << ENDSSH
-            set -euo pipefail
+          APP_DIR="/home/ubuntu/main"
+          WEB_DIR="/var/www/financial-automation"
 
-            APP_DIR="${APP_DIR}"
-            DEPLOY_SHA="${DEPLOY_SHA}"
+          echo "=========================================="
+          echo "Deploying Financial Automation"
+          echo "Commit: $DEPLOY_SHA"
+          echo "App:    $APP_DIR"
+          echo "Web:    $WEB_DIR"
+          echo "=========================================="
 
-            echo "=========================================="
-            echo "Deploying Financial Automation"
-            echo "Commit: \$DEPLOY_SHA"
-            echo "App:    \$APP_DIR"
-            echo "=========================================="
+          sudo -u ubuntu -H env \
+            APP_DIR="$APP_DIR" \
+            WEB_DIR="$WEB_DIR" \
+            DEPLOY_SHA="$DEPLOY_SHA" \
+            bash -s <<'APPSSH'
+          set -euo pipefail
 
-            sudo -u ubuntu -H bash -lc "
-              set -euo pipefail
+          cd "$APP_DIR"
 
-              cd /home/ubuntu/main
+          echo "Fetching GitHub main..."
+          git fetch origin main
 
-              echo 'Fetching latest main...'
-              git fetch origin main
+          echo "Protecting production environment files..."
 
-              echo 'Resetting to exact deployment commit...'
-              if [ -f .env ]; then cp -p .env /tmp/financial-automation.env; fi
-              if [ -f backend/.env ]; then cp -p backend/.env /tmp/financial-automation-backend.env; fi
+          if [ -f .env ]; then
+            cp -p .env /tmp/financial-automation.env
+          fi
 
-              git reset --hard \$DEPLOY_SHA
+          if [ -f backend/.env ]; then
+            cp -p backend/.env /tmp/financial-automation-backend.env
+          fi
 
-              if [ -f /tmp/financial-automation.env ]; then cp -p /tmp/financial-automation.env .env; fi
-              if [ -f /tmp/financial-automation-backend.env ]; then cp -p /tmp/financial-automation-backend.env backend/.env; fi
+          echo "Checking deployment commit..."
+          git cat-file -e "$DEPLOY_SHA^{commit}"
 
-              CURRENT_SHA=\$(git rev-parse HEAD)
+          echo "Resetting to exact deployment commit..."
+          git reset --hard "$DEPLOY_SHA"
 
-              if [ \"\$CURRENT_SHA\" != \"\$DEPLOY_SHA\" ]; then
-                echo 'ERROR: Commit verification failed'
-                echo \"Expected: \$DEPLOY_SHA\"
-                echo \"Actual:   \$CURRENT_SHA\"
-                exit 1
-              fi
+          echo "Restoring production environment files..."
 
-              echo \"Verified commit: \$CURRENT_SHA\"
-            "
+          if [ -f /tmp/financial-automation.env ]; then
+            cp -p /tmp/financial-automation.env .env
+          fi
 
-            echo "Git deployment completed"
-          ENDSSH
+          if [ -f /tmp/financial-automation-backend.env ]; then
+            cp -p /tmp/financial-automation-backend.env backend/.env
+          fi
 
-      - name:  Install Backend Dependencies
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
+          CURRENT_SHA="$(git rev-parse HEAD)"
 
-            sudo -u ubuntu -H bash -lc '
-              set -euo pipefail
+          if [ "$CURRENT_SHA" != "$DEPLOY_SHA" ]; then
+            echo "ERROR: Commit verification failed"
+            echo "Expected: $DEPLOY_SHA"
+            echo "Actual:   $CURRENT_SHA"
+            exit 1
+          fi
 
-              cd /home/ubuntu/main/backend
+          echo "Verified commit: $CURRENT_SHA"
 
-              echo "Installing backend dependencies..."
+          echo "Installing backend dependencies..."
+          cd "$APP_DIR/backend"
 
-              if [ -f package-lock.json ]; then
-                npm ci --omit=dev --no-audit --no-fund
-              else
-                npm install --omit=dev --no-audit --no-fund
-              fi
+          if [ -f package-lock.json ]; then
+            npm ci --omit=dev --no-audit --no-fund
+          else
+            npm install --omit=dev --no-audit --no-fund
+          fi
 
-              echo "Backend dependencies installed"
-            '
-          ENDSSH
-
-      - name:  Setup Python Environment
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            sudo -u ubuntu -H bash -lc '
-              set -euo pipefail
-
-              cd /home/ubuntu/main/backend
-
-              if [ -f requirements.txt ]; then
-
-                if [ ! -d venv ]; then
-                  echo "Creating Python virtual environment..."
-                  python3 -m venv venv
-                fi
-
-                echo "Installing Python dependencies..."
-                venv/bin/pip install --upgrade pip
-                venv/bin/pip install -r requirements.txt
-
-              else
-                echo "requirements.txt not found - skipping Python dependencies"
-              fi
-            '
-          ENDSSH
-
-      - name:  Build Frontend
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            sudo -u ubuntu -H bash -lc '
-              set -euo pipefail
-
-              cd /home/ubuntu/main
-
-              echo "Installing frontend dependencies..."
-
-              if [ -f package-lock.json ]; then
-                npm ci --no-audit --no-fund
-              else
-                npm install --no-audit --no-fund
-              fi
-
-              echo "Building frontend..."
-
-              export NODE_OPTIONS="--max-old-space-size=2048"
-
-              npm run build
-
-              test -f dist/index.html
-
-              echo "Frontend build successful"
-            '
-          ENDSSH
-
-      - name:  Publish Frontend
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            APP_DIR="/home/ubuntu/main"
-            WEB_DIR="/var/www/financial-automation"
-
-            echo "Publishing frontend..."
-
-            test -d "$APP_DIR/dist"
-            test -f "$APP_DIR/dist/index.html"
-
-            mkdir -p "$WEB_DIR"
-
-            rsync -a --delete "$APP_DIR/dist/" "$WEB_DIR/"
-
-            chown -R www-data:www-data "$WEB_DIR"
-
-            echo "Frontend published to $WEB_DIR"
-          ENDSSH
-
-      - name:  Restart Backend
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            sudo -u ubuntu -H bash -lc '
-              set -euo pipefail
-
-              export PM2_HOME=/home/ubuntu/.pm2
-
-              echo "Restarting backend..."
-
-              pm2 restart financial-backend --update-env
-
-              pm2 save
-
-              pm2 describe financial-backend | grep -E "status|script path|exec cwd"
-            '
-          ENDSSH
-
-      - name:  Verify Nginx
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            echo "Testing Nginx configuration..."
-            nginx -t
-
-            echo "Reloading Nginx..."
-            systemctl reload nginx
-
-            echo "Nginx reload successful"
-          ENDSSH
-
-      - name:  Production Verification
-        run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -euo pipefail
-
-            APP_DIR="/home/ubuntu/main"
-            WEB_DIR="/var/www/financial-automation"
-
-            echo "=========================================="
-            echo "PRODUCTION VERIFICATION"
-            echo "=========================================="
-
-            echo "1. Git commit:"
-            cd "$APP_DIR"
-            git rev-parse HEAD
-
-            echo "2. Expected commit:"
-            echo "${{ github.sha }}"
-
-            if [ "$(git rev-parse HEAD)" != "${{ github.sha }}" ]; then
-              echo "ERROR: Wrong commit deployed"
-              exit 1
+          if [ -f requirements.txt ]; then
+            if [ ! -d venv ]; then
+              python3 -m venv venv
             fi
 
-            echo "3. Frontend:"
-            test -f "$WEB_DIR/index.html"
-            echo "index.html exists"
+            venv/bin/pip install --upgrade pip
+            venv/bin/pip install -r requirements.txt
+          fi
 
-            echo "4. Frontend assets:"
-            find "$WEB_DIR/assets" -type f | head -10
+          echo "Building frontend..."
+          cd "$APP_DIR"
 
-            echo "5. Backend:"
-            sudo -u ubuntu -H bash -lc '
-              export PM2_HOME=/home/ubuntu/.pm2
-              pm2 describe financial-backend | grep "status"
-            '
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
-            echo "6. HTTP:"
-            curl -fsS -o /dev/null http://127.0.0.1/
+          export NODE_OPTIONS="--max-old-space-size=2048"
 
-            echo "=========================================="
-            echo "DEPLOYMENT SUCCESSFUL"
-            echo "=========================================="
+          npm run build
+
+          test -f "$APP_DIR/dist/index.html"
+
+          echo "Publishing frontend..."
+          sudo mkdir -p "$WEB_DIR"
+          sudo rsync -a --delete "$APP_DIR/dist/" "$WEB_DIR/"
+          sudo chown -R www-data:www-data "$WEB_DIR"
+
+          echo "Restarting backend..."
+          export PM2_HOME="/home/ubuntu/.pm2"
+
+          pm2 restart financial-backend --update-env
+          pm2 save
+
+          echo "Backend status:"
+          pm2 describe financial-backend | grep -E "status|script path|exec cwd"
+
+          APPSSH
+
+          echo "Testing Nginx..."
+          nginx -t
+
+          echo "Reloading Nginx..."
+          systemctl reload nginx
+
+          echo "Verifying production deployment..."
+
+          cd "$APP_DIR"
+
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+
+          if [ "$ACTUAL_SHA" != "$DEPLOY_SHA" ]; then
+            echo "ERROR: Production commit mismatch"
+            echo "Expected: $DEPLOY_SHA"
+            echo "Actual:   $ACTUAL_SHA"
+            exit 1
+          fi
+
+          test -f "$WEB_DIR/index.html"
+
+          echo "Checking live frontend..."
+          curl -fsS https://software.saaiss.in/ > /dev/null
+
+          echo "=========================================="
+          echo "DEPLOYMENT SUCCESSFUL"
+          echo "Commit: $ACTUAL_SHA"
+          echo "=========================================="
+          ENDSSH
