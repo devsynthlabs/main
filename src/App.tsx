@@ -2,8 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ProfileSettings from "./pages/ProfileSettings";
@@ -28,13 +27,17 @@ import PublicPurchaseInvoiceView from "./pages/PublicPurchaseInvoiceView";
 import ServerIssues from "./pages/ServerIssues";
 import InvoiceTemplates from "./pages/InvoiceTemplates";
 import InvoiceTemplateEditor from "./pages/InvoiceTemplateEditor";
-import AiAccountingExplained from "./pages/AiAccountingExplained";
 import ThankYou from "./pages/ThankYou";
 
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { SubscriptionGuard } from "@/components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
+
+const RootRedirect = () => {
+  const token = localStorage.getItem("token");
+  return <Navigate to={token ? "/dashboard" : "/auth"} replace />;
+};
 
 const App = () => {
   const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
@@ -47,8 +50,7 @@ const App = () => {
         <SubscriptionProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<AiAccountingExplained />} />
-              <Route path="/ai-accounting-software" element={<Index />} />
+              <Route path="/" element={<RootRedirect />} />
 
               {/* Maintenance Mode Gates */}
               <Route
