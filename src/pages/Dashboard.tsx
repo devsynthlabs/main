@@ -327,6 +327,7 @@ const Dashboard = () => {
       })
       .then((data: UserProfile) => {
         setUser(data);
+        refreshUser(data);
         const isUserAdmin = data.role === "admin";
         if (!isUserAdmin && (data.subscriptionStatus !== "active" || isTrialExpired(data))) {
           toast({
@@ -680,6 +681,7 @@ const Dashboard = () => {
 
   const handleSignOut = () => {
     localStorage.removeItem("token");
+    refreshUser(null);
     navigate("/auth");
   };
 

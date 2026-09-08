@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
+import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -34,17 +36,37 @@ import CashFlowForecastingSoftware from "./pages/CashFlowForecastingSoftware";
 
 const queryClient = new QueryClient();
 
+const RootRoute = () => {
+  const { user, loading } = useSubscription();
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#006aff]" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={isMaintenanceMode ? "/server-issues" : "/dashboard"} replace />;
+  }
+
+  return <Navigate to={isMaintenanceMode ? "/server-issues" : "/auth"} replace />;
+};
+
 const App = () => {
   const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true";
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
+        <SubscriptionProvider>
+          <Toaster />
+          <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<AiAccountingExplained />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/product" element={<ProductPage />} />
             <Route path="/ai-accounting-software" element={<Index />} />
             <Route path="/ai-invoicing-software" element={<AiInvoicingSoftware />} />
@@ -87,6 +109,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </SubscriptionProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

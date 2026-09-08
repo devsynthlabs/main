@@ -24,7 +24,8 @@ type SubscriptionContextType = {
   user: UserProfile | null;
   loading: boolean;
   hasAccess: (moduleName: string) => boolean;
-  refreshUser: () => Promise<UserProfile | null>;
+  refreshUser: (initialUser?: UserProfile | null) => Promise<UserProfile | null>;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   showUpgradeModalFor: string | null;
   openUpgradeModal: (moduleName: string) => void;
   closeUpgradeModal: () => void;
@@ -45,7 +46,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [loading, setLoading] = useState(true);
   const [showUpgradeModalFor, setShowUpgradeModalFor] = useState<string | null>(null);
 
-  const refreshUser = async (): Promise<UserProfile | null> => {
+  const refreshUser = async (initialUser?: UserProfile | null): Promise<UserProfile | null> => {
+    if (initialUser !== undefined) {
+      setUser(initialUser);
+      setLoading(false);
+      return initialUser;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       setUser(null);
@@ -137,6 +144,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       loading,
       hasAccess,
       refreshUser,
+      setUser,
       showUpgradeModalFor,
       openUpgradeModal,
       closeUpgradeModal

@@ -18,6 +18,7 @@ import { VoiceButton } from "@/components/ui/VoiceButton";
 import { API_ENDPOINTS, apiRequest } from "@/lib/api";
 import { isTrialExpired } from "@/lib/trial";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface RazorpayResponse {
   razorpay_order_id: string;
@@ -230,6 +231,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { refreshUser } = useSubscription();
 
   const [loading, setLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -293,7 +295,8 @@ const Auth = () => {
       }
 
       localStorage.setItem("token", data.token);
-      setTimeout(() => navigate("/dashboard"), 500);
+      await refreshUser(data.user);
+      setTimeout(() => navigate("/dashboard"), 300);
     } catch (err) {
       toast({
         variant: "destructive",
@@ -323,8 +326,9 @@ const Auth = () => {
         if (!trialRes.ok) throw new Error(trialData.message);
 
         localStorage.setItem("token", trialData.token);
+        await refreshUser(trialData.user);
         toast({ title: "Welcome!", description: "Initializing your workspace..." });
-        setTimeout(() => navigate("/dashboard"), 500);
+        setTimeout(() => navigate("/dashboard"), 300);
         return;
       }
 
@@ -353,7 +357,8 @@ const Auth = () => {
             if (!verifyRes.ok) throw new Error(verifyData.message);
 
             localStorage.setItem("token", verifyData.token);
-            setTimeout(() => navigate("/dashboard"), 500);
+            await refreshUser(verifyData.user);
+            setTimeout(() => navigate("/dashboard"), 300);
           } catch (err) {
             toast({ variant: "destructive", title: "Payment Error", description: err instanceof Error ? err.message : "Verification failed" });
           } finally {
