@@ -34,7 +34,7 @@ jobs:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
-          ssh root@"$SERVER_IP" \
+          ssh ubuntu@"$SERVER_IP" \
             "DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'ENDSSH'
           set -euo pipefail
 
