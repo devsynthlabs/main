@@ -147,10 +147,10 @@ jobs:
           APPSSH
 
           echo "Testing Nginx..."
-          nginx -t
+          sudo nginx -t
 
           echo "Reloading Nginx..."
-          systemctl reload nginx
+          sudo systemctl reload nginx
 
           echo "Verifying production deployment..."
 
