@@ -1,9 +1,8 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
+import { Loader2 } from 'lucide-react';
 
 interface PackageInfo {
   id: string;
@@ -88,6 +87,14 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
 
   const displayCountries = countries;
 
+  if (loading) {
+    return (
+      <div className="h-full w-full bg-black flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-[#EBB337] animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <>
       {/* DESKTOP VIEW (>=1024px) */}
@@ -117,7 +124,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                 <p className="text-[#EBB337] text-xs font-semibold tracking-[0.2em] mb-3 uppercase">
                   {subtitle}
                 </p>
-                <Link href={`/${countrySlug}`} className="hover:opacity-90 transition-opacity">
+                <Link to={`/${countrySlug}`} className="hover:opacity-90 transition-opacity">
                   <h2 
                     className="mb-8 font-poppins text-white"
                     style={{ fontWeight: 500, fontSize: '74.11px', lineHeight: '100%' }}
@@ -130,7 +137,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                   {packages.map((pkg) => (
                     <Link 
                       key={pkg.id} 
-                      href={`/package/${countrySlug}/${pkg.slug}`}
+                      to={`/package/${countrySlug}/${pkg.slug}`}
                       className="px-4 py-1.5 rounded-full border border-white/60 text-[12px] font-light backdrop-blur-sm hover:bg-white/10 transition-colors whitespace-nowrap"
                     >
                       {pkg.title}
@@ -143,7 +150,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                 </p>
                 
                 <Link 
-                  href={`/${countrySlug}`} 
+                  to={`/${countrySlug}`} 
                   className="px-6 py-3 text-sm font-medium rounded border border-[#EBB337] text-[#EBB337] hover:bg-[#EBB337] hover:text-black transition-all duration-300"
                 >
                   BEGIN YOUR JOURNEY &rarr;
@@ -191,7 +198,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                   <p className="text-[#EBB337] text-xs font-semibold tracking-[0.2em] mb-2 uppercase">
                     {subtitle}
                   </p>
-                  <Link href={`/${countrySlug}`} className="hover:opacity-90 transition-opacity">
+                  <Link to={`/${countrySlug}`} className="hover:opacity-90 transition-opacity">
                     <h2 className="mb-6 font-poppins text-white" style={{ fontWeight: 500, fontSize: '56px', lineHeight: '100%' }}>
                       {country.name}
                     </h2>
@@ -201,7 +208,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                     {packages.map((pkg) => (
                       <Link 
                         key={pkg.id} 
-                        href={`/package/${countrySlug}/${pkg.slug}`}
+                        to={`/package/${countrySlug}/${pkg.slug}`}
                         className="px-2.5 py-1 rounded-full border border-white/60 text-[10px] font-light backdrop-blur-sm bg-black/20 hover:bg-white/10 transition-colors"
                       >
                         {pkg.title}
@@ -214,7 +221,7 @@ export const ResponsiveHero = ({ initialCountries }: { initialCountries?: Countr
                   </p>
                   
                   <Link 
-                    href={`/${countrySlug}`} 
+                    to={`/${countrySlug}`} 
                     className="px-6 py-3 w-full text-center text-sm font-medium rounded border border-[#EBB337] text-[#EBB337] active:bg-[#EBB337] active:text-black transition-all duration-300"
                   >
                     BEGIN YOUR JOURNEY &rarr;

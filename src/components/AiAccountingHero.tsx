@@ -33,9 +33,10 @@ export const AiAccountingHero = () => {
           {/* Left Content */}
           <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
             <div className="inline-flex items-center">
-              <span className="text-xs font-bold tracking-[0.2em] text-indigo-600 bg-indigo-50/50 px-3 py-1 rounded-full border border-indigo-100 uppercase">
-                AIBASS AI
-              </span>
+              <p className="text-xs font-bold tracking-wide text-indigo-600 bg-indigo-50/50 px-3.5 py-1.5 rounded-full border border-indigo-100 flex items-center gap-2">
+                <img src="/logo/award.png" alt="Award" className="w-4 h-4 object-contain shrink-0" />
+                <span>Built by the AI Company of the Year – Accounting Software 2026</span>
+              </p>
             </div>
             
             <h1 className="text-balance text-3xl font-bold leading-[1.2] tracking-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-[52px]">
