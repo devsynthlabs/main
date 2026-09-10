@@ -3,12 +3,17 @@ import mongoose from "mongoose";
 import Plan from "../models/Plan.js";
 import Subscription from "../models/Subscription.js";
 
-// Helper to map plan keys from user document to plan names in db
 const planKeyToName = {
   trial: "Sandbox",
-  monthly: "Express",
-  annual: "Professional",
-  lifetime: "Enterprise"
+  basic: "Basic",
+  basic_annual: "Basic",
+  intermediate: "Intermediate",
+  intermediate_annual: "Intermediate",
+  premium: "Premium",
+  premium_annual: "Premium",
+  monthly: "Basic",
+  annual: "Intermediate",
+  lifetime: "Premium"
 };
 
 // 1. Authenticate user from JWT token
@@ -57,6 +62,9 @@ export const authenticateUser = async (req, res, next) => {
     }
 
     req.user = user;
+    if (decoded.role) {
+      req.user.role = decoded.role;
+    }
     next();
   } catch (error) {
     if (error.name === "TokenExpiredError") {

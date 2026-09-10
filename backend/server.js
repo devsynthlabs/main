@@ -143,6 +143,7 @@ const connectToMongoDB = async () => {
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  storePassword: { type: String },
   name: { type: String },
   role: { type: String, enum: ["admin", "instore"], default: "admin" },
   subscriptionStatus: { type: String, enum: ["pending", "active", "expired"], default: "pending" },
@@ -170,7 +171,7 @@ const User = mongoose.model("User", userSchema);
 // ✅ REGISTER (Sign Up)
 app.post("/api/signup", async (req, res) => {
   try {
-    const { email, password, role = "admin" } = req.body;
+    const { email, password, storePassword, role = "admin" } = req.body;
 
     if (!email || !password)
       return res.status(400).json({ message: "Email and password are required" });
@@ -182,10 +183,11 @@ app.post("/api/signup", async (req, res) => {
     const allowedRoles = ["admin", "instore"];
     const userRole = allowedRoles.includes(req.body.role) ? req.body.role : "admin";
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword, role: userRole });
+    const hashedStorePassword = storePassword ? await bcrypt.hash(storePassword, 10) : undefined;
+    const newUser = new User({ email, password: hashedPassword, storePassword: hashedStorePassword, role: userRole });
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: newUser._id, role: userRole }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.status(201).json({ message: "User registered successfully", token, user: { role: newUser.role } });
   } catch (error) {
@@ -200,7 +202,7 @@ app.post("/api/signup", async (req, res) => {
 // ✅ START FREE TRIAL
 app.post("/api/signup-trial", async (req, res) => {
   try {
-    const { email, password, name, role = "admin" } = req.body;
+    const { email, password, storePassword, name, role = "admin" } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
@@ -218,10 +220,12 @@ app.post("/api/signup-trial", async (req, res) => {
     const allowedRoles = ["admin", "instore"];
     const userRole = allowedRoles.includes(role) ? role : "admin";
     const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedStorePassword = storePassword ? await bcrypt.hash(storePassword, 10) : undefined;
     const newUser = new User({
       email,
       name: name || email.split("@")[0],
       password: hashedPassword,
+      storePassword: hashedStorePassword,
       subscriptionStatus: "active",
       subscriptionPlan: "trial",
       subscriptionAmount: 0,
@@ -246,7 +250,7 @@ app.post("/api/signup-trial", async (req, res) => {
       await subscription.save();
     }
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: newUser._id, role: userRole }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.status(201).json({
       message: "Free trial started successfully",
@@ -285,14 +289,20 @@ app.post("/api/signin", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (user.role && user.role !== role) {
-      return res.status(400).json({ message: `Access denied. Account is configured as ${user.role.toUpperCase()} role.` });
+    let validPass = false;
+    if (role === "instore") {
+      if (user.storePassword) {
+        validPass = await bcrypt.compare(password, user.storePassword);
+      } else {
+        validPass = await bcrypt.compare(password, user.password);
+      }
+      if (!validPass) return res.status(400).json({ message: "Invalid store password" });
+    } else {
+      validPass = await bcrypt.compare(password, user.password);
+      if (!validPass) return res.status(400).json({ message: "Invalid admin password" });
     }
 
-    const validPass = await bcrypt.compare(password, user.password);
-    if (!validPass) return res.status(400).json({ message: "Invalid password" });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.json({
       message: "Login successful",
@@ -301,7 +311,7 @@ app.post("/api/signin", async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: role,
         subscriptionStatus: user.subscriptionStatus,
         subscriptionPlan: user.subscriptionPlan,
         subscriptionAmount: user.subscriptionAmount,
@@ -521,29 +531,86 @@ app.put("/api/user", verifyToken, async (req, res) => {
 
 // ✅ Subscription Plans Configuration (matching frontend)
 const subscriptionPlans = {
+  trial: {
+    id: "trial",
+    name: "Sandbox Trial",
+    price: 0,
+    gst: 0,
+    totalAmount: 0,
+    duration: "14 days"
+  },
+  basic: {
+    id: "basic",
+    name: "Basic Plan",
+    price: 950,
+    gst: 171,
+    totalAmount: 1121,
+    duration: "month"
+  },
+  basic_annual: {
+    id: "basic_annual",
+    name: "Basic Plan (Annual)",
+    price: 9120,
+    gst: 1642,
+    totalAmount: 10762,
+    duration: "year"
+  },
+  intermediate: {
+    id: "intermediate",
+    name: "Intermediate Plan",
+    price: 1950,
+    gst: 351,
+    totalAmount: 2301,
+    duration: "month"
+  },
+  intermediate_annual: {
+    id: "intermediate_annual",
+    name: "Intermediate Plan (Annual)",
+    price: 18720,
+    gst: 3370,
+    totalAmount: 22090,
+    duration: "year"
+  },
+  premium: {
+    id: "premium",
+    name: "Premium Plan",
+    price: 4950,
+    gst: 891,
+    totalAmount: 5841,
+    duration: "month"
+  },
+  premium_annual: {
+    id: "premium_annual",
+    name: "Premium Plan (Annual)",
+    price: 47520,
+    gst: 8554,
+    totalAmount: 56074,
+    duration: "year"
+  },
+  // Legacy alias mapping for backward compatibility
   monthly: {
     id: "monthly",
-    name: "Monthly Subscription",
-    price: 1500,
-    gst: 270,
-    totalAmount: 1770,
+    name: "Basic Plan",
+    price: 950,
+    gst: 171,
+    totalAmount: 1121,
     duration: "month"
   },
   annual: {
     id: "annual",
-    name: "Annual Subscription",
-    price: 16200,
-    gst: 2916,
-    totalAmount: 19116,
-    duration: "year"
+    name: "Intermediate Plan",
+    price: 1950,
+    gst: 351,
+    totalAmount: 2301,
+    duration: "month"
   },
   lifetime: {
     id: "lifetime",
-    name: "Lifetime Access",
-    price: 45000,
-    gst: 8100,
-    totalAmount: 53100,
-    duration: "lifetime"
+    name: "Premium Plan",
+    price: 4950,
+    gst: 891,
+    totalAmount: 5841,
+    duration: "month"
   }
 };
 
@@ -661,6 +728,7 @@ app.post("/api/verify-payment", async (req, res) => {
       razorpay_signature,
       email,
       password,
+      storePassword,
       plan = "monthly",
       name,
       role = "admin"
@@ -754,6 +822,9 @@ app.post("/api/verify-payment", async (req, res) => {
       existingUser.razorpayPaymentId = paymentIdToCheck;
       existingUser.razorpayOrderId = orderIdToCheck;
       existingUser.pendingDowngradePlan = undefined;
+      if (storePassword) {
+        existingUser.storePassword = await bcrypt.hash(storePassword, 10);
+      }
       
       await existingUser.save();
       userToUse = existingUser;
@@ -768,10 +839,12 @@ app.post("/api/verify-payment", async (req, res) => {
       const allowedRoles = ["admin", "instore"];
       const userRole = allowedRoles.includes(role) ? role : "admin";
       const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedStorePassword = storePassword ? await bcrypt.hash(storePassword, 10) : undefined;
       const newUser = new User({
         email,
         name: name || email.split('@')[0],
         password: hashedPassword,
+        storePassword: hashedStorePassword,
         subscriptionStatus: "active",
         subscriptionPlan: plan,
         subscriptionAmount: selectedPlan.totalAmount,

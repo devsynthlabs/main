@@ -48,10 +48,10 @@ const pricingTiers = [
     selected: true,
   },
   {
-    name: "Annual Subscription",
+    name: "Professional",
     price: "₹19,116",
-    period: "per year",
-    desc: "Best value - Save 10%",
+    period: "per month",
+    desc: "Full automation suite for growing businesses",
     icon: Crown,
     iconBg: "bg-indigo-600 text-white",
     features: [
@@ -65,15 +65,15 @@ const pricingTiers = [
     cta: "₹16,200 + ₹2,916 GST",
     popular: true,
     color: "border-slate-200/80 bg-white/70 backdrop-blur-md shadow-lg hover:border-slate-350",
-    footerText: "SAVE ₹1,800",
+    footerText: "FULL AUTOMATION SUITE",
     footerAction: "Select plan",
     badge: "MOST POPULAR",
   },
   {
-    name: "Lifetime Access",
+    name: "Enterprise",
     price: "₹53,100",
-    period: "One-time",
-    desc: "One-time payment, forever access",
+    period: "per month",
+    desc: "Unlimited scale and access for large operations",
     icon: Infinity,
     iconBg: "bg-slate-900 text-white",
     features: [
@@ -88,7 +88,7 @@ const pricingTiers = [
     cta: "₹45,000 + ₹8,100 GST",
     popular: false,
     color: "border-slate-200/80 bg-white/70 backdrop-blur-md shadow-sm hover:border-slate-350",
-    footerText: "BEST LONG-TERM VALUE",
+    footerText: "ENTERPRISE SCALE",
     footerAction: "Select plan",
     badge: "",
   },
@@ -96,6 +96,7 @@ const pricingTiers = [
 
 const SeventhSection = () => {
   const { toast } = useToast();
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [formData, setFormData] = useState({
     name: "",
     businessName: "",
@@ -105,6 +106,99 @@ const SeventhSection = () => {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const isYearly = billingCycle === "yearly";
+
+  const pricingTiers = [
+    {
+      id: "trial",
+      name: "14-Day Free Trial",
+      price: "₹0",
+      period: "per 14 days",
+      desc: "Start now and explore the platform free for 14 days",
+      icon: Sparkles,
+      iconBg: "bg-indigo-600/10 text-indigo-650",
+      features: [
+        "All core dashboard features",
+        "Database-backed trial access",
+        "Auto-logout after 14 days",
+        "Upgrade to paid plan anytime",
+      ],
+      cta: "₹0 + ₹0 GST",
+      popular: false,
+      color: "border-slate-200/80 bg-white/70 backdrop-blur-md shadow-sm hover:border-slate-350",
+      footerText: "FREE FOR 14 DAYS",
+      footerAction: "Select plan",
+      badge: "",
+    },
+    {
+      id: isYearly ? "basic_annual" : "basic",
+      name: "Basic",
+      price: isYearly ? "₹10,762" : "₹1,121",
+      period: isYearly ? "per year" : "per month",
+      desc: isYearly ? "Essential billing & stock tools (Save 20%)" : "Essential billing & inventory management",
+      icon: Zap,
+      iconBg: "bg-sky-500/10 text-sky-600",
+      features: [
+        "Up to 5,000 Invoices",
+        "Invoice Module Access",
+        "Inventory Management",
+        "Standard Email Support",
+      ],
+      cta: isYearly ? "₹9,120 + ₹1,642 GST" : "₹950 + ₹171 GST",
+      popular: false,
+      color: "border-sky-200 bg-gradient-to-b from-sky-50/40 to-white/70 backdrop-blur-md shadow-[0_8px_30px_rgba(14,165,233,0.06)] hover:border-sky-300 ring-2 ring-sky-500/10",
+      footerText: "FLEXIBLE ACCESS",
+      footerAction: "Select plan",
+      badge: "",
+    },
+    {
+      id: isYearly ? "intermediate_annual" : "intermediate",
+      name: "Intermediate",
+      price: isYearly ? "₹22,090" : "₹2,301",
+      period: isYearly ? "per year" : "per month",
+      desc: isYearly ? "Full automation suite (Save 20%)" : "Full automation suite with complete bookkeeping",
+      icon: Crown,
+      iconBg: "bg-indigo-600 text-white",
+      features: [
+        "Up to 25,000 Invoices",
+        "Invoice, Inventory & Bookkeeping",
+        "Tax & GST Compliance",
+        "Balance Sheet & Profit & Loss",
+        "Cash Flow Statement & Prediction",
+        "Financial Ratios",
+      ],
+      cta: isYearly ? "₹18,720 + ₹3,370 GST" : "₹1,950 + ₹351 GST",
+      popular: true,
+      color: "border-slate-200/80 bg-white/70 backdrop-blur-md shadow-lg hover:border-slate-350",
+      footerText: "FULL AUTOMATION SUITE",
+      footerAction: "Select plan",
+      badge: "MOST POPULAR",
+    },
+    {
+      id: isYearly ? "premium_annual" : "premium",
+      name: "Premium",
+      price: isYearly ? "₹56,074" : "₹5,841",
+      period: isYearly ? "per year" : "per month",
+      desc: isYearly ? "Unlimited scale & payroll (Save 20%)" : "Unlimited scale with fraud detection & payroll",
+      icon: Infinity,
+      iconBg: "bg-slate-900 text-white",
+      features: [
+        "Up to 100,000 Invoices",
+        "All Intermediate Modules Included",
+        "Payroll & Bank Reconciliation",
+        "Advanced Fraud Detection",
+        "Civil Engineering Module",
+        "24/7 Priority Support",
+      ],
+      cta: isYearly ? "₹47,520 + ₹8,554 GST" : "₹4,950 + ₹891 GST",
+      popular: false,
+      color: "border-slate-200/80 bg-white/70 backdrop-blur-md shadow-sm hover:border-slate-350",
+      footerText: "ENTERPRISE SCALE",
+      footerAction: "Select plan",
+      badge: "",
+    },
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +245,37 @@ const SeventhSection = () => {
             Each plan is shown as its own card so pricing stays readable, distinct, and easy to compare.
           </p>
         </motion.div>
+
+        {/* Claude-style Billing Toggle Switch */}
+        <div className="flex items-center justify-center pt-2">
+          <div className="bg-slate-100 p-1.5 rounded-full flex items-center gap-1 shadow-inner border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 ${
+                billingCycle === "monthly"
+                  ? "bg-slate-950 text-white shadow-md"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Monthly Billed
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("yearly")}
+              className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                billingCycle === "yearly"
+                  ? "bg-slate-950 text-white shadow-md"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <span>Yearly Billed</span>
+              <span className="bg-emerald-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                Save 20%
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* Pricing Cards Grid */}
         <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
@@ -200,7 +325,7 @@ const SeventhSection = () => {
                 {/* Button / CTA */}
                 <Button
                   onClick={() => window.dispatchEvent(new CustomEvent("openTrialModal"))}
-                  className="w-full h-11 rounded-xl font-bold text-xs bg-slate-950 text-white hover:bg-slate-850 shadow-sm border border-slate-950 transition-colors mb-6"
+                  className="w-full h-11 rounded-xl font-bold text-xs bg-slate-950 text-white hover:bg-slate-850 shadow-sm border border-slate-955 transition-colors mb-6"
                 >
                   {tier.cta}
                 </Button>
@@ -220,7 +345,7 @@ const SeventhSection = () => {
                 {/* Card Footer */}
                 <div className="flex items-center justify-between border-t border-slate-100/80 pt-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <span>{tier.footerText}</span>
-                  <span className={`text-[10px] font-bold ${tier.selected ? "text-sky-600" : "text-slate-500 hover:text-slate-800 cursor-pointer"}`}>
+                  <span className="text-[10px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer">
                     {tier.footerAction}
                   </span>
                 </div>

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  storePassword: { type: String },
   name: { type: String },
   role: { type: String, enum: ["admin", "instore"], default: "admin" },
   subscriptionStatus: { type: String, enum: ["pending", "active", "expired"], default: "pending" },

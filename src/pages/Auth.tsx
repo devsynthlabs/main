@@ -74,29 +74,46 @@ const subscriptionPlans = {
     ],
     popular: false,
   },
-  monthly: {
-    id: "monthly",
-    name: "Express",
-    price: 1500,
-    gst: 270,
-    totalAmount: 1770,
+  basic: {
+    id: "basic",
+    name: "Basic",
+    price: 950,
+    gst: 171,
+    totalAmount: 1121,
     duration: "month",
-    description: "Perfect for growing retail and service businesses.",
+    description: "Essential billing & inventory management for small businesses.",
     features: [
       "Up to 5,000 Invoices",
       "Invoice Module Access",
-      "Inventory Management"
+      "Inventory Management",
+      "Standard Email Support"
     ],
     popular: false,
   },
-  annual: {
-    id: "annual",
-    name: "Professional",
-    price: 16200,
-    gst: 2916,
-    totalAmount: 19116,
+  basic_annual: {
+    id: "basic_annual",
+    name: "Basic",
+    price: 9120,
+    gst: 1642,
+    totalAmount: 10762,
     duration: "year",
-    description: "Full automation suite. Save 10% billed annually.",
+    description: "Essential billing & inventory management. Save 20% annually.",
+    features: [
+      "Up to 5,000 Invoices",
+      "Invoice Module Access",
+      "Inventory Management",
+      "Standard Email Support"
+    ],
+    popular: false,
+  },
+  intermediate: {
+    id: "intermediate",
+    name: "Intermediate",
+    price: 1950,
+    gst: 351,
+    totalAmount: 2301,
+    duration: "month",
+    description: "Full automation suite with complete bookkeeping & GST compliance.",
     features: [
       "Up to 25,000 Invoices",
       "Invoice, Inventory & Bookkeeping",
@@ -107,21 +124,90 @@ const subscriptionPlans = {
     ],
     popular: true,
   },
-  lifetime: {
-    id: "lifetime",
-    name: "Enterprise",
-    price: 45000,
-    gst: 8100,
-    totalAmount: 53100,
-    duration: "lifetime",
-    description: "One-time cost for unlimited lifetime scale and access.",
+  intermediate_annual: {
+    id: "intermediate_annual",
+    name: "Intermediate",
+    price: 18720,
+    gst: 3370,
+    totalAmount: 22090,
+    duration: "year",
+    description: "Full automation suite & GST compliance. Save 20% annually.",
+    features: [
+      "Up to 25,000 Invoices",
+      "Invoice, Inventory & Bookkeeping",
+      "Tax & GST Compliance",
+      "Balance Sheet & Profit & Loss",
+      "Cash Flow Statement & Prediction",
+      "Financial Ratios"
+    ],
+    popular: true,
+  },
+  premium: {
+    id: "premium",
+    name: "Premium",
+    price: 4950,
+    gst: 891,
+    totalAmount: 5841,
+    duration: "month",
+    description: "Unlimited scale with advanced fraud detection & payroll.",
     features: [
       "Up to 100,000 Invoices",
-      "All Professional Modules Included",
+      "All Intermediate Modules Included",
       "Payroll & Bank Reconciliation",
       "Advanced Fraud Detection",
       "Civil Engineering Module"
     ],
+    popular: false,
+  },
+  premium_annual: {
+    id: "premium_annual",
+    name: "Premium",
+    price: 47520,
+    gst: 8554,
+    totalAmount: 56074,
+    duration: "year",
+    description: "Unlimited scale with fraud detection & payroll. Save 20% annually.",
+    features: [
+      "Up to 100,000 Invoices",
+      "All Intermediate Modules Included",
+      "Payroll & Bank Reconciliation",
+      "Advanced Fraud Detection",
+      "Civil Engineering Module"
+    ],
+    popular: false,
+  },
+  // Legacy aliases
+  monthly: {
+    id: "monthly",
+    name: "Basic",
+    price: 950,
+    gst: 171,
+    totalAmount: 1121,
+    duration: "month",
+    description: "Essential billing & inventory management.",
+    features: ["Up to 5,000 Invoices", "Invoice Module Access", "Inventory Management"],
+    popular: false,
+  },
+  annual: {
+    id: "annual",
+    name: "Intermediate",
+    price: 1950,
+    gst: 351,
+    totalAmount: 2301,
+    duration: "month",
+    description: "Full automation suite with complete bookkeeping.",
+    features: ["Up to 25,000 Invoices", "Invoice, Inventory & Bookkeeping", "Tax & GST Compliance"],
+    popular: true,
+  },
+  lifetime: {
+    id: "lifetime",
+    name: "Premium",
+    price: 4950,
+    gst: 891,
+    totalAmount: 5841,
+    duration: "month",
+    description: "Unlimited scale with advanced fraud detection.",
+    features: ["Up to 100,000 Invoices", "All Intermediate Modules Included", "Payroll & Bank Reconciliation"],
     popular: false,
   }
 } satisfies Record<string, SubscriptionPlan>;
@@ -166,7 +252,7 @@ const PlanCard = ({
       <div className={`relative flex flex-col p-6 xl:p-7 rounded-[24px] border h-full w-full shadow-sm ${innerCardClasses}`}>
 
         {isPopular && !isSummary && (
-          <div className="absolute -top-3.5 left-8 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white text-[11px] px-3.5 py-1 font-bold uppercase tracking-widest rounded-full shadow-md z-20">
+          <div className="absolute -top-3.5 left-8 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white text-[11px] font-bold uppercase tracking-widest px-3.5 py-1 rounded-full shadow-md z-20">
             Recommended
           </div>
         )}
@@ -180,14 +266,14 @@ const PlanCard = ({
 
         <div className="mt-6 mb-6">
           <div className="flex items-end gap-1.5">
-            <span className={`text-[40px] font-bold leading-none tracking-tighter ${isPopular && !isSummary ? 'text-white' : 'text-[#0f172a]'}`}>
+            <span className={`text-[38px] font-bold leading-none tracking-tighter ${isPopular && !isSummary ? 'text-white' : 'text-[#0f172a]'}`}>
               {isTrial ? "Free" : `₹${plan.totalAmount.toLocaleString()}`}
             </span>
-            {!isTrial && <span className={`text-[15px] font-medium mb-1.5 ${isPopular && !isSummary ? 'text-[#94a3b8]' : 'text-[#64748b]'}`}>/{plan.duration}</span>}
+            {!isTrial && <span className={`text-[14px] font-medium mb-1.5 ${isPopular && !isSummary ? 'text-[#94a3b8]' : 'text-[#64748b]'}`}>/{plan.duration}</span>}
           </div>
           {!isTrial ? (
             <div className={`text-[13px] font-medium mt-2 ${isPopular && !isSummary ? 'text-[#64748b]' : 'text-[#94a3b8]'}`}>
-              ₹{plan.price.toLocaleString()} + ₹{plan.gst.toLocaleString()} GST
+              ₹{plan.price.toLocaleString()} + ₹{plan.gst.toLocaleString()} GST (18%)
             </div>
           ) : (
             <div className={`text-[13px] font-medium mt-2 ${isPopular && !isSummary ? 'text-[#64748b]' : 'text-[#94a3b8]'}`}>
@@ -237,13 +323,14 @@ const Auth = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [view, setView] = useState<"signin" | "signup">("signin");
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
-  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("trial");
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>("basic");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [storePassword, setStorePassword] = useState("");
   const [name, setName] = useState("");
   const [loginRole, setLoginRole] = useState<"admin" | "instore">("admin");
-  const [signupRole, setSignupRole] = useState<"admin" | "instore">("admin");
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -310,8 +397,8 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      return toast({ variant: "destructive", title: "Required", description: "Email and password are required." });
+    if (!email || !password || !storePassword) {
+      return toast({ variant: "destructive", title: "Required", description: "Work Email, Admin password, and Store password are required." });
     }
     setPaymentLoading(true);
 
@@ -320,7 +407,7 @@ const Auth = () => {
         setLoading(true);
         const trialRes = await apiRequest(API_ENDPOINTS.SIGNUP_TRIAL, {
           method: "POST",
-          body: JSON.stringify({ email, password, name: name || email.split("@")[0], role: signupRole }),
+          body: JSON.stringify({ email, password, storePassword, name: name || email.split("@")[0], role: "admin" }),
         });
         const trialData = await trialRes.json();
         if (!trialRes.ok) throw new Error(trialData.message);
@@ -351,7 +438,7 @@ const Auth = () => {
             setLoading(true);
             const verifyRes = await apiRequest(API_ENDPOINTS.VERIFY_PAYMENT, {
               method: "POST",
-              body: JSON.stringify({ ...response, email, password, plan: selectedPlan, name: name || email.split('@')[0], role: signupRole }),
+              body: JSON.stringify({ ...response, email, password, storePassword, plan: selectedPlan, name: name || email.split('@')[0], role: "admin" }),
             });
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) throw new Error(verifyData.message);
@@ -407,11 +494,11 @@ const Auth = () => {
 
             <div className="absolute top-6 right-6 md:right-10 text-[14px] font-medium z-30 flex items-center gap-3">
               <span className="text-[#64748b] hidden sm:inline">Already have an account?</span>
-              <button onClick={() => { setView("signin"); setEmail(""); setPassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6] transition-colors">Sign in</button>
+              <button onClick={() => { setView("signin"); setEmail(""); setPassword(""); setStorePassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6] transition-colors">Sign in</button>
             </div>
 
             {/* Title Section */}
-            <div className="text-center mb-12 md:mb-16 px-6 mt-16 md:mt-4 relative z-10">
+            <div className="text-center mb-8 md:mb-10 px-6 mt-16 md:mt-4 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#e0e7ff] text-[#3730a3] text-[12px] font-bold uppercase tracking-widest mb-6">
                 <Zap className="w-3.5 h-3.5 fill-current" /> Scalable Pricing
               </div>
@@ -423,20 +510,57 @@ const Auth = () => {
               </p>
             </div>
 
+            {/* Claude-style Billing Toggle Switch */}
+            <div className="flex items-center justify-center mb-10 z-10">
+              <div className="bg-[#e2e8f0] p-1.5 rounded-full flex items-center gap-1 shadow-inner border border-[#cbd5e1]">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`px-6 py-2.5 rounded-full text-[13.5px] font-bold transition-all duration-300 ${
+                    billingCycle === "monthly"
+                      ? "bg-[#0f172a] text-white shadow-md"
+                      : "text-[#64748b] hover:text-[#0f172a]"
+                  }`}
+                >
+                  Monthly Billed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("yearly")}
+                  className={`px-6 py-2.5 rounded-full text-[13.5px] font-bold transition-all duration-300 flex items-center gap-2 ${
+                    billingCycle === "yearly"
+                      ? "bg-[#0f172a] text-white shadow-md"
+                      : "text-[#64748b] hover:text-[#0f172a]"
+                  }`}
+                >
+                  <span>Yearly Billed</span>
+                  <span className="bg-emerald-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                    Save 20%
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {/* Pricing Grid */}
             <div className="w-full max-w-[1400px] mx-auto px-6 z-10">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 xl:gap-8 items-start justify-center">
-                {planEntries.map(([key, plan]) => (
-                  <PlanCard
-                    key={key}
-                    planKey={key}
-                    plan={plan}
-                    onSelect={() => {
-                      setSelectedPlan(key as PlanKey);
-                      setSignupStep(2);
-                    }}
-                  />
-                ))}
+                {(billingCycle === "monthly" 
+                  ? ["trial", "basic", "intermediate", "premium"]
+                  : ["trial", "basic_annual", "intermediate_annual", "premium_annual"]
+                ).map((key) => {
+                  const plan = subscriptionPlans[key as PlanKey];
+                  return (
+                    <PlanCard
+                      key={key}
+                      planKey={key}
+                      plan={plan}
+                      onSelect={() => {
+                        setSelectedPlan(key as PlanKey);
+                        setSignupStep(2);
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
           </motion.div>
@@ -467,9 +591,9 @@ const Auth = () => {
 
                 <div className="lg:hidden text-[14px] font-medium">
                   {view === "signin" ? (
-                    <span className="text-[#64748b]">New? <button onClick={() => { setView("signup"); setSignupStep(1); setEmail(""); setPassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6]">Sign up</button></span>
+                    <span className="text-[#64748b]">New? <button onClick={() => { setView("signup"); setSignupStep(1); setEmail(""); setPassword(""); setStorePassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6]">Sign up</button></span>
                   ) : (
-                    <span className="text-[#64748b]">Registered? <button onClick={() => { setView("signin"); setEmail(""); setPassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6]">Sign in</button></span>
+                    <span className="text-[#64748b]">Registered? <button onClick={() => { setView("signin"); setEmail(""); setPassword(""); setStorePassword(""); }} className="text-[#0f172a] font-semibold hover:text-[#3b82f6]">Sign in</button></span>
                   )}
                 </div>
               </div>
@@ -538,17 +662,6 @@ const Auth = () => {
                         </div>
                         <form onSubmit={handleSignUp} className="space-y-5">
                           <div>
-                            <label className="block text-[13px] font-bold text-[#333] mb-2 uppercase tracking-wide">Business Role</label>
-                            <div className="grid grid-cols-2 gap-3 bg-[#f8fafc] p-1.5 rounded-[12px] border border-[#e2e8f0]">
-                              <button type="button" onClick={() => setSignupRole("admin")} className={`p-2.5 rounded-[8px] text-center transition-all ${signupRole === "admin" ? "bg-white text-[#0f172a] font-bold shadow-sm" : "text-[#64748b] font-medium hover:text-[#0f172a]"}`}>
-                                <div className="text-[13px]">Admin Portal</div>
-                              </button>
-                              <button type="button" onClick={() => setSignupRole("instore")} className={`p-2.5 rounded-[8px] text-center transition-all ${signupRole === "instore" ? "bg-white text-[#0f172a] font-bold shadow-sm" : "text-[#64748b] font-medium hover:text-[#0f172a]"}`}>
-                                <div className="text-[13px]">In-Store POS</div>
-                              </button>
-                            </div>
-                          </div>
-                          <div>
                             <label className="block text-[13px] font-bold text-[#333] mb-2 uppercase tracking-wide">Work Email</label>
                             <div className="relative flex items-center">
                               <Mail className="absolute left-3.5 w-[18px] h-[18px] text-[#94a3b8]" />
@@ -557,10 +670,17 @@ const Auth = () => {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[13px] font-bold text-[#333] mb-2 uppercase tracking-wide">Secure Password</label>
+                            <label className="block text-[13px] font-bold text-[#333] mb-2 uppercase tracking-wide">Set Admin Password</label>
                             <div className="relative flex items-center">
                               <Lock className="absolute left-3.5 w-[18px] h-[18px] text-[#94a3b8]" />
-                              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-12 pl-10 pr-4 bg-white border border-[#cbd5e1] rounded-[10px] text-[15px] focus:border-[#3b82f6] focus:ring-4 focus:ring-[#3b82f6]/10 outline-none transition-all placeholder:text-[#94a3b8]" placeholder="Create a strong password" required />
+                              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-12 pl-10 pr-4 bg-white border border-[#cbd5e1] rounded-[10px] text-[15px] focus:border-[#3b82f6] focus:ring-4 focus:ring-[#3b82f6]/10 outline-none transition-all placeholder:text-[#94a3b8]" placeholder="Create admin password" required />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[13px] font-bold text-[#333] mb-2 uppercase tracking-wide">Set Store Password</label>
+                            <div className="relative flex items-center">
+                              <Lock className="absolute left-3.5 w-[18px] h-[18px] text-[#94a3b8]" />
+                              <input type="password" value={storePassword} onChange={(e) => setStorePassword(e.target.value)} className="w-full h-12 pl-10 pr-4 bg-white border border-[#cbd5e1] rounded-[10px] text-[15px] focus:border-[#3b82f6] focus:ring-4 focus:ring-[#3b82f6]/10 outline-none transition-all placeholder:text-[#94a3b8]" placeholder="Create store password" required />
                             </div>
                           </div>
                           <button type="submit" disabled={loading || paymentLoading} className="w-full h-12 mt-6 bg-[#0f172a] hover:bg-[#1e293b] text-white font-semibold text-[15px] rounded-[10px] transition-colors flex items-center justify-center gap-2 shadow-sm">
