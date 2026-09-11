@@ -1256,7 +1256,7 @@ const seedPlans = async () => {
   const plans = [
     { 
       name: "Sandbox", 
-      allowedModules: ["dashboard", "invoice", "inventory", "bookkeeping", "tax-gst", "balance-sheet", "profit-loss", "cashflow", "cashflow-statement", "financial-ratios", "payroll", "bank-reconciliation", "fraud-detection", "civil-engineering", "export"],
+      allowedModules: ["dashboard", "invoice", "inventory", "bookkeeping", "tax-gst", "balance-sheet", "profit-loss", "cashflow", "cashflow-statement", "financial-ratios", "export"],
       invoiceLimit: 50,
       transactionLimit: 100,
       seatLimit: 1,

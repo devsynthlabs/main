@@ -222,17 +222,19 @@ const Dashboard = () => {
             {moduleTitle} Locked
           </h4>
           <p className="text-[11px] text-slate-400 max-w-[200px] mb-2.5 leading-snug">
-            Not included in your current subscription.
+            {user?.role === "instore" ? "Restricted for Store accounts." : "Not included in your current subscription."}
           </p>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              openUpgradeModal(moduleName);
-            }}
-            className="px-3 py-1.5 bg-[#006aff] hover:bg-[#005cdb] text-white text-[11px] font-bold rounded shadow-sm transition-colors flex items-center gap-1 cursor-pointer select-none"
-          >
-            <Sparkles className="w-3 h-3" /> Upgrade Plan
-          </button>
+          {user?.role !== "instore" && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                openUpgradeModal(moduleName);
+              }}
+              className="px-3 py-1.5 bg-[#006aff] hover:bg-[#005cdb] text-white text-[11px] font-bold rounded shadow-sm transition-colors flex items-center gap-1 cursor-pointer select-none"
+            >
+              <Sparkles className="w-3 h-3" /> Upgrade Plan
+            </button>
+          )}
         </div>
       </div>
     );
@@ -632,25 +634,25 @@ const Dashboard = () => {
   
   const filteredModules = useMemo(() => {
     let modules = dashboardModules;
-    if (user?.role === "instore" && user?.subscriptionPlan !== "trial") {
+    if (user?.role === "instore") {
       modules = modules.filter(m => 
         m.path === "/" || 
         m.path === "/invoice" || 
         m.path === "/inventory"
       );
     }
-    // Only users with backend role 'admin' see the 6 Analytics modules in Dashboard All Products / Module Listings
-    if (user?.role !== "admin") {
-      const analyticsPaths = [
-        "/tax-gst",
-        "/balance-sheet",
-        "/profit-loss",
-        "/cashflow",
-        "/cashflow-statement",
-        "/financial-ratios"
+
+    // In Free Trial (trial plan), completely remove the 4 advanced modules
+    if (user?.subscriptionPlan === "trial") {
+      const trialExcludedPaths = [
+        "/payroll",
+        "/bank-reconciliation",
+        "/fraud-detection",
+        "/civil-engineering"
       ];
-      modules = modules.filter(m => !analyticsPaths.includes(m.path));
+      modules = modules.filter(m => !trialExcludedPaths.includes(m.path));
     }
+
     return modules;
   }, [user]);
   
@@ -1382,21 +1384,12 @@ const Dashboard = () => {
                         <button
                           key={module.path}
                           onClick={() => isLocked ? openUpgradeModal(moduleKey) : navigate(module.path)}
-                          className={`w-full text-left px-4 py-2.5 text-[13px] flex items-center justify-between transition-colors border-b border-slate-50 last:border-0 ${
-                            isLocked 
-                              ? "bg-slate-50/50 text-[#888] cursor-pointer" 
-                              : "text-[#444] hover:bg-[#f4f5f8] hover:text-[#006aff]"
-                          }`}
+                          className="w-full text-left px-4 py-2.5 text-[13px] flex items-center justify-between transition-colors border-b border-slate-50 last:border-0 text-[#444] hover:bg-[#f4f5f8] hover:text-[#006aff]"
                         >
                           <div className="flex items-center gap-3 truncate">
-                            <Icon className={`w-4 h-4 shrink-0 ${isLocked ? 'text-slate-400' : 'text-[#777]'}`} />
+                            <Icon className="w-4 h-4 shrink-0 text-[#777]" />
                             <span className="truncate font-medium">{module.title}</span>
                           </div>
-                          {isLocked && (
-                            <span className="flex items-center gap-0.5 text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-wider scale-90">
-                              <Lock className="w-2.5 h-2.5" /> Lock
-                            </span>
-                          )}
                         </button>
                       )
                   })}
@@ -1494,21 +1487,12 @@ const Dashboard = () => {
                       setMobileSidebarOpen(false);
                     }
                   }}
-                  className={`w-full text-left px-3 py-2 text-[14px] flex items-center justify-between transition-colors rounded my-1 ${
-                    isLocked 
-                      ? "border border-dashed border-slate-200 bg-slate-50 text-slate-400 cursor-pointer" 
-                      : "text-[#444] hover:bg-[#f4f5f8] hover:text-[#006aff]"
-                  }`}
+                  className="w-full text-left px-3 py-2 text-[14px] flex items-center justify-between transition-colors rounded my-1 text-[#444] hover:bg-[#f4f5f8] hover:text-[#006aff]"
                 >
                   <div className="flex items-center gap-3 truncate">
-                    <Icon className={`w-4 h-4 shrink-0 ${isLocked ? 'text-slate-350' : 'text-[#777]'}`} />
+                    <Icon className="w-4 h-4 shrink-0 text-[#777]" />
                     <span className="truncate font-medium">{module.title}</span>
                   </div>
-                  {isLocked && (
-                    <span className="flex items-center gap-0.5 text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                      <Lock className="w-2.5 h-2.5" /> Lock
-                    </span>
-                  )}
                 </button>
               )
             })}
@@ -1547,7 +1531,7 @@ const Dashboard = () => {
             {dashboardStats.map((stat, i) => {
               const statModules = ["invoice", "invoice", "profit-loss", "tax-gst"];
               const moduleKey = statModules[i];
-              const isLocked = !hasAccess(moduleKey);
+              const isLocked = user?.role === "instore" ? false : !hasAccess(moduleKey);
 
               if (isLocked) {
                 return (

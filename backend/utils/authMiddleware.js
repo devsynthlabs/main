@@ -162,10 +162,7 @@ export const checkModuleAccess = (moduleName) => {
       return next();
     }
 
-    // Admin has full access to all business modules
-    if (req.user?.role === "admin") {
-      return next();
-    }
+    // Validate subscription plan allowed modules
 
     if (!req.subscription || !req.subscription.planId) {
       return res.status(403).json({ message: "Subscription validation failed." });
@@ -176,8 +173,8 @@ export const checkModuleAccess = (moduleName) => {
       return next();
     }
 
-    // In-store POS accounts are hard-restricted to invoice, inventory, and dashboard (unless on active Sandbox Trial)
-    if (req.user?.role === "instore" && req.user?.subscriptionPlan !== "trial") {
+    // In-store POS accounts are strictly restricted to invoice and inventory modules only
+    if (req.user?.role === "instore") {
       if (!["invoice", "inventory"].includes(moduleName)) {
         return res.status(403).json({ message: "In-Store accounts only have access to Invoice and Inventory modules." });
       }
