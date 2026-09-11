@@ -1,5 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const router = express.Router();
 
@@ -41,9 +42,26 @@ router.post("/add", async (req, res) => {
       ...req.body,
       userId: req.user.id
     };
+
+    // Authoritative calculation via Python Financial Calculation Engine
+    try {
+      const pyResult = await runPythonCalculation("payroll.calculate", payrollData);
+      if (pyResult && !pyResult.error) {
+        payrollData.grossSalary = pyResult.grossSalary;
+        payrollData.pfDeduction = pyResult.pfDeduction;
+        payrollData.epfDeduction = pyResult.epfDeduction;
+        payrollData.esiDeduction = pyResult.esiDeduction;
+        payrollData.taxDeduction = pyResult.taxDeduction;
+        payrollData.totalDeductions = pyResult.totalDeductions;
+        payrollData.netSalary = pyResult.netSalary;
+      }
+    } catch (pyErr) {
+      console.warn("⚠️ Python calculation fallback triggered for payroll add:", pyErr.message);
+    }
+
     const newPayroll = new Payroll(payrollData);
     await newPayroll.save();
-    res.status(201).json({ message: "Payroll data saved successfully!" });
+    res.status(201).json({ message: "Payroll data saved successfully!", payroll: newPayroll });
   } catch (error) {
     console.error("Error saving payroll:", error);
     res.status(500).json({ message: "Error saving payroll data", error });

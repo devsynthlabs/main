@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import BookkeepingEntry from "../models/BookkeepingEntry.js";
 import Sale from "../models/Sale.js";
+import { runPythonCalculation } from "./pythonBridge.js";
 
 // Helper to get models registered inline in routes
 const getInvoiceModel = () => {
@@ -94,9 +95,18 @@ export async function getFinanceMetrics(userId, start, end) {
     const financeCost = bkCategoryExpenses["Finance"] || bkCategoryExpenses["finance"] || 0;
     const depreciation = bkCategoryExpenses["Depreciation"] || bkCategoryExpenses["depreciation"] || 0;
     const amortization = bkCategoryExpenses["Amortization"] || bkCategoryExpenses["amortization"] || 0;
+    let pyPlResult = { netProfit: totalRevenue - totalExpenses, profitMargin: totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0 };
+    try {
+        pyPlResult = await runPythonCalculation("profit_loss", {
+            revenue: { total: totalRevenue },
+            expense: { total: totalExpenses, cogs }
+        });
+    } catch (e) {
+        // Fallback gracefully to JS calculation
+    }
 
-    const netProfit = totalRevenue - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const netProfit = pyPlResult.netProfit;
+    const profitMargin = pyPlResult.profitMargin;
 
     // Accounts Receivable and Accounts Payable
     const Invoice = getInvoiceModel();
@@ -235,43 +245,54 @@ export async function getLiveBalanceSheet(userId, period = "this-month") {
     // Cash and Bank Balance: Total Inflows - Total Outflows
     const cashAndBank = cumulativeIncome - cumulativeExpense;
 
-    const fixedAssets = 0;
-    const currentAssets = cashAndBank + accountsReceivable + currentInventoryValuation;
-    const totalAssets = currentAssets + fixedAssets;
+    let pyBsResult = null;
+    try {
+        pyBsResult = await runPythonCalculation("balance_sheet", {
+            cashAndBank,
+            accountsReceivable,
+            inventory: currentInventoryValuation,
+            fixedAssets: 0,
+            accountsPayable,
+            nonCurrentLiabilities: 0,
+            cumulativeIncome,
+            cumulativeExpense
+        });
+    } catch (e) {
+        // Fallback gracefully to JS calculation
+    }
 
-    const currentLiabilities = accountsPayable;
-    const nonCurrentLiabilities = 0;
-    const totalLiabilities = currentLiabilities + nonCurrentLiabilities;
+    const assets = pyBsResult?.assets || {
+        cashAndBank,
+        accountsReceivable,
+        inventory: currentInventoryValuation,
+        currentAssets: cashAndBank + accountsReceivable + currentInventoryValuation,
+        fixedAssets: 0,
+        totalAssets: cashAndBank + accountsReceivable + currentInventoryValuation
+    };
 
-    // Retained Earnings = Cumulative Net Income
-    const retainedEarnings = cumulativeIncome - cumulativeExpense;
-    const totalEquity = totalAssets - totalLiabilities; // Enforces exact accounting equation: Total Assets = Total Liabilities + Total Equity
-    const balanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1.0;
+    const liabilities = pyBsResult?.liabilities || {
+        accountsPayable,
+        currentLiabilities: accountsPayable,
+        nonCurrentLiabilities: 0,
+        totalLiabilities: accountsPayable
+    };
+
+    const equity = pyBsResult?.equity || {
+        ownerEquity: 0,
+        retainedEarnings: cumulativeIncome - cumulativeExpense,
+        totalEquity: assets.totalAssets - liabilities.totalLiabilities
+    };
+
+    const balanced = pyBsResult ? pyBsResult.balanced : Math.abs(assets.totalAssets - (liabilities.totalLiabilities + equity.totalEquity)) < 1.0;
 
     return {
         companyName: "Your Company",
         financialYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         period,
-        assets: {
-            cashAndBank,
-            accountsReceivable,
-            inventory: currentInventoryValuation,
-            currentAssets,
-            fixedAssets,
-            totalAssets
-        },
-        liabilities: {
-            accountsPayable,
-            currentLiabilities,
-            nonCurrentLiabilities,
-            totalLiabilities
-        },
-        equity: {
-            ownerEquity: 0,
-            retainedEarnings,
-            totalEquity
-        },
-        totalLiabilitiesEquity: totalLiabilities + totalEquity,
+        assets,
+        liabilities,
+        equity,
+        totalLiabilitiesEquity: liabilities.totalLiabilities + equity.totalEquity,
         balanced,
         breakdown: {
             assets: {
@@ -281,7 +302,7 @@ export async function getLiveBalanceSheet(userId, period = "this-month") {
                     { label: "Inventory Stock Valuation", value: currentInventoryValuation }
                 ],
                 nonCurrentAssets: [
-                    { label: "Fixed Assets & Equipment", value: fixedAssets }
+                    { label: "Fixed Assets & Equipment", value: assets.fixedAssets || 0 }
                 ]
             },
             liabilities: {
@@ -289,12 +310,12 @@ export async function getLiveBalanceSheet(userId, period = "this-month") {
                     { label: "Accounts Payable (Trade)", value: accountsPayable }
                 ],
                 nonCurrentLiabilities: [
-                    { label: "Long Term Debt / Loans", value: nonCurrentLiabilities }
+                    { label: "Long Term Debt / Loans", value: liabilities.nonCurrentLiabilities || 0 }
                 ]
             },
             equity: [
-                { label: "Owner Capital", value: 0 },
-                { label: "Retained Earnings / Accumulated Profit", value: retainedEarnings }
+                { label: "Owner Capital", value: equity.ownerEquity || 0 },
+                { label: "Retained Earnings / Accumulated Profit", value: equity.retainedEarnings || 0 }
             ]
         }
     };
@@ -396,26 +417,26 @@ export async function getGstAnalytics(userId, period = "this-month") {
         inputGst += tax;
     });
 
-    // Net GST Calculation
-    let gstPayable = 0;
-    let gstReceivable = 0;
-
-    if (outputGst >= inputGst) {
-        gstPayable = outputGst - inputGst;
-        gstReceivable = 0;
-    } else {
-        gstPayable = 0;
-        gstReceivable = inputGst - outputGst;
+    let pyGstResult = null;
+    try {
+        pyGstResult = await runPythonCalculation("gst_analytics", {
+            outputGst,
+            inputGst
+        });
+    } catch (e) {
+        // Fallback gracefully
     }
+
+    const gstSummary = pyGstResult?.gstSummary || {
+        outputGst,
+        inputGst,
+        gstPayable: outputGst >= inputGst ? outputGst - inputGst : 0,
+        gstReceivable: inputGst > outputGst ? inputGst - outputGst : 0
+    };
 
     return {
         period,
-        gstSummary: {
-            outputGst,
-            inputGst,
-            gstPayable,
-            gstReceivable
-        },
+        gstSummary,
         taxBreakdown: {
             cgst: {
                 output: outputCgst,

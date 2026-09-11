@@ -217,7 +217,7 @@ const Payroll = () => {
     }
   };
 
-  const calculateSalary = () => {
+  const calculateSalary = async () => {
     if (!formData.employeeName || !formData.employeeId || !formData.employeeRole || !formData.employeeDepartment) {
       toast({
         variant: "destructive",
@@ -242,34 +242,7 @@ const Payroll = () => {
     const otherDeduction = parseFloat(formData.otherDeduction) || 0;
     const esiDeduction = parseFloat(formData.esiDeduction) || 0;
 
-    // Calculate Gross Salary (following requirement formula)
-    const grossSalaryCalc = basic + da + hra + travelAllowance + overtimeAllowance + otherAllowance + bonus - extraLeaveDeduction;
-
-    // Auto-calculate EPF (12% of gross) and Tax (5% of gross) per requirement
-    const epfDeductionCalc = 0.12 * grossSalaryCalc;
-    const taxDeductionCalc = 0.05 * grossSalaryCalc;
-
-    // Manual PF deduction (if provided, otherwise use auto)
-    const manualPfDeduction = parseFloat(formData.pfDeduction) || 0;
-    const finalPfDeduction = manualPfDeduction > 0 ? manualPfDeduction : epfDeductionCalc;
-
-    // Total deductions (following requirement formula)
-    const totalDeductionsCalc = finalPfDeduction + taxDeductionCalc + extraLeaveDeduction + esiDeduction + advanceRecoveryDeduction + loanDeduction + otherDeduction;
-
-    const netSalaryCalc = grossSalaryCalc - totalDeductionsCalc;
-
-    // Update state
-    setGrossSalary(grossSalaryCalc);
-    setTotalDeductions(totalDeductionsCalc);
-    setNetSalary(netSalaryCalc);
-    setShowResult(true);
-
-    // Generate AI insight
-    const insight = generateAIInsight(grossSalaryCalc, netSalaryCalc, totalDeductionsCalc, finalPfDeduction, esiDeduction, taxDeductionCalc);
-    setAiInsight(insight);
-
-    const newRecord: PayrollRecord = {
-      id: Date.now().toString(),
+    const rawPayload = {
       employeeName: formData.employeeName,
       companyName: getReportCompanyName(formData.companyName),
       employeeId: formData.employeeId,
@@ -277,50 +250,46 @@ const Payroll = () => {
       employeeDepartment: formData.employeeDepartment,
       employeeExperience: parseFloat(formData.employeeExperience) || 0,
       basicSalary: basic,
-      da: da,
-      hra: hra,
-      travelAllowance: travelAllowance,
-      overtimeAllowance: overtimeAllowance,
-      otherAllowance: otherAllowance,
+      da,
+      hra,
+      travelAllowance,
+      overtimeAllowance,
+      otherAllowance,
       bonuses: bonus,
-      pfDeduction: finalPfDeduction,
-      epfDeduction: epfDeductionCalc,
-      esiDeduction: esiDeduction,
-      taxDeduction: taxDeductionCalc,
-      extraLeaveDeduction: extraLeaveDeduction,
-      advanceRecoveryDeduction: advanceRecoveryDeduction,
-      loanDeduction: loanDeduction,
-      otherDeduction: otherDeduction,
-      grossSalary: grossSalaryCalc,
-      totalDeductions: totalDeductionsCalc,
-      netSalary: netSalaryCalc,
-      createdAt: new Date().toISOString()
+      extraLeaveDeduction,
+      pfDeduction: parseFloat(formData.pfDeduction) || 0,
+      esiDeduction,
+      advanceRecoveryDeduction,
+      loanDeduction,
+      otherDeduction,
     };
 
-    // Save to local database
-    const savePayroll = async (record: PayrollRecord) => {
-      try {
-        const res = await apiRequest(`${API_ENDPOINTS.PAYROLL}/add`, {
-          method: "POST",
-          body: JSON.stringify(record),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to save payroll to DB");
-        // Reload history from DB
-        fetchHistory();
-      } catch (err) {
-        console.error("Error saving payroll to database:", err);
-        toast({
-          variant: "destructive",
-          title: "Warning",
-          description: "Could not save to database, using local state fallback.",
-        });
-        setPayrollHistory(prev => [record, ...prev]);
-        setFilteredHistory(prev => [record, ...prev]);
-      }
-    };
+    try {
+      const res = await apiRequest(`${API_ENDPOINTS.PAYROLL}/add`, {
+        method: "POST",
+        body: JSON.stringify(rawPayload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to save payroll to DB");
 
-    savePayroll(newRecord);
+      const pyData = data.data || data;
+      setGrossSalary(pyData.grossSalary);
+      setTotalDeductions(pyData.totalDeductions);
+      setNetSalary(pyData.netSalary);
+      setShowResult(true);
+
+      const insight = generateAIInsight(pyData.grossSalary, pyData.netSalary, pyData.totalDeductions, pyData.pfDeduction, pyData.esiDeduction, pyData.taxDeduction);
+      setAiInsight(insight);
+
+      fetchHistory();
+    } catch (err: any) {
+      console.error("Error saving payroll to database:", err);
+      toast({
+        title: "Error Saving Payroll",
+        description: err.message || "Could not connect to database server.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSearch = () => {

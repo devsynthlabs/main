@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { checkPlanLimit } from "../utils/authMiddleware.js";
 import { upsertAutomatedBookkeepingEntry, removeAutomatedBookkeepingEntry } from "../utils/bookkeepingHelper.js";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const router = express.Router();
 
@@ -102,6 +103,32 @@ router.post("/create", verifyToken, async (req, res) => {
             return res.status(403).json(limitCheck);
         }
         const invoiceData = req.body;
+
+        // Authoritative calculation via Python Financial Calculation Engine
+        try {
+            const pyResult = await runPythonCalculation("purchase_invoice.calculate", {
+                items: invoiceData.items || [],
+                amountPaid: invoiceData.paid || invoiceData.amountPaid || 0,
+                stateOfSupply: invoiceData.stateOfSupply || "",
+                businessState: invoiceData.businessState || "Tamil Nadu"
+            });
+
+            if (pyResult && !pyResult.error) {
+                invoiceData.items = pyResult.items;
+                invoiceData.subtotal = pyResult.subtotal;
+                invoiceData.totalTax = pyResult.taxAmount;
+                invoiceData.totalSgst = pyResult.totalSgst;
+                invoiceData.totalCgst = pyResult.totalCgst;
+                invoiceData.totalIgst = pyResult.totalIgst;
+                invoiceData.total = pyResult.grandTotal;
+                invoiceData.balance = pyResult.balanceDue;
+            } else {
+                invoiceData.balance = (invoiceData.total || 0) - (invoiceData.paid || 0);
+            }
+        } catch (pyErr) {
+            console.warn("⚠️ Python calculation fallback triggered for purchase invoice create:", pyErr.message);
+            invoiceData.balance = (invoiceData.total || 0) - (invoiceData.paid || 0);
+        }
 
         const newInvoice = new PurchaseInvoice({
             userId: req.user.id,

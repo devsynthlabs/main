@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { resolvePeriod, getFinanceMetrics, getLiveBalanceSheet } from "../utils/financeAggregator.js";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const router = express.Router();
 
@@ -62,8 +63,23 @@ router.post("/calculate", async (req, res) => {
   try {
     const financialData = req.body;
     
-    // Calculate ratios
-    const ratios = {
+    let pyRatioResult = null;
+    try {
+      pyRatioResult = await runPythonCalculation("financial_ratios.calculate", {
+        currentAssets: financialData.currentAssets || 0,
+        currentLiabilities: financialData.currentLiabilities || 0,
+        inventory: financialData.inventory || 0,
+        totalLiabilities: financialData.totalLiabilities || financialData.totalDebt || 0,
+        totalEquity: financialData.totalEquity || financialData.equity || 0,
+        totalRevenue: financialData.revenue || 0,
+        cogs: financialData.expenses || 0,
+        netProfit: financialData.netIncome || 0
+      });
+    } catch (pyErr) {
+      console.warn("⚠️ Python financial ratios calculation failed, falling back:", pyErr.message);
+    }
+
+    const ratios = pyRatioResult?.ratios || {
       currentRatio: financialData.currentLiabilities ? financialData.currentAssets / financialData.currentLiabilities : 0,
       debtToEquity: financialData.totalEquity ? financialData.totalDebt / financialData.totalEquity : 0,
       debtRatio: financialData.totalAssets ? financialData.totalDebt / financialData.totalAssets : 0,
@@ -159,8 +175,23 @@ router.get("/generate", verifyToken, async (req, res) => {
       });
     }
 
-    // Calculate ratios
-    const ratios = {
+    let pyRatioResult = null;
+    try {
+      pyRatioResult = await runPythonCalculation("financial_ratios.calculate", {
+        currentAssets,
+        currentLiabilities,
+        inventory,
+        totalLiabilities,
+        totalEquity,
+        totalRevenue: revenue,
+        cogs: metrics.expense.cogs,
+        netProfit: netIncome
+      });
+    } catch (e) {
+      // Fallback
+    }
+
+    const ratios = pyRatioResult?.ratios || {
       currentRatio: currentLiabilities > 0 ? currentAssets / currentLiabilities : (currentAssets > 0 ? 1 : 0),
       debtToEquity: totalEquity > 0 ? totalDebt / totalEquity : 0,
       debtRatio: totalAssets > 0 ? totalDebt / totalAssets : 0,

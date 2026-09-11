@@ -181,26 +181,6 @@ const CashFlowStatement = () => {
     const amortization = parseFloat(formData.amortization) || 0;
     const otherExpenses = parseFloat(formData.otherExpenses) || 0;
 
-    const totalInflow = sales + serviceIncome + interestIncome + otherIncome;
-    const totalOutflow = costOfMaterials + salaries + rent + utilities + financeCost + depreciation + amortization + otherExpenses;
-    const netCashFlow = totalInflow - totalOutflow;
-
-    let status = "neutral";
-    if (netCashFlow > 0) status = "positive";
-    if (netCashFlow < 0) status = "negative";
-
-    setResult({
-      totalInflow,
-      totalOutflow,
-      netCashFlow,
-      status
-    });
-
-    toast({
-      title: "Calculation Complete",
-      description: `Net Cash Flow: ₹${netCashFlow.toFixed(2)} (${status})`,
-    });
-
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -229,15 +209,21 @@ const CashFlowStatement = () => {
         }),
       });
 
-      if (response.ok) {
+      const resData = await response.json();
+      if (response.ok && resData.data) {
+        setResult({
+          totalInflow: resData.data.totalInflow,
+          totalOutflow: resData.data.totalOutflow,
+          netCashFlow: resData.data.netCashFlow,
+          status: resData.data.status
+        });
         toast({
-          title: "Saved to History",
-          description: "Cash flow statement saved successfully to database!",
+          title: "Calculation Complete",
+          description: `Net Cash Flow: ₹${resData.data.netCashFlow.toFixed(2)} (${resData.data.status})`,
         });
         fetchStatements();
       } else {
-        const error = await response.json();
-        console.error("Auto-save failed:", error);
+        console.error("Auto-save failed:", resData);
       }
     } catch (error) {
       console.error("Error auto-saving statement:", error);

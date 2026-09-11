@@ -90,107 +90,41 @@ const ProfitLoss = () => {
   const generateStatement = async () => {
     setIsLoading(true);
     
-    // Parse all values with default 0
-    const sales = parseFloat(formData.sales) || 0;
-    const serviceIncome = parseFloat(formData.serviceIncome) || 0;
-    const interestIncome = parseFloat(formData.interestIncome) || 0;
-    const otherIncome = parseFloat(formData.otherIncome) || 0;
-    
-    // 8 expense fields
-    const costOfMaterials = parseFloat(formData.costOfMaterials) || 0;
-    const salaries = parseFloat(formData.salaries) || 0;
-    const rent = parseFloat(formData.rent) || 0;
-    const utilities = parseFloat(formData.utilities) || 0;
-    const financeCost = parseFloat(formData.financeCost) || 0;
-    const depreciation = parseFloat(formData.depreciation) || 0;
-    const amortization = parseFloat(formData.amortization) || 0;
-    const otherExpenses = parseFloat(formData.otherExpenses) || 0;
-
-    // Calculate totals (matching Python logic)
-    const totalRevenue = sales + serviceIncome + interestIncome + otherIncome;
-    const totalExpenses = costOfMaterials + salaries + rent + utilities + financeCost + depreciation + amortization + otherExpenses;
-    const netProfit = totalRevenue - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
-
-    const result = {
+    // Send raw input values to Python backend engine
+    const rawPayload = {
       companyName: getReportCompanyName(formData.companyName),
       financialYear: formData.financialYear,
-      // Revenue
-      sales,
-      serviceIncome,
-      interestIncome,
-      otherIncome,
-      totalRevenue,
-      // Expenses (8 fields)
-      costOfMaterials,
-      salaries,
-      rent,
-      utilities,
-      financeCost,
-      depreciation,
-      amortization,
-      otherExpenses,
-      totalExpenses,
-      // Results
-      netProfit,
-      profitMargin,
-      profitable: netProfit > 0,
+      sales: parseFloat(formData.sales) || 0,
+      serviceIncome: parseFloat(formData.serviceIncome) || 0,
+      interestIncome: parseFloat(formData.interestIncome) || 0,
+      otherIncome: parseFloat(formData.otherIncome) || 0,
+      costOfMaterials: parseFloat(formData.costOfMaterials) || 0,
+      salaries: parseFloat(formData.salaries) || 0,
+      rent: parseFloat(formData.rent) || 0,
+      utilities: parseFloat(formData.utilities) || 0,
+      financeCost: parseFloat(formData.financeCost) || 0,
+      depreciation: parseFloat(formData.depreciation) || 0,
+      amortization: parseFloat(formData.amortization) || 0,
+      otherExpenses: parseFloat(formData.otherExpenses) || 0,
     };
-
-    setStatement(result);
-    setShowResult(true);
-
-    // Generate AI insights locally (mirroring Python logic)
-    const insights = [];
-    const recommendations = [];
-
-    if (netProfit < 0) {
-      insights.push("⚠️ Business is operating at a LOSS");
-      recommendations.push("Review all expenses immediately");
-      recommendations.push("Consider cost reduction measures");
-      recommendations.push("Increase revenue streams");
-    } else if (profitMargin < 15) {
-      insights.push("⚠️ Low Profit Margin business (below 15%)");
-      recommendations.push("Improve pricing strategy");
-      recommendations.push("Reduce operational expenses by 10-15%");
-      recommendations.push("Focus on high-margin products/services");
-    } else if (profitMargin < 25) {
-      insights.push("✅ Moderate Profit Margin (15-25%)");
-      recommendations.push("Maintain current cost structure");
-      recommendations.push("Explore expansion opportunities");
-    } else {
-      insights.push("🎉 Excellent Profit Margin (above 25%)");
-      recommendations.push("Consider reinvesting profits");
-      recommendations.push("Scale successful operations");
-    }
-
-    const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue * 100) : 0;
-    if (expenseRatio > 70) {
-      insights.push(`⚠️ Expenses are ${expenseRatio.toFixed(1)}% of revenue - too high`);
-      recommendations.push("Identify top 3 expense categories for reduction");
-    } else if (expenseRatio > 50) {
-      insights.push(`📊 Expenses are ${expenseRatio.toFixed(1)}% of revenue - moderate`);
-      recommendations.push("Monitor expense growth closely");
-    } else {
-      insights.push(`✅ Excellent cost control - expenses only ${expenseRatio.toFixed(1)}% of revenue`);
-    }
-
-    if (costOfMaterials > 0 && totalRevenue > 0 && costOfMaterials > totalRevenue * 0.6) {
-      insights.push("⚠️ COGS is high compared to revenue");
-      recommendations.push("Negotiate supplier costs");
-      recommendations.push("Explore alternative vendors");
-    }
-
-    setAiInsights({ insights, recommendations });
 
     try {
       const res = await fetch(`${API_ENDPOINTS.PROFIT_LOSS}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result),
+        body: JSON.stringify(rawPayload),
       });
       const data = await res.json();
-      if (!res.ok) console.error("Error saving data:", data);
+      if (res.ok && data.data) {
+        setStatement(data.data);
+        setAiInsights({
+          insights: data.insights || data.data.aiInsights || [],
+          recommendations: data.recommendations || data.data.aiRecommendations || []
+        });
+        setShowResult(true);
+      } else {
+        console.error("Error saving data:", data);
+      }
     } catch (error) {
       console.error("Error connecting to backend:", error);
     } finally {
@@ -485,14 +419,11 @@ const ProfitLoss = () => {
                       <Input
                         id={field}
                         type="number"
-                        placeholder="0.00"
+                        placeholder="Auto-synced from Store"
+                        readOnly={true}
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => handleInputChange(field, text)}
-                        onClear={() => handleInputChange(field, "")}
+                        className="h-12 rounded-[18px] border-slate-200 bg-slate-100/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -501,7 +432,7 @@ const ProfitLoss = () => {
 
               {/* Expenses Section */}
               <div className="space-y-4 p-6 rounded-[28px] bg-orange-50/60 border border-orange-100 shadow-sm backdrop-blur-xl">
-                <h3 className="text-lg font-bold text-slate-900 border-b border-orange-100/30 pb-2">💸 Expenses</h3>
+                <h3 className="text-lg font-bold text-slate-900 border-b border-orange-100/30 pb-2">💸 Expenses (Auto-Synced from Store)</h3>
                 {[
                   { field: "costOfMaterials", label: "Cost of Materials", icon: "📦" },
                   { field: "salaries", label: "Salaries", icon: "👥" },
@@ -520,14 +451,11 @@ const ProfitLoss = () => {
                       <Input
                         id={field}
                         type="number"
-                        placeholder="0.00"
+                        placeholder="Auto-synced from Store"
+                        readOnly={true}
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
-                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => handleInputChange(field, text)}
-                        onClear={() => handleInputChange(field, "")}
+                        className="h-12 rounded-[18px] border-slate-200 bg-slate-100/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -538,18 +466,10 @@ const ProfitLoss = () => {
                 <Button
                   onClick={autoGenerateStatement}
                   disabled={isLoading}
-                  className="flex-1 h-14 rounded-full bg-indigo-900 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-800"
+                  className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
                 >
                   <Sparkles className="mr-2 h-5 w-5 text-yellow-300" />
-                  {isLoading ? "Generating..." : "Auto-Generate from Live Data"}
-                </Button>
-                <Button
-                  onClick={generateStatement}
-                  disabled={isLoading}
-                  className="flex-1 h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
-                >
-                  <Calculator className="mr-2 h-5 w-5" />
-                  {isLoading ? "Generating..." : "Calculate (Manual)"}
+                  {isLoading ? "Syncing from Store..." : "Auto-Generate P&L from Store (Inventory + Invoices)"}
                 </Button>
               </div>
             </CardContent>

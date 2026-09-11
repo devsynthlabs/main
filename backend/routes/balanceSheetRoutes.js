@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { getLiveBalanceSheet } from "../utils/financeAggregator.js";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const router = express.Router();
 
@@ -66,27 +67,53 @@ router.post("/add", verifyTokenOptional, async (req, res) => {
   try {
     const balanceData = req.body;
 
-    // Fill missing fields with 0 to avoid validation errors
+    let pyResult = null;
+    try {
+      pyResult = await runPythonCalculation("balance_sheet.calculate", {
+        cashAndBank: balanceData.currentAssets || 0,
+        accountsReceivable: 0,
+        inventory: 0,
+        fixedAssets: balanceData.nonCurrentAssets || 0,
+        accountsPayable: balanceData.currentLiabilities || 0,
+        nonCurrentLiabilities: balanceData.nonCurrentLiabilities || 0,
+        ownerEquity: balanceData.equity || 0
+      });
+    } catch (pyErr) {
+      console.warn("⚠️ Python balance sheet calculation failed, falling back:", pyErr.message);
+    }
+
+    const currentAssets = balanceData.currentAssets || 0;
+    const nonCurrentAssets = balanceData.nonCurrentAssets || 0;
+    const totalAssets = pyResult ? pyResult.assets.totalAssets : (currentAssets + nonCurrentAssets);
+
+    const currentLiabilities = balanceData.currentLiabilities || 0;
+    const nonCurrentLiabilities = balanceData.nonCurrentLiabilities || 0;
+    const totalLiabilities = pyResult ? pyResult.liabilities.totalLiabilities : (currentLiabilities + nonCurrentLiabilities);
+
+    const equity = pyResult ? pyResult.equity.totalEquity : (balanceData.equity || 0);
+    const totalLiabilitiesEquity = pyResult ? pyResult.totalLiabilitiesEquity : (totalLiabilities + equity);
+    const balanced = pyResult ? pyResult.balanced : (Math.abs(totalAssets - totalLiabilitiesEquity) < 1);
+
     const dataToSave = {
       userId: req.user ? req.user.id : undefined,
       companyName: balanceData.companyName || "",
       financialYear: balanceData.financialYear || "",
       // Assets
-      currentAssets: balanceData.currentAssets || 0,
-      nonCurrentAssets: balanceData.nonCurrentAssets || 0,
-      totalAssets: balanceData.totalAssets || 0,
+      currentAssets: currentAssets,
+      nonCurrentAssets: nonCurrentAssets,
+      totalAssets: totalAssets,
       
       // Liabilities
-      currentLiabilities: balanceData.currentLiabilities || 0,
-      nonCurrentLiabilities: balanceData.nonCurrentLiabilities || 0,
-      totalLiabilities: balanceData.totalLiabilities || 0,
+      currentLiabilities: currentLiabilities,
+      nonCurrentLiabilities: nonCurrentLiabilities,
+      totalLiabilities: totalLiabilities,
       
       // Equity
-      equity: balanceData.equity || 0,
+      equity: equity,
       
       // Results
-      totalLiabilitiesEquity: balanceData.totalLiabilitiesEquity || 0,
-      balanced: balanceData.balanced || false,
+      totalLiabilitiesEquity: totalLiabilitiesEquity,
+      balanced: balanced,
       breakdown: balanceData.breakdown || {
         assets: { currentAssets: [], nonCurrentAssets: [] },
         liabilities: { currentLiabilities: [], nonCurrentLiabilities: [] },

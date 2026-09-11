@@ -235,7 +235,7 @@ const FinancialRatios = () => {
   };
 
   // Function to calculate ratios
-  const calculateRatios = () => {
+  const calculateRatios = async () => {
     const currentAssets = parseFloat(formData.currentAssets) || 0;
     const currentLiabilities = parseFloat(formData.currentLiabilities) || 0;
     const totalAssets = parseFloat(formData.totalAssets) || 0;
@@ -248,27 +248,7 @@ const FinancialRatios = () => {
     const totalDebt = parseFloat(formData.totalDebt) || 0;
     const sharesOutstanding = parseFloat(formData.sharesOutstanding) || 0;
     const inventory = parseFloat(formData.inventory) || 0;
-
-    // Calculate ratios
-    const ratios = {
-      currentRatio: currentLiabilities ? currentAssets / currentLiabilities : 0,
-      debtToEquity: totalEquity ? totalDebt / totalEquity : 0,
-      debtRatio: totalAssets ? totalDebt / totalAssets : 0,
-      quickRatio: currentLiabilities ? (currentAssets - inventory) / currentLiabilities : 0,
-      grossProfitMargin: revenue ? ((revenue - expenses) / revenue) * 100 : 0,
-      netProfitMargin: revenue ? (netIncome / revenue) * 100 : 0,
-      roe: totalEquity ? (netIncome / totalEquity) * 100 : 0,
-      roa: totalAssets ? (netIncome / totalAssets) * 100 : 0,
-      assetsTurnover: totalAssets ? revenue / totalAssets : 0,
-      eps: sharesOutstanding ? netIncome / sharesOutstanding : 0,
-    };
-
-    setCalculatedRatios(ratios);
-    setShowResult(true);
-
-    // Create new record
-    const newRecord: RatioRecord = {
-      id: Date.now().toString(),
+    const rawPayload = {
       companyName: getReportCompanyName(formData.companyName),
       period: new Date().toLocaleDateString(),
       currentAssets,
@@ -283,13 +263,37 @@ const FinancialRatios = () => {
       totalDebt,
       sharesOutstanding,
       inventory,
-      ratios,
-      createdAt: new Date().toLocaleDateString()
     };
 
-    // Add to history
-    setRatiosHistory(prev => [newRecord, ...prev]);
-    setFilteredHistory(prev => [newRecord, ...prev]);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/financial-ratios/calculate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(rawPayload),
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.ratios) {
+        setCalculatedRatios(resData.ratios);
+        setShowResult(true);
+        const newRecord: RatioRecord = {
+          id: Date.now().toString(),
+          ...rawPayload,
+          ratios: resData.ratios,
+          createdAt: new Date().toLocaleDateString()
+        };
+        setRatiosHistory(prev => [newRecord, ...prev]);
+        setFilteredHistory(prev => [newRecord, ...prev]);
+      } else {
+        console.error("Ratio calculation error:", resData);
+      }
+    } catch (err) {
+      console.error("Failed connecting to ratios API:", err);
+    }
   };
 
   // Search function

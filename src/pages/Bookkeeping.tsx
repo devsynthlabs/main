@@ -156,6 +156,9 @@ const Bookkeeping = () => {
                     createdAt: new Date(entry.createdAt),
                     type: (entry.type === 'income' || entry.type === 'Income') ? 'Income' : 'Expenses'
                 })));
+                if (data.summary) {
+                    setFinancialSummary(data.summary);
+                }
             } else {
                 console.error("Failed to fetch bookkeeping entries");
             }
@@ -201,26 +204,6 @@ const Bookkeeping = () => {
 
         setFilteredEntries(filtered);
     }, [entries, filterType, filterCategory, dateRange]);
-
-    // Financial Summary (based on filtered entries)
-    useEffect(() => {
-        const totalIncome = filteredEntries
-            .filter(entry => entry.type === 'Income')
-            .reduce((sum, entry) => sum + entry.amount, 0);
-
-        const totalExpenses = filteredEntries
-            .filter(entry => entry.type === 'Expenses')
-            .reduce((sum, entry) => sum + entry.amount, 0);
-
-        const netBalance = totalIncome - totalExpenses;
-
-        setFinancialSummary({
-            totalIncome,
-            totalExpenses,
-            netBalance,
-            entryCount: filteredEntries.length
-        });
-    }, [filteredEntries]);
 
     // Handle Date Presets
     const handlePreset = (preset: 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth') => {

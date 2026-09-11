@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import jwt from "jsonwebtoken";
 import { upsertAutomatedBookkeepingEntry, removeAutomatedBookkeepingEntry } from "../utils/bookkeepingHelper.js";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -198,8 +199,34 @@ router.post("/create", verifyTokenOptional, async (req, res) => {
       invoiceData.invoiceNumber = `INV-${new Date().getFullYear()}-${(count + 1).toString().padStart(5, '0')}`;
     }
 
-    // Calculate balance due
-    invoiceData.balanceDue = invoiceData.grandTotal - (invoiceData.amountPaid || 0);
+    // Authoritative calculation via Python Financial Calculation Engine
+    try {
+      const pyResult = await runPythonCalculation("invoice.calculate", {
+        items: invoiceData.items || [],
+        shippingCharges: invoiceData.shippingCharges || 0,
+        packagingCharges: invoiceData.packagingCharges || 0,
+        freightCharges: invoiceData.freightCharges || 0,
+        adjustment: invoiceData.adjustment || 0,
+        amountPaid: invoiceData.amountPaid || 0,
+        stateOfSupply: invoiceData.stateOfSupply || "",
+        businessState: "Tamil Nadu"
+      });
+
+      if (pyResult && !pyResult.error) {
+        invoiceData.subtotal = pyResult.subtotal;
+        invoiceData.taxAmount = pyResult.taxAmount;
+        invoiceData.sgst = pyResult.totalSgst;
+        invoiceData.cgst = pyResult.totalCgst;
+        invoiceData.igst = pyResult.totalIgst;
+        invoiceData.grandTotal = pyResult.grandTotal;
+        invoiceData.balanceDue = pyResult.balanceDue;
+      } else {
+        invoiceData.balanceDue = (invoiceData.grandTotal || 0) - (invoiceData.amountPaid || 0);
+      }
+    } catch (pyErr) {
+      console.warn("⚠️ Python calculation fallback triggered for sales invoice create:", pyErr.message);
+      invoiceData.balanceDue = (invoiceData.grandTotal || 0) - (invoiceData.amountPaid || 0);
+    }
 
     const newInvoice = new Invoice(invoiceData);
     await newInvoice.save();

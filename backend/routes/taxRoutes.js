@@ -54,6 +54,24 @@ router.post("/add", verifyTokenOptional, async (req, res) => {
       return res.status(400).json({ message: "baseAmount is required" });
     }
 
+    // Authoritative calculation via Python Financial Calculation Engine
+    try {
+      const pyResult = await runPythonCalculation("gst.calculate", {
+        baseAmount: gstData.baseAmount,
+        gstRate: gstData.gstRate,
+        transactionType: gstData.transactionType
+      });
+
+      if (pyResult && !pyResult.error) {
+        gstData.cgst = pyResult.cgst;
+        gstData.sgst = pyResult.sgst;
+        gstData.igst = pyResult.igst;
+        gstData.total = pyResult.total;
+      }
+    } catch (pyErr) {
+      console.warn("⚠️ Python calculation fallback triggered for GST add:", pyErr.message);
+    }
+
     const newGst = new TaxGST(gstData);
     await newGst.save();
 

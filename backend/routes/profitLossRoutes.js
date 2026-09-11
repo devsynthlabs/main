@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { resolvePeriod, getFinanceMetrics } from "../utils/financeAggregator.js";
+import { runPythonCalculation } from "../utils/pythonBridge.js";
 
 const router = express.Router();
 
@@ -107,25 +108,43 @@ function generateAIInsights(revenue, expenses, netProfit, profitMargin, cogs) {
 }
 
 // ✅ POST route to store Profit & Loss data for authenticated user
-router.post("/add", async (req, res) => {
+router.post("/add", verifyToken, async (req, res) => {
   try {
     const plData = req.body;
 
-    const totalRevenue = (plData.sales || 0) + (plData.serviceIncome || 0) + 
-                         (plData.interestIncome || 0) + (plData.otherIncome || 0);
-    
-    const totalExpenses = (plData.costOfMaterials || 0) + (plData.salaries || 0) + 
-                           (plData.rent || 0) + (plData.utilities || 0) +
-                           (plData.financeCost || 0) + (plData.depreciation || 0) +
-                           (plData.amortization || 0) + (plData.otherExpenses || 0);
-    
-    const netProfit = totalRevenue - totalExpenses;
-    const profitMargin = (netProfit / totalRevenue * 100) || 0;
-    const profitable = netProfit > 0;
-    
-    const { insights, recommendations } = generateAIInsights(
-      totalRevenue, totalExpenses, netProfit, profitMargin, plData.costOfMaterials || 0
-    );
+    let pyResult = null;
+    try {
+      pyResult = await runPythonCalculation("profit_loss.calculate", plData);
+    } catch (pyErr) {
+      console.warn("⚠️ Python calculation failed in profitLossRoutes, falling back:", pyErr.message);
+    }
+
+    let totalRevenue, totalExpenses, netProfit, profitMargin, profitable, insights, recommendations;
+
+    if (pyResult) {
+      totalRevenue = pyResult.totalRevenue;
+      totalExpenses = pyResult.totalExpenses;
+      netProfit = pyResult.netProfit;
+      profitMargin = pyResult.profitMargin;
+      profitable = pyResult.profitable;
+      insights = pyResult.aiInsights || [];
+      recommendations = pyResult.aiRecommendations || [];
+    } else {
+      totalRevenue = (plData.sales || 0) + (plData.serviceIncome || 0) + 
+                           (plData.interestIncome || 0) + (plData.otherIncome || 0);
+      totalExpenses = (plData.costOfMaterials || 0) + (plData.salaries || 0) + 
+                             (plData.rent || 0) + (plData.utilities || 0) +
+                             (plData.financeCost || 0) + (plData.depreciation || 0) +
+                             (plData.amortization || 0) + (plData.otherExpenses || 0);
+      netProfit = totalRevenue - totalExpenses;
+      profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0;
+      profitable = netProfit > 0;
+      const gen = generateAIInsights(
+        totalRevenue, totalExpenses, netProfit, profitMargin, plData.costOfMaterials || 0
+      );
+      insights = gen.insights;
+      recommendations = gen.recommendations;
+    }
 
     const dataToSave = {
       userId: req.user.id,
@@ -171,7 +190,7 @@ router.post("/add", async (req, res) => {
 });
 
 // ✅ GET route to fetch all P&L records for authenticated user
-router.get("/all", async (req, res) => {
+router.get("/all", verifyToken, async (req, res) => {
   try {
     const records = await ProfitLoss.find({ userId: req.user.id }).sort({ createdAt: -1 });
     res.json(records);
@@ -182,7 +201,7 @@ router.get("/all", async (req, res) => {
 });
 
 // ✅ GET route to fetch P&L summary for authenticated user
-router.get("/summary", async (req, res) => {
+router.get("/summary", verifyToken, async (req, res) => {
   try {
     const summary = await ProfitLoss.aggregate([
       { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
@@ -209,7 +228,7 @@ router.get("/summary", async (req, res) => {
 });
 
 // ✅ GET route to fetch AI insights for a specific record for authenticated user
-router.get("/insights/:id", async (req, res) => {
+router.get("/insights/:id", verifyToken, async (req, res) => {
   try {
     const record = await ProfitLoss.findOne({ _id: req.params.id, userId: req.user.id });
     if (!record) {
@@ -228,7 +247,7 @@ router.get("/insights/:id", async (req, res) => {
 });
 
 // ✅ GET route to dynamically generate Profit & Loss statement based on all modules
-router.get("/generate", async (req, res) => {
+router.get("/generate", verifyToken, async (req, res) => {
   try {
     const { period, startDate: startQuery, endDate: endQuery, companyName, financialYear } = req.query;
     let start, end;
@@ -248,7 +267,29 @@ router.get("/generate", async (req, res) => {
 
     const metrics = await getFinanceMetrics(req.user.id, start, end);
 
-    const { insights, recommendations } = generateAIInsights(
+    const rawInputPayload = {
+      sales: metrics.revenue.sales,
+      serviceIncome: 0,
+      interestIncome: 0,
+      otherIncome: metrics.revenue.bookkeepingIncome + metrics.revenue.inventorySales,
+      costOfMaterials: metrics.expense.costOfMaterials + metrics.expense.cogs,
+      salaries: metrics.expense.salaries,
+      rent: metrics.expense.rent,
+      utilities: metrics.expense.utilities,
+      financeCost: metrics.expense.financeCost,
+      depreciation: metrics.expense.depreciation,
+      amortization: metrics.expense.amortization,
+      otherExpenses: metrics.expense.otherExpenses
+    };
+
+    let pyResult = null;
+    try {
+      pyResult = await runPythonCalculation("profit_loss.calculate", rawInputPayload);
+    } catch (pyErr) {
+      console.warn("⚠️ Python calculation failed in /generate, falling back:", pyErr.message);
+    }
+
+    const { insights, recommendations } = pyResult ? { insights: pyResult.aiInsights, recommendations: pyResult.aiRecommendations } : generateAIInsights(
       metrics.revenue.total,
       metrics.expense.total,
       metrics.netProfit,
@@ -263,7 +304,7 @@ router.get("/generate", async (req, res) => {
       serviceIncome: 0,
       interestIncome: 0,
       otherIncome: metrics.revenue.bookkeepingIncome + metrics.revenue.inventorySales,
-      totalRevenue: metrics.revenue.total,
+      totalRevenue: pyResult ? pyResult.totalRevenue : metrics.revenue.total,
       
       costOfMaterials: metrics.expense.costOfMaterials + metrics.expense.cogs,
       salaries: metrics.expense.salaries,
@@ -273,11 +314,11 @@ router.get("/generate", async (req, res) => {
       depreciation: metrics.expense.depreciation,
       amortization: metrics.expense.amortization,
       otherExpenses: metrics.expense.otherExpenses,
-      totalExpenses: metrics.expense.total,
+      totalExpenses: pyResult ? pyResult.totalExpenses : metrics.expense.total,
       
-      netProfit: metrics.netProfit,
-      profitMargin: metrics.profitMargin,
-      profitable: metrics.netProfit > 0,
+      netProfit: pyResult ? pyResult.netProfit : metrics.netProfit,
+      profitMargin: pyResult ? pyResult.profitMargin : metrics.profitMargin,
+      profitable: pyResult ? pyResult.profitable : (metrics.netProfit > 0),
       aiInsights: insights,
       aiRecommendations: recommendations
     });

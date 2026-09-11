@@ -136,23 +136,12 @@ const BalanceSheet = () => {
     const nonCurrentLiabilities = sumFields(nonCurrentLiabilityFields);
     const equity = sumFields(equityFields);
 
-    // Calculate totals like Python file
-    const totalAssets = currentAssets + nonCurrentAssets;
-    const totalLiabilities = currentLiabilities + nonCurrentLiabilities;
-    const totalLiabilitiesEquity = totalLiabilities + equity;
-
-    const balanced = Math.abs(totalAssets - totalLiabilitiesEquity) < 0.01;
-
-    const dataToSave = {
+    const rawPayload = {
       currentAssets,
       nonCurrentAssets,
-      totalAssets,
       currentLiabilities,
       nonCurrentLiabilities,
-      totalLiabilities,
       equity,
-      totalLiabilitiesEquity,
-      balanced,
       companyName: getReportCompanyName(formData.companyName),
       financialYear: formData.financialYear,
       breakdown: {
@@ -168,18 +157,21 @@ const BalanceSheet = () => {
       },
     };
 
-    setBalanceSheet(dataToSave);
-
     try {
       const res = await fetch(`${API_ENDPOINTS.BALANCE}/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSave),
+        body: JSON.stringify(rawPayload),
       });
-      const result = await res.json();
-      if (!res.ok) console.error("Error saving data:", result);
+
+      const resData = await res.json();
+      if (res.ok && resData.data) {
+        setBalanceSheet(resData.data);
+      } else {
+        console.error("Error saving balance sheet:", resData);
+      }
     } catch (error) {
-      console.error("Error connecting to backend:", error);
+      console.error("Error saving balance sheet:", error);
     }
   };
 
@@ -621,14 +613,11 @@ const BalanceSheet = () => {
                       <Input
                         id={id}
                         type="number"
-                        placeholder={placeholder}
+                        placeholder="Auto-synced from Store"
+                        readOnly={true}
                         value={formData[id]}
                         onChange={(e) => handleInputChange(id, e.target.value)}
-                        className="h-12 rounded-[18px] border-slate-200 bg-white/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300"
-                      />
-                      <VoiceButton
-                        onTranscript={(text) => handleInputChange(id, text)}
-                        onClear={() => handleInputChange(id, "")}
+                        className="h-12 rounded-[18px] border-slate-200 bg-slate-100/80 text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:ring-0 transition-all duration-300 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -639,8 +628,8 @@ const BalanceSheet = () => {
                 onClick={generateBalanceSheet}
                 className="w-full h-14 rounded-full bg-slate-950 text-lg font-semibold text-white shadow-[0_20px_48px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
               >
-                <Calculator className="mr-2 h-5 w-5" />
-                Generate Balance Sheet
+                <Calculator className="mr-2 h-5 w-5 text-yellow-300" />
+                Auto-Generate Balance Sheet from Store (Inventory + Invoices)
               </Button>
             </CardContent>
           </Card>
