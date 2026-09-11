@@ -281,7 +281,7 @@ app.post("/api/signup-trial", async (req, res) => {
 // ✅ LOGIN (Sign In)
 app.post("/api/signin", async (req, res) => {
   try {
-    const { email, password, role = "admin" } = req.body;
+    const { email, password, role } = req.body;
 
     if (!email || !password)
       return res.status(400).json({ message: "Email and password are required" });
@@ -290,19 +290,27 @@ app.post("/api/signin", async (req, res) => {
     if (!user) return res.status(400).json({ message: "User not found" });
 
     let validPass = false;
-    if (role === "instore") {
-      if (user.storePassword) {
-        validPass = await bcrypt.compare(password, user.storePassword);
-      } else {
-        validPass = await bcrypt.compare(password, user.password);
+    let authenticatedRole = "admin";
+
+    // 1. First check if password matches Admin Password
+    const isAdminPass = await bcrypt.compare(password, user.password);
+    if (isAdminPass) {
+      validPass = true;
+      authenticatedRole = "admin";
+    } else if (user.storePassword) {
+      // 2. Next check if password matches Store Password
+      const isStorePass = await bcrypt.compare(password, user.storePassword);
+      if (isStorePass) {
+        validPass = true;
+        authenticatedRole = "instore";
       }
-      if (!validPass) return res.status(400).json({ message: "Invalid store password" });
-    } else {
-      validPass = await bcrypt.compare(password, user.password);
-      if (!validPass) return res.status(400).json({ message: "Invalid admin password" });
     }
 
-    const token = jwt.sign({ id: user._id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    if (!validPass) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const token = jwt.sign({ id: user._id, role: authenticatedRole }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.json({
       message: "Login successful",
@@ -311,7 +319,7 @@ app.post("/api/signin", async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        role: role,
+        role: authenticatedRole,
         subscriptionStatus: user.subscriptionStatus,
         subscriptionPlan: user.subscriptionPlan,
         subscriptionAmount: user.subscriptionAmount,
@@ -441,7 +449,7 @@ app.get("/api/user", verifyToken, async (req, res) => {
       email: user.email,
       name: user.name,
       id: user._id,
-      role: user.role || "admin",
+      role: req.user?.role || user.role || "admin",
       subscriptionStatus: user.subscriptionStatus,
       subscriptionPlan: user.subscriptionPlan,
       subscriptionAmount: user.subscriptionAmount,
