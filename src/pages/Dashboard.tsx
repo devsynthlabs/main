@@ -368,11 +368,23 @@ const Dashboard = () => {
           return response?.ok ? response.json() : null;
         };
 
-        const invoicesRes = await apiRequest(`${API_ENDPOINTS.INVOICE}/all?limit=100`).catch(() => null);
+        let backendInvoices: any[] = [];
+        const invoicesRes = await apiRequest(`${API_ENDPOINTS.INVOICE}/all?limit=500`).catch(() => null);
         if (invoicesRes && invoicesRes.ok) {
           const parsed = await invoicesRes.json();
-          if (parsed && parsed.invoices) setAllInvoices(parsed.invoices);
+          if (parsed && parsed.invoices) backendInvoices = parsed.invoices;
         }
+
+        // Merge backend invoices and localStorage invoices to guarantee local work is visible
+        const localInvoices: any[] = JSON.parse(localStorage.getItem('savedInvoices') || '[]');
+        const invoiceMap = new Map();
+        [...localInvoices, ...backendInvoices].forEach(inv => {
+          const key = inv.invoiceNo || inv.invoiceNumber || inv._id || inv.id;
+          if (key && !invoiceMap.has(key)) {
+            invoiceMap.set(key, inv);
+          }
+        });
+        setAllInvoices(Array.from(invoiceMap.values()));
 
         const purchasesRes = await apiRequest(`${API_BASE_URL}/purchase-invoice/all`).catch(() => null);
         if (purchasesRes && purchasesRes.ok) {
@@ -431,64 +443,84 @@ const Dashboard = () => {
 
   // Update calculations whenever period or raw data changes
   useEffect(() => {
-    const filteredInvoices = allInvoices.filter(inv => !inv.isDeleted && inv.status !== 'cancelled' && isDateInPeriod(inv.invoiceDate, selectedPeriod));
+    const filteredInvoices = allInvoices.filter(inv => !inv.isDeleted && inv.status !== 'cancelled' && isDateInPeriod(inv.invoiceDate || inv.createdAt, selectedPeriod));
     const filteredPurchases = allPurchaseInvoices.filter(inv => !inv.isDeleted && isDateInPeriod(inv.createdAt || inv.billDate, selectedPeriod));
 
-    const revenue = filteredInvoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
+    // Calculate Receivables (total unpaid balance owed TO us by customers)
+    const invoiceReceivables = allInvoices.reduce((sum, inv) => {
+      if (inv.isDeleted || inv.status === 'cancelled') return sum;
+      if (!isDateInPeriod(inv.invoiceDate || inv.createdAt, selectedPeriod)) return sum;
+      
+      const total = inv.grandTotal || inv.total || 0;
+      const paid = inv.paid !== undefined ? inv.paid : (inv.amountPaid || 0);
+      const balance = inv.balance !== undefined ? inv.balance : Math.max(0, total - paid);
+      return sum + Math.max(0, balance);
+    }, 0);
+
+    // Calculate Payables (total unpaid balance WE owe to suppliers)
+    const purchasePayables = allPurchaseInvoices.reduce((sum, inv) => {
+      if (inv.isDeleted) return sum;
+      if (!isDateInPeriod(inv.createdAt || inv.billDate, selectedPeriod)) return sum;
+
+      const total = inv.total || 0;
+      const paid = inv.paid !== undefined ? inv.paid : (inv.amountPaid || 0);
+      const balance = inv.balance !== undefined ? inv.balance : Math.max(0, total - paid);
+      return sum + Math.max(0, balance);
+    }, 0);
+
+    const revenue = filteredInvoices.reduce((sum, inv) => sum + (inv.grandTotal || inv.total || 0), 0);
     const purchaseExpenses = filteredPurchases.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
     const selectedPeriodBookkeeping = allBookkeepingEntries.filter(entry => !entry.isDeleted && isDateInPeriod(entry.date, selectedPeriod));
     const bkIncome = selectedPeriodBookkeeping.reduce((sum, entry) => entry.type === "income" ? sum + toNumber(entry.amount) : sum, 0);
     const bkExpense = selectedPeriodBookkeeping.reduce((sum, entry) => entry.type === "expense" ? sum + toNumber(entry.amount) : sum, 0);
 
-    if (plGen && cfGen) {
-      const netProf = plGen.netProfit || 0;
-      setDashboardStats([
-        { title: "Total Receivables", amount: cfGen.cashFlow?.receivables > 0 ? formatCurrency(cfGen.cashFlow.receivables) : (bkIncome > 0 ? formatCurrency(bkIncome) : "₹0.00"), trend: "", isPositive: true, hasData: true, iconColor: "text-[#006aff]", icon: TrendingUp },
-        { title: "Total Payables", amount: cfGen.cashFlow?.payables > 0 ? formatCurrency(cfGen.cashFlow.payables) : (bkExpense > 0 ? formatCurrency(bkExpense) : "₹0.00"), trend: "", isPositive: true, hasData: true, iconColor: "text-[#f0483e]", icon: Receipt },
-        { title: "Net Profit", amount: formatCurrency(netProf), trend: "", isPositive: netProf >= 0, hasData: netProf !== 0, iconColor: "text-[#00b365]", icon: BarChart2 },
-        { title: "GST Payable", amount: (cfGen.cashFlow?.gstPayable && cfGen.cashFlow.gstPayable > 0) ? formatCurrency(cfGen.cashFlow.gstPayable) : "₹0.00", trend: "", isPositive: true, hasData: (cfGen.cashFlow?.gstPayable !== undefined && cfGen.cashFlow.gstPayable > 0), iconColor: "text-[#0288d1]", icon: Receipt },
-      ]);
+    const calcReceivables = invoiceReceivables > 0 
+      ? invoiceReceivables 
+      : ((cfGen?.cashFlow?.receivables > 0) ? cfGen.cashFlow.receivables : bkIncome);
 
-      setPlSummaryData({
-        totalRevenue: plGen.totalRevenue || 0,
-        totalExpenses: plGen.totalExpenses || 0,
-        netProfit: netProf,
-        grossProfitMargin: plGen.totalRevenue > 0 ? (((plGen.totalRevenue - (plGen.costOfMaterials || 0)) / plGen.totalRevenue) * 100) : 0,
-        netProfitMargin: plGen.profitMargin || 0
-      });
-    } else {
-      const fallbackProfit = bkIncome - bkExpense;
-      setDashboardStats([
-        { title: "Total Receivables", amount: bkIncome > 0 ? formatCurrency(bkIncome) : "₹0.00", trend: "", isPositive: true, hasData: true, iconColor: "text-[#006aff]", icon: TrendingUp },
-        { title: "Total Payables", amount: bkExpense > 0 ? formatCurrency(bkExpense) : "₹0.00", trend: "", isPositive: true, hasData: true, iconColor: "text-[#f0483e]", icon: Receipt },
-        { title: "Net Profit", amount: fallbackProfit !== 0 ? formatCurrency(fallbackProfit) : "₹0.00", trend: "", isPositive: fallbackProfit >= 0, hasData: fallbackProfit !== 0, iconColor: "text-[#00b365]", icon: BarChart2 },
-        { title: "GST Payable", amount: "₹0.00", trend: "", isPositive: true, hasData: false, iconColor: "text-[#0288d1]", icon: Receipt },
-      ]);
+    const calcPayables = purchasePayables > 0 
+      ? purchasePayables 
+      : ((cfGen?.cashFlow?.payables > 0) ? cfGen.cashFlow.payables : bkExpense);
 
-      setPlSummaryData({
-        totalRevenue: bkIncome || revenue,
-        totalExpenses: bkExpense || purchaseExpenses,
-        netProfit: fallbackProfit,
-        grossProfitMargin: revenue > 0 ? ((revenue - purchaseExpenses) / revenue) * 100 : 0,
-        netProfitMargin: revenue > 0 ? (fallbackProfit / revenue) * 100 : 0
-      });
-    }
+    const netProf = plGen?.netProfit !== undefined ? plGen.netProfit : (bkIncome - bkExpense);
 
-    const selectedPeriodInvoices = allInvoices.filter(inv => isDateInPeriod(inv.invoiceDate, selectedPeriod));
+    setDashboardStats([
+      { title: "Total Receivables", amount: formatCurrency(calcReceivables), trend: "", isPositive: true, hasData: true, iconColor: "text-[#006aff]", icon: TrendingUp },
+      { title: "Total Payables", amount: formatCurrency(calcPayables), trend: "", isPositive: true, hasData: true, iconColor: "text-[#f0483e]", icon: Receipt },
+      { title: "Net Profit", amount: formatCurrency(netProf), trend: "", isPositive: netProf >= 0, hasData: netProf !== 0, iconColor: "text-[#00b365]", icon: BarChart2 },
+      { title: "GST Payable", amount: (cfGen?.cashFlow?.gstPayable && cfGen.cashFlow.gstPayable > 0) ? formatCurrency(cfGen.cashFlow.gstPayable) : "₹0.00", trend: "", isPositive: true, hasData: (cfGen?.cashFlow?.gstPayable !== undefined && cfGen.cashFlow.gstPayable > 0), iconColor: "text-[#0288d1]", icon: Receipt },
+    ]);
+
+    setPlSummaryData({
+      totalRevenue: plGen?.totalRevenue || revenue || bkIncome,
+      totalExpenses: plGen?.totalExpenses || purchaseExpenses || bkExpense,
+      netProfit: netProf,
+      grossProfitMargin: revenue > 0 ? (((revenue - purchaseExpenses) / revenue) * 100) : 0,
+      netProfitMargin: revenue > 0 ? ((netProf / revenue) * 100) : 0
+    });
+
+    const selectedPeriodInvoices = allInvoices.filter(inv => !inv.isDeleted && isDateInPeriod(inv.invoiceDate || inv.createdAt, selectedPeriod));
     const mappedInvoices = selectedPeriodInvoices.slice(0, 5).map((inv: any) => {
       let statusColor = "bg-[#f4f5f8] text-[#555] border border-[#ddd]";
-      const statusStr = inv.status || "draft";
+      const paidVal = inv.paid !== undefined ? inv.paid : (inv.amountPaid || 0);
+      const totalVal = inv.grandTotal || inv.total || 0;
+      const balVal = inv.balance !== undefined ? inv.balance : Math.max(0, totalVal - paidVal);
+
+      let statusStr = inv.status || "draft";
+      if (balVal <= 0 && totalVal > 0) statusStr = "paid";
+      else if (inv.saleType === "credit" || balVal > 0) statusStr = "due";
+
       if (statusStr === "paid") statusColor = "bg-[#e6f8ef] text-[#00b365] border border-[#00b365]/30";
-      else if (statusStr === "sent" || statusStr === "viewed") statusColor = "bg-[#e8f2ff] text-[#006aff] border border-[#006aff]/30";
+      else if (statusStr === "due" || statusStr === "sent" || statusStr === "viewed") statusColor = "bg-[#fde9e8] text-[#f0483e] border border-[#f0483e]/30";
       else if (statusStr === "overdue") statusColor = "bg-[#fde9e8] text-[#f0483e] border border-[#f0483e]/30";
       else if (statusStr === "draft") statusColor = "bg-[#fff8e1] text-[#f57c00] border border-[#f57c00]/30";
 
       return {
-        id: inv.invoiceNumber || "INV-UNKNOWN",
-        company: inv.customerName || "Unknown Client",
-        amount: `₹${inv.grandTotal ? inv.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "0.00"}`,
-        status: statusStr.charAt(0).toUpperCase() + statusStr.slice(1),
+        id: inv.invoiceNo || inv.invoiceNumber || inv._id || "INV-UNKNOWN",
+        company: inv.partyName || inv.customerName || "Customer",
+        amount: `₹${totalVal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+        status: statusStr.toUpperCase(),
         statusColor,
         rawDate: inv.invoiceDate || inv.createdAt
       };

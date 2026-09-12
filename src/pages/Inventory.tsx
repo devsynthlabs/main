@@ -173,9 +173,6 @@ const Inventory = () => {
         stateOfSupply: ""
     });
 
-    const [userTemplates, setUserTemplates] = useState<any[]>([]);
-    const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-
     // Full Purchase Invoice Template Config matching InvoiceTemplateEditor.tsx
     const DEFAULT_PURCHASE_CONFIG = {
         header: {
@@ -297,6 +294,18 @@ const Inventory = () => {
         ]
     };
 
+    const DEFAULT_PURCHASE_TEMPLATE_ITEM = {
+        _id: "default-amber-purchase-template",
+        name: "Amber Gold Purchase Bill (Default)",
+        description: "Standard warm gold purchase invoice layout for retail & supermarket inventory.",
+        status: "active",
+        isDefault: true,
+        config: DEFAULT_PURCHASE_CONFIG
+    };
+
+    const [userTemplates, setUserTemplates] = useState<any[]>([DEFAULT_PURCHASE_TEMPLATE_ITEM]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default-amber-purchase-template");
+
     const [isPurchaseTemplateModalOpen, setIsPurchaseTemplateModalOpen] = useState(false);
     const [isEditingPurchaseTemplate, setIsEditingPurchaseTemplate] = useState(false);
     const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
@@ -332,7 +341,7 @@ const Inventory = () => {
             });
             if (res.ok) {
                 const result = await res.json();
-                const list = result.data || [];
+                const list = (result.data && result.data.length > 0) ? result.data : [DEFAULT_PURCHASE_TEMPLATE_ITEM];
                 setUserTemplates(list);
                 const def = list.find((t: any) => t.isDefault);
                 if (def) {
@@ -340,9 +349,14 @@ const Inventory = () => {
                 } else if (list.length > 0) {
                     setSelectedTemplateId(list[0]._id);
                 }
+            } else {
+                setUserTemplates([DEFAULT_PURCHASE_TEMPLATE_ITEM]);
+                setSelectedTemplateId("default-amber-purchase-template");
             }
         } catch (err) {
             console.error("Error loading purchase templates:", err);
+            setUserTemplates([DEFAULT_PURCHASE_TEMPLATE_ITEM]);
+            setSelectedTemplateId("default-amber-purchase-template");
         }
     };
 
@@ -999,6 +1013,128 @@ const Inventory = () => {
         a.click();
         window.URL.revokeObjectURL(url);
         toast.success("Purchase invoice exported to CSV!");
+    };
+
+    // Export all purchase history invoices to CSV
+    const exportPurchaseHistoryToCSV = () => {
+        if (!purchaseInvoices || purchaseInvoices.length === 0) {
+            toast.error("No purchase bills found in history to export.");
+            return;
+        }
+
+        const esc = (s: any) => `"${String(s || '').replace(/"/g, '""')}"`;
+
+        const headers = [
+            "Bill No",
+            "Bill Date",
+            "Supplier Name",
+            "Phone No",
+            "Supplier GSTIN",
+            "Customer Type",
+            "Payment Method",
+            "Items Count",
+            "Items Breakdown",
+            "Grand Total (INR)",
+            "Amount Paid (INR)",
+            "Balance Due (INR)"
+        ];
+
+        let csvContent = headers.join(",") + "\n";
+
+        purchaseInvoices.forEach(inv => {
+            const itemsSummary = (inv.items || [])
+                .map((item: any) => `${item.itemName || 'Item'} (${item.quantity || 1} ${item.unit || 'Pcs'} @ ₹${item.pricePerUnit || 0})`)
+                .join("; ");
+
+            const grandTotal = inv.total || 0;
+            const paid = inv.paid || 0;
+            const balance = inv.balance ?? (grandTotal - paid);
+
+            const row = [
+                esc(inv.billNo),
+                esc(inv.billDate),
+                esc(inv.supplierName || inv.partyName),
+                esc(inv.phone || inv.phoneNo),
+                esc(inv.gstin || inv.sellerGSTIN || ''),
+                esc(inv.customerType || 'B2C'),
+                esc(inv.paymentMethod || inv.saleType || 'CASH'),
+                inv.items?.length || 0,
+                esc(itemsSummary),
+                grandTotal.toFixed(2),
+                paid.toFixed(2),
+                balance.toFixed(2)
+            ];
+
+            csvContent += row.join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchase_history_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success(`Exported ${purchaseInvoices.length} purchase bill(s) to CSV!`);
+    };
+
+    // Export all inventory items to CSV
+    const exportInventoryItemsToCSV = () => {
+        if (!filteredItems || filteredItems.length === 0) {
+            toast.error("No inventory items to export.");
+            return;
+        }
+        const esc = (s: any) => `"${String(s || '').replace(/"/g, '""')}"`;
+        const headers = ["Item Name", "Category", "Quantity", "Price (INR)", "Status", "Low Stock Alert"];
+        let csvContent = headers.join(",") + "\n";
+        filteredItems.forEach(item => {
+            const row = [
+                esc(item.name),
+                esc(item.category || 'General'),
+                item.quantity,
+                item.price,
+                esc(item.quantity <= 0 ? 'Out of Stock' : item.quantity <= (item.lowStockThreshold || 5) ? 'Low Stock' : 'In Stock'),
+                item.quantity <= (item.lowStockThreshold || 5) ? 'Yes' : 'No'
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `inventory_items_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success(`Exported ${filteredItems.length} inventory item(s) to CSV!`);
+    };
+
+    // Export all sales history records to CSV
+    const exportSalesHistoryToCSV = () => {
+        if (!sales || sales.length === 0) {
+            toast.error("No sales history to export.");
+            return;
+        }
+        const esc = (s: any) => `"${String(s || '').replace(/"/g, '""')}"`;
+        const headers = ["Date", "Item Name", "Quantity Sold", "Total Amount (INR)", "Payment Method"];
+        let csvContent = headers.join(",") + "\n";
+        sales.forEach(sale => {
+            const row = [
+                esc(sale.date ? new Date(sale.date).toLocaleDateString() : ''),
+                esc(sale.itemName || sale.productName || 'Item'),
+                sale.quantity || 1,
+                (sale.totalAmount || sale.amount || 0).toFixed(2),
+                esc(sale.paymentMethod || 'Cash')
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sales_history_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success(`Exported ${sales.length} sales history record(s) to CSV!`);
     };
 
     // Print purchase invoice - open public view in new tab
@@ -1862,6 +1998,13 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                             onTranscript={(text) => setSearchTerm(text)}
                                             onClear={() => setSearchTerm("")}
                                         />
+                                        <Button
+                                            onClick={activeSubTab === "instock" ? exportInventoryItemsToCSV : exportSalesHistoryToCSV}
+                                            className="h-10 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold flex items-center gap-2 shadow-sm transition-all"
+                                        >
+                                            <Download className="h-4 w-4" />
+                                            Export CSV
+                                        </Button>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -2371,7 +2514,7 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <Label className="text-amber-100 flex items-center gap-1.5">
@@ -2425,40 +2568,7 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-amber-100">Invoice Size</Label>
-                                                <Select
-                                                    value={purchaseInvoice.invoiceSize}
-                                                    onValueChange={(val: PurchaseInvoice["invoiceSize"]) => setPurchaseInvoice(prev => ({ ...prev, invoiceSize: val }))}
-                                                >
-                                                    <SelectTrigger className="bg-white/5 border-amber-400/30 text-amber-100">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-900 border-amber-400/20 text-white">
-                                                        {INVOICE_SIZES.map(size => (
-                                                            <SelectItem key={size} value={size}>{size}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-amber-100">Invoice Format</Label>
-                                                <Select
-                                                    value={purchaseInvoice.invoiceFormat}
-                                                    onValueChange={(val: PurchaseInvoice["invoiceFormat"]) => setPurchaseInvoice(prev => ({ ...prev, invoiceFormat: val }))}
-                                                >
-                                                    <SelectTrigger className="bg-white/5 border-amber-400/30 text-amber-100">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-900 border-amber-400/20 text-white">
-                                                        {INVOICE_FORMATS.map(format => (
-                                                            <SelectItem key={format} value={format}>{format}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
                                         </div>
-
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-amber-100">Supplier Name *</Label>
@@ -2857,9 +2967,9 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                                     <Printer className="h-4 w-4 mr-1" />
                                                     Print
                                                 </Button>
-                                                <Button onClick={copyPurchaseDetails} variant="outline" className="py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
-                                                    <Copy className="h-4 w-4 mr-1" />
-                                                    Copy
+                                                <Button onClick={resetPurchaseForm} variant="outline" className="py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
+                                                    <Trash2 className="h-4 w-4 mr-1" />
+                                                    Clear
                                                 </Button>
                                             </div>
 
@@ -2870,29 +2980,6 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                                 <MessageCircle className="h-5 w-5" />
                                                 Share on WhatsApp
                                             </button>
-
-                                            <Button
-                                                onClick={saveAndNewPurchase}
-                                                disabled={isPurchaseSaving || purchaseInvoice.items.length === 0}
-                                                variant="outline"
-                                                className="w-full py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl"
-                                            >
-                                                <Plus className="h-4 w-4 mr-1" />
-                                                Save & New
-                                            </Button>
-
-                                            <Button onClick={exportPurchaseCSV} variant="outline" className="w-full py-2 bg-white/5 border-amber-400/30 text-amber-200 hover:bg-white/10 text-sm rounded-xl">
-                                                <Download className="h-4 w-4 mr-1" />
-                                                Export CSV
-                                            </Button>
-
-                                            <Button
-                                                variant="outline"
-                                                onClick={resetPurchaseForm}
-                                                className="w-full border-amber-400/30 text-amber-300 hover:bg-white/5 rounded-xl"
-                                            >
-                                                Reset Form
-                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -2910,15 +2997,24 @@ Balance: ${purchaseInvoice.balance.toFixed(2)}`;
                                             {purchaseInvoices.length} purchase bill{purchaseInvoices.length !== 1 ? 's' : ''} recorded
                                         </p>
                                     </div>
-                                    <div className="relative w-full md:w-72">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-300/60" />
-                                        <Input
-                                            type="text"
-                                            placeholder="Search by Bill No, Supplier..."
-                                            value={purchaseSearchTerm}
-                                            onChange={(e) => setPurchaseSearchTerm(e.target.value)}
-                                            className="pl-9 bg-white/5 border-amber-400/30 text-amber-100 placeholder:text-amber-300/50 rounded-xl"
-                                        />
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                                        <div className="relative w-full md:w-72">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-300/60" />
+                                            <Input
+                                                type="text"
+                                                placeholder="Search by Bill No, Supplier..."
+                                                value={purchaseSearchTerm}
+                                                onChange={(e) => setPurchaseSearchTerm(e.target.value)}
+                                                className="pl-9 bg-white/5 border-amber-400/30 text-amber-100 placeholder:text-amber-300/50 rounded-xl"
+                                            />
+                                        </div>
+                                        <Button
+                                            onClick={exportPurchaseHistoryToCSV}
+                                            className="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold flex items-center gap-2 shadow-sm transition-all"
+                                        >
+                                            <Download className="h-4 w-4" />
+                                            Export CSV
+                                        </Button>
                                     </div>
                                 </div>
 
