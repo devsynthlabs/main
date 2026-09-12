@@ -498,6 +498,7 @@ const AutomationInvoice = () => {
 
   // Search state for history
   const [searchTerm, setSearchTerm] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'sales' | 'purchase'>('all');
 
   // Customers list and suggestions
   const [customersList, setCustomersList] = useState<any[]>([]);
@@ -2232,6 +2233,9 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
 
   // Filter invoice history
   const filteredHistory = invoiceHistory.filter(invoice => {
+    if (historyFilter === 'sales' && invoice.type !== 'sales') return false;
+    if (historyFilter === 'purchase' && invoice.type !== 'purchase') return false;
+
     const query = searchTerm.toLowerCase().trim();
     if (!query) return true;
     return [
@@ -4125,15 +4129,44 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                   </h2>
                   <p className="text-slate-500 mt-1">{invoiceHistory.length} invoice{invoiceHistory.length !== 1 ? 's' : ''} saved</p>
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="Search invoices..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 py-2.5 h-11 border border-slate-200 text-slate-900 rounded-[14px] focus:ring-2 focus:ring-slate-350 focus:border-slate-350 w-full sm:w-64"
-                  />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200">
+                    <button
+                      onClick={() => setHistoryFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        historyFilter === 'all' ? 'bg-slate-950 text-white shadow' : 'text-slate-600 hover:text-slate-950'
+                      }`}
+                    >
+                      All ({invoiceHistory.length})
+                    </button>
+                    <button
+                      onClick={() => setHistoryFilter('sales')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        historyFilter === 'sales' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 hover:text-slate-950'
+                      }`}
+                    >
+                      Sales ({invoiceHistory.filter(i => i.type === 'sales').length})
+                    </button>
+                    <button
+                      onClick={() => setHistoryFilter('purchase')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        historyFilter === 'purchase' ? 'bg-amber-600 text-white shadow' : 'text-slate-600 hover:text-slate-950'
+                      }`}
+                    >
+                      Purchase ({invoiceHistory.filter(i => i.type === 'purchase').length})
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Search invoices..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-12 pr-4 py-2.5 h-11 border border-slate-200 text-slate-900 rounded-[14px] focus:ring-2 focus:ring-slate-350 focus:border-slate-350 w-full sm:w-64"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -4148,22 +4181,26 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                         <div>
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-bold text-lg text-slate-900">{invoice.invoiceNo}</h3>
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
-                              {invoice.type === 'sales' ? 'SALES' : 'PURCHASE'}
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              invoice.type === 'sales'
+                                ? 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            }`}>
+                              {invoice.type === 'sales' ? 'SALES INVOICE' : 'PURCHASE BILL'}
                             </span>
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100">
                               {invoice.transactionType || 'B2C'}
                             </span>
                           </div>
                           <p className="text-slate-650 text-sm">
-                            {invoice.partyName} | {invoice.invoiceDate}
+                            {invoice.type === 'purchase' ? 'Supplier: ' : 'Customer: '}{invoice.partyName} | {invoice.invoiceDate}
                           </p>
                           <p className="text-slate-500 text-xs mt-1">
-                            {invoice.items.length} items | {invoice.saleType?.toUpperCase()} | {invoice.invoiceSize || 'A4'}
+                            {invoice.items.length} items | {invoice.saleType?.toUpperCase() || 'CASH'} | {invoice.invoiceSize || 'A4'}
                             {invoice.dueReminderDate ? ` | Reminder: ${invoice.dueReminderDate}` : ''}
                           </p>
                         </div>
-                        <div className="flex items-center justify-between md:justify-end gap-4">
+                        <div className="flex items-center justify-between md:justify-end gap-3">
                           <div className="text-right">
                             <p className="text-xl font-bold text-slate-950">
                               ₹{invoice.total.toFixed(2)}
@@ -4172,6 +4209,22 @@ Balance: ₹${currentInvoice.balance.toFixed(2)}`;
                               <p className="text-rose-700 text-sm font-semibold">Due: ₹{invoice.balance.toFixed(2)}</p>
                             )}
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const id = (invoice as any).id || (invoice as any)._id;
+                              if (invoice.type === 'purchase') {
+                                window.open(`/purchase-invoice/view/${id}`, '_blank');
+                              } else {
+                                window.open(`/invoice/view/${id}`, '_blank');
+                              }
+                            }}
+                            className="rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          >
+                            <Printer className="mr-1.5 h-4 w-4" />
+                            View
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"

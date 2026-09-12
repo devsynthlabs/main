@@ -57,6 +57,8 @@ const purchaseInvoiceSchema = new mongoose.Schema({
     total: { type: Number, default: 0 },
     paid: { type: Number, default: 0 },
     balance: { type: Number, default: 0 },
+    templateId: { type: String, default: "" },
+    templateSnapshot: { type: Object, default: null },
     createdAt: { type: Date, default: Date.now },
 });
 
